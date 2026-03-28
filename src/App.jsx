@@ -73,7 +73,7 @@ export default function App() {
 
   // ── UI state ──────────────────────────────────────────────────────────────
   const { toasts, addToast, removeToast } = useToast()
-  const [view, setView]               = useState('projects')
+  const [view, setView]               = useState(() => window.innerWidth < 768 ? 'leads' : 'projects')
   const [selectedId, setSelectedId]   = useState(null)
   const [search, setSearch]           = useState('')
   const [filters, setFilters]         = useState({ status: 'all', category: 'all' })
