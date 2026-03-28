@@ -167,7 +167,7 @@ select:focus {
 /* iOS Safari : empêche le zoom auto au focus sur les champs (déclenché si font-size < 16px) */
 @media (max-width: 767px) {
   input, textarea, select {
-    font-size: 16px;
+    font-size: 16px !important;
   }
 }
 
