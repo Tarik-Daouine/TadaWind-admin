@@ -63,7 +63,18 @@ function Select({ value, onChange, options }) {
 
 // ── Composant principal ────────────────────────────────────────────────────────
 
+function useIsMobile() {
+  const [mobile, setMobile] = useState(() => window.innerWidth < 768)
+  useEffect(() => {
+    const fn = () => setMobile(window.innerWidth < 768)
+    window.addEventListener('resize', fn)
+    return () => window.removeEventListener('resize', fn)
+  }, [])
+  return mobile
+}
+
 export default function LeadChatbot({ onCreateLead }) {
+  const mobile = useIsMobile()
   const [open, setOpen]         = useState(false)
   const [step, setStep]         = useState('input')   // 'input' | 'preview'
   const [text, setText]         = useState('')
@@ -114,8 +125,8 @@ export default function LeadChatbot({ onCreateLead }) {
         onClick={() => setOpen(true)}
         style={{
           position: 'fixed',
-          bottom: 24,
-          right: 24,
+          bottom: mobile ? 32 : 24,
+          right: mobile ? 16 : 24,
           zIndex: 200,
           display: 'flex',
           alignItems: 'center',
@@ -160,7 +171,7 @@ export default function LeadChatbot({ onCreateLead }) {
             style={{
               position: 'fixed',
               top: 0, right: 0,
-              width: 480,
+              width: mobile ? '100vw' : 480,
               height: '100vh',
               zIndex: 301,
               background: 'var(--s2)',

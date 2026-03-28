@@ -1,4 +1,14 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
+
+function useIsMobile() {
+  const [mobile, setMobile] = useState(() => window.innerWidth < 768)
+  useEffect(() => {
+    const fn = () => setMobile(window.innerWidth < 768)
+    window.addEventListener('resize', fn)
+    return () => window.removeEventListener('resize', fn)
+  }, [])
+  return mobile
+}
 
 const IconFilm = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -41,6 +51,7 @@ const IconLogout = () => (
 )
 
 export default function Sidebar({ view, onView, onSignOut, newLeadsCount = 0 }) {
+  const mobile = useIsMobile()
   const NAV_ITEMS = [
     { id: 'projects', label: 'Projets', icon: <IconFilm /> },
     { id: 'medias',   label: 'Médias',  icon: <IconGrid /> },
@@ -51,7 +62,7 @@ export default function Sidebar({ view, onView, onSignOut, newLeadsCount = 0 }) 
   return (
     <div
       style={{
-        width: 'var(--sidebar-w)',
+        width: mobile ? 52 : 'var(--sidebar-w)',
         height: '100vh',
         background: 'var(--s1)',
         borderRight: '1px solid var(--border)',
@@ -59,6 +70,7 @@ export default function Sidebar({ view, onView, onSignOut, newLeadsCount = 0 }) 
         flexDirection: 'column',
         flexShrink: 0,
         zIndex: 10,
+        transition: 'width 0.2s ease',
       }}
     >
       {/* Logo */}
@@ -67,37 +79,43 @@ export default function Sidebar({ view, onView, onSignOut, newLeadsCount = 0 }) 
           height: 'var(--topbar-h)',
           display: 'flex',
           alignItems: 'center',
-          padding: '0 20px',
+          justifyContent: mobile ? 'center' : 'flex-start',
+          padding: mobile ? 0 : '0 20px',
           borderBottom: '1px solid var(--border)',
-          gap: 10,
           flexShrink: 0,
         }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
-          <span style={{ fontFamily: 'var(--serif)', fontSize: 16, fontWeight: 700, color: 'var(--text)', letterSpacing: '0.02em' }}>
-            TADA WIND
-          </span>
-          <span style={{ fontSize: 10, color: 'var(--muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 2 }}>
-            — admin
-          </span>
-        </div>
+        {mobile ? (
+          <span style={{ fontFamily: 'var(--serif)', fontSize: 11, fontWeight: 700, color: 'var(--red)', letterSpacing: '0.02em' }}>TW</span>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+            <span style={{ fontFamily: 'var(--serif)', fontSize: 16, fontWeight: 700, color: 'var(--text)', letterSpacing: '0.02em' }}>
+              TADA WIND
+            </span>
+            <span style={{ fontSize: 10, color: 'var(--muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 2 }}>
+              — admin
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Nav */}
-      <nav style={{ padding: '12px 10px', flex: 1 }}>
+      <nav style={{ padding: mobile ? '12px 6px' : '12px 10px', flex: 1 }}>
         {NAV_ITEMS.map(item => {
           const isActive = view === item.id
           return (
             <button
               key={item.id}
               onClick={() => onView(item.id)}
+              title={mobile ? item.label : undefined}
               style={{
                 width: '100%',
-                padding: '8px 12px',
+                padding: mobile ? '10px 0' : '8px 12px',
                 borderRadius: 'var(--radius)',
                 display: 'flex',
-                gap: 10,
+                gap: mobile ? 0 : 10,
                 alignItems: 'center',
+                justifyContent: mobile ? 'center' : 'flex-start',
                 fontSize: 13,
                 fontWeight: 500,
                 cursor: 'pointer',
@@ -108,6 +126,7 @@ export default function Sidebar({ view, onView, onSignOut, newLeadsCount = 0 }) 
                 color: isActive ? 'var(--red)' : 'var(--muted)',
                 border: 'none',
                 fontFamily: 'var(--sans)',
+                position: 'relative',
               }}
               onMouseEnter={e => {
                 if (!isActive) {
@@ -123,13 +142,16 @@ export default function Sidebar({ view, onView, onSignOut, newLeadsCount = 0 }) 
               }}
             >
               {item.icon}
-              <span style={{ flex: 1 }}>{item.label}</span>
+              {!mobile && <span style={{ flex: 1 }}>{item.label}</span>}
               {item.badge > 0 && (
                 <span style={{
-                  fontSize: 10, fontWeight: 700,
-                  padding: '1px 6px', borderRadius: 20,
+                  fontSize: 9, fontWeight: 700,
+                  padding: '1px 4px', borderRadius: 20,
                   background: isActive ? 'var(--red)' : '#4f7ff3',
-                  color: '#fff', minWidth: 18, textAlign: 'center',
+                  color: '#fff', minWidth: 16, textAlign: 'center',
+                  position: mobile ? 'absolute' : 'static',
+                  top: mobile ? 6 : undefined,
+                  right: mobile ? 6 : undefined,
                 }}>
                   {item.badge}
                 </span>
@@ -140,32 +162,35 @@ export default function Sidebar({ view, onView, onSignOut, newLeadsCount = 0 }) 
       </nav>
 
       {/* Bottom */}
-      <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <a
-          href="/"
-          style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--muted)', cursor: 'pointer', transition: 'color 0.15s' }}
-          onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)' }}
-          onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted)' }}
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M19 12H5M12 5l-7 7 7 7"/>
-          </svg>
-          Voir le site
-        </a>
+      <div style={{ padding: mobile ? '12px 6px' : '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: mobile ? 'center' : 'flex-start', gap: 6 }}>
+        {!mobile && (
+          <a
+            href="/"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--muted)', cursor: 'pointer', transition: 'color 0.15s' }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)' }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted)' }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M19 12H5M12 5l-7 7 7 7"/>
+            </svg>
+            Voir le site
+          </a>
+        )}
 
         {onSignOut && (
           <button
             onClick={onSignOut}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--muted)', cursor: 'pointer', background: 'none', border: 'none', padding: 0, fontFamily: 'var(--sans)', transition: 'color 0.15s', textAlign: 'left' }}
+            title={mobile ? 'Se déconnecter' : undefined}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--muted)', cursor: 'pointer', background: 'none', border: 'none', padding: mobile ? '6px 0' : 0, fontFamily: 'var(--sans)', transition: 'color 0.15s', textAlign: 'left' }}
             onMouseEnter={e => { e.currentTarget.style.color = '#e57373' }}
             onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted)' }}
           >
             <IconLogout />
-            Se déconnecter
+            {!mobile && 'Se déconnecter'}
           </button>
         )}
 
-        <div style={{ fontSize: 10, color: 'var(--muted2)', letterSpacing: '0.06em' }}>v2.0</div>
+        {!mobile && <div style={{ fontSize: 10, color: 'var(--muted2)', letterSpacing: '0.06em' }}>v2.0</div>}
       </div>
     </div>
   )
