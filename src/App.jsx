@@ -1,4 +1,14 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+
+function useIsMobile() {
+  const [mobile, setMobile] = useState(() => window.innerWidth < 768)
+  useEffect(() => {
+    const fn = () => setMobile(window.innerWidth < 768)
+    window.addEventListener('resize', fn)
+    return () => window.removeEventListener('resize', fn)
+  }, [])
+  return mobile
+}
 import { useAuth } from './hooks/useAuth.js'
 import { useProjects } from './hooks/useProjects.js'
 import { useLeads } from './hooks/useLeads.js'
@@ -73,6 +83,8 @@ export default function App() {
   const [selectedLeadId, setSelectedLeadId]   = useState(null)
   const [deleteLeadModal, setDeleteLeadModal] = useState({ open: false, id: null, name: '' })
   const [deletingLead, setDeletingLead]       = useState(false)
+  const mobile                                = useIsMobile()
+  const [sidebarOpen, setSidebarOpen]         = useState(false)
 
   // ── Gardes auth ───────────────────────────────────────────────────────────
   if (authLoading) return <LoadingScreen message="Initialisation…" />
@@ -150,13 +162,30 @@ export default function App() {
   // ── Rendu ─────────────────────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      <Sidebar view={view} onView={setView} onSignOut={signOut} newLeadsCount={newLeadsCount} />
+      {/* Overlay sidebar mobile */}
+      {mobile && sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.5)' }}
+        />
+      )}
+      <div style={{
+        position: mobile ? 'fixed' : 'relative',
+        top: 0, left: 0, height: '100vh',
+        zIndex: mobile ? 60 : 'auto',
+        transform: mobile && !sidebarOpen ? 'translateX(-100%)' : 'translateX(0)',
+        transition: 'transform 0.25s ease',
+      }}>
+        <Sidebar view={view} onView={(v) => { setView(v); if (mobile) setSidebarOpen(false) }} onSignOut={signOut} newLeadsCount={newLeadsCount} />
+      </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Topbar
           search={search}
           onSearch={setSearch}
           onNewProject={handleNewProject}
+          mobile={mobile}
+          onMenuToggle={() => setSidebarOpen(p => !p)}
         />
 
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
@@ -246,28 +275,32 @@ export default function App() {
               </div>
             ) : (
               <>
-                <div style={{
-                  width: selectedLeadId ? 420 : '100%',
-                  flexShrink: 0,
-                  borderRight: selectedLeadId ? '1px solid var(--border)' : 'none',
-                  overflow: 'hidden',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  transition: 'width 0.25s ease',
-                }}>
-                  <LeadsList
-                    leads={leads}
-                    selectedId={selectedLeadId}
-                    onSelect={setSelectedLeadId}
-                    onDelete={handleDeleteLead}
-                    onStatutChange={async (id, statut) => {
-                      const { error } = await updateLead(id, { statut })
-                      if (error) addToast('Erreur lors du changement de statut', 'error')
-                      else addToast('Statut mis à jour', 'success')
-                    }}
-                    search={search}
-                  />
-                </div>
+                {/* Liste — masquée sur mobile si un lead est sélectionné */}
+                {(!mobile || !selectedLeadId) && (
+                  <div style={{
+                    width: (!mobile && selectedLeadId) ? 420 : '100%',
+                    flexShrink: 0,
+                    borderRight: (!mobile && selectedLeadId) ? '1px solid var(--border)' : 'none',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transition: 'width 0.25s ease',
+                  }}>
+                    <LeadsList
+                      leads={leads}
+                      selectedId={selectedLeadId}
+                      onSelect={setSelectedLeadId}
+                      onDelete={handleDeleteLead}
+                      onStatutChange={async (id, statut) => {
+                        const { error } = await updateLead(id, { statut })
+                        if (error) addToast('Erreur lors du changement de statut', 'error')
+                        else addToast('Statut mis à jour', 'success')
+                      }}
+                      search={search}
+                    />
+                  </div>
+                )}
+                {/* Détail — plein écran sur mobile */}
                 {selectedLeadId && (
                   <div style={{ flex: 1, overflow: 'hidden', animation: 'slideRight 0.2s ease both' }}>
                     <LeadDetail

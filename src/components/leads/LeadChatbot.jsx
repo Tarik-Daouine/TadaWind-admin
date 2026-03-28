@@ -226,12 +226,12 @@ export default function LeadChatbot({ onCreateLead }) {
                     value={text}
                     onChange={e => setText(e.target.value)}
                     placeholder="Ex: Camping du lac à Sarlat, très intéressé par un reportage drone pour l'été. Contact : M. Dupont. Rappeler en mai."
-                    rows={14}
+                    rows={mobile ? 8 : 14}
                     style={{
                       ...inputStyle,
                       resize: 'vertical',
                       lineHeight: 1.6,
-                      minHeight: 250,
+                      minHeight: mobile ? 150 : 250,
                     }}
                     autoFocus
                   />
@@ -359,6 +359,7 @@ export default function LeadChatbot({ onCreateLead }) {
             {/* Footer */}
             <div style={{
               padding: '12px 20px',
+              paddingBottom: mobile ? 'max(12px, env(safe-area-inset-bottom))' : '12px',
               borderTop: '1px solid var(--border)',
               display: 'flex',
               justifyContent: 'space-between',

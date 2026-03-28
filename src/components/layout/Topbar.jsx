@@ -61,7 +61,7 @@ function SyncButton({ label, icon, onClick, loading, synced }) {
   )
 }
 
-export default function Topbar({ search, onSearch, onNewProject }) {
+export default function Topbar({ search, onSearch, onNewProject, mobile, onMenuToggle }) {
   const [notionLoading, setNotionLoading] = useState(false)
   const [notionSynced, setNotionSynced] = useState(true)
   const [streamableLoading, setStreamableLoading] = useState(false)
@@ -96,8 +96,22 @@ export default function Topbar({ search, onSearch, onNewProject }) {
         flexShrink: 0,
       }}
     >
+      {/* Hamburger mobile */}
+      {mobile && (
+        <button
+          onClick={onMenuToggle}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', padding: 4, flexShrink: 0, display: 'flex', alignItems: 'center' }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+      )}
+
       {/* Search */}
-      <div style={{ position: 'relative', width: 260 }}>
+      <div style={{ position: 'relative', width: mobile ? '100%' : 260 }}>
         <span
           style={{
             position: 'absolute',
@@ -134,56 +148,40 @@ export default function Topbar({ search, onSearch, onNewProject }) {
       </div>
 
       {/* Spacer */}
-      <div style={{ flex: 1 }} />
+      {!mobile && <div style={{ flex: 1 }} />}
 
-      {/* Sync buttons */}
-      <SyncButton
-        label="Notion"
-        icon={
-          <span style={{
-            width: 16,
-            height: 16,
-            borderRadius: 4,
-            background: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 10,
-            fontWeight: 800,
-            color: '#000',
-            flexShrink: 0,
-          }}>N</span>
-        }
-        onClick={handleNotionSync}
-        loading={notionLoading}
-        synced={notionSynced}
-      />
-
-      <SyncButton
-        label="Streamable"
-        icon={
-          <span style={{
-            width: 16,
-            height: 16,
-            borderRadius: '50%',
-            background: 'var(--blue-dim)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 9,
-            color: 'var(--blue)',
-            flexShrink: 0,
-          }}>▶</span>
-        }
-        onClick={handleStreamableSync}
-        loading={streamableLoading}
-        synced={streamableSynced}
-      />
-
-      {/* New project */}
-      <Button variant="primary" size="sm" icon={<IconPlus />} onClick={onNewProject}>
-        Nouveau projet
-      </Button>
+      {/* Sync buttons + New project — masqués sur mobile */}
+      {!mobile && <>
+        <SyncButton
+          label="Notion"
+          icon={
+            <span style={{
+              width: 16, height: 16, borderRadius: 4, background: '#fff',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 10, fontWeight: 800, color: '#000', flexShrink: 0,
+            }}>N</span>
+          }
+          onClick={handleNotionSync}
+          loading={notionLoading}
+          synced={notionSynced}
+        />
+        <SyncButton
+          label="Streamable"
+          icon={
+            <span style={{
+              width: 16, height: 16, borderRadius: '50%', background: 'var(--blue-dim)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 9, color: 'var(--blue)', flexShrink: 0,
+            }}>▶</span>
+          }
+          onClick={handleStreamableSync}
+          loading={streamableLoading}
+          synced={streamableSynced}
+        />
+        <Button variant="primary" size="sm" icon={<IconPlus />} onClick={onNewProject}>
+          Nouveau projet
+        </Button>
+      </>}
     </div>
   )
 }
