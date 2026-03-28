@@ -82,6 +82,13 @@ export default function LeadChatbot({ onCreateLead }) {
   const [form, setForm]         = useState({})
   const [saving, setSaving]     = useState(false)
   const drawerRef               = useRef()
+  const [viewportH, setViewportH] = useState(window.innerHeight)
+
+  useEffect(() => {
+    const fn = () => setViewportH(window.innerHeight)
+    window.addEventListener('resize', fn)
+    return () => window.removeEventListener('resize', fn)
+  }, [])
 
   // Fermeture Escape
   useEffect(() => {
@@ -172,7 +179,7 @@ export default function LeadChatbot({ onCreateLead }) {
               position: 'fixed',
               top: 0, right: 0,
               width: mobile ? '100vw' : 480,
-              height: '100vh',
+              height: mobile ? viewportH + 'px' : '100vh',
               zIndex: 301,
               background: 'var(--s2)',
               borderLeft: '1px solid var(--border)',

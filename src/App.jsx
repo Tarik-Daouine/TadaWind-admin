@@ -161,7 +161,7 @@ export default function App() {
 
   // ── Rendu ─────────────────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', paddingTop: 'env(safe-area-inset-top)', boxSizing: 'border-box' }}>
       {/* Overlay sidebar mobile */}
       {mobile && sidebarOpen && (
         <div
