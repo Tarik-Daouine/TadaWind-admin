@@ -1,0 +1,26 @@
+Email,Commentaires internes,Date de relance,Date d’envoi devis,Date souhaitée mission,ID,Message client,Montant devis estimé (€),Next step,Niveau d'intêret,Nom,Nom entreprise,Prestataire existant ?,Priorité,Probabilité,Prénom,Source,Statut,Timestamp,Type de besoin,Type de client,Téléphone,Ville / Lieu mission
+tarikdaouine@gmail.com,,,,2026-03-26 00:00:00+00,FORM-1774539953338,test,,,,daouine,,,,,tarik,tadawind_site,nouveau,2026-03-26T15:45:53.337Z,immobilier,Particulier,+33762847772,belvès
+tarikdaouine@gmail.com,,,,2026-03-25 00:00:00+00,FORM-1774540012203,ceci est le deuxième test supabase,,,,daouine,Tada-Wind,,,,tarik,tadawind_site,nouveau,2026-03-26T15:46:52.203Z,entreprise,Professionnel,+33762847772,belvès
+,,,,,ID-39,,,,,,,false,,,,,,,,,,
+Camping Le Port de Siorac (terrain),"Premier échange très positif. La responsable a déjà un prestataire mais a été très impressionnée par les images drone montrées en référence. Elle a demandé les tarifs, a pris la carte de visite et a donné sa propre carte. Lead très intéressant.
+
+Type de besoin demandé : Vidéo promotionnelle.
+Source réelle : Terrain.
+Next step souhaité : Relancer par message et proposer un format adapté.",2026-03-23 23:00:00+00,,,ID-40,,,Relance,Fort,,"Camping Le Port de Siorac ",true,Haute,80,,Autre,Opportunité,,Autre,Professionnel,,Siorac / Dordogne
+Camping La Lénotte (terrain),"Le camping n’avait personne sur place au moment du passage. Appel téléphonique effectué, autorisation de déposer une carte de visite dans la boîte aux lettres. Invitation à repasser en semaine.
+
+Prestataire existant ? : à confirmer.
+Type de besoin : à définir.
+Source réelle : Terrain.
+Next step souhaité : Repasser sur place en semaine.",2026-03-26 23:00:00+00,,,ID-41,,,RDV sur place,Moyen,,"Camping La Lénotte ",false,Normale,40,,Autre,Prospect contacté,,Autre,Professionnel,,Dordogne
+Camping Les Nauves (terrain),"Une vidéo drone du camping a déjà été réalisée il y a environ 3 semaines. La responsable a malgré tout pris la carte de visite et a souligné l’avantage d’un prestataire local. Elle a indiqué qu’il ne fallait pas hésiter à revenir de temps en temps si un projet se présente.
+
+Type de besoin demandé : Vidéo promotionnelle.
+Source réelle : Terrain.
+Statut souhaité : Prospect qualifié (non disponible dans la liste, mis en “Prospect contacté”).
+Next step souhaité : Relancer plus tard.",2026-04-12 23:00:00+00,,,ID-42,,,Relance,Moyen,,"Camping Les Nauves ",true,Normale,40,,Autre,Prospect contacté,,Autre,Professionnel,,Belvès / Montpazier
+HLM Belvès (réseau),"Ancien contact avec qui un premier projet gratuit avait déjà été réalisé. La personne a récupéré 10 cartes de visite pour les redistribuer. Potentiel indirect intéressant.
+
+Source réelle : Réseau.
+Type de besoin : à définir.
+Next step souhaité : Attendre les retours et relancer si besoin.",2026-04-05 23:00:00+00,,,ID-43,,,Relance,Moyen,,HLM Belvès,false,Basse,20,,Autre,Relancé,,Autre,Professionnel,,Belvès

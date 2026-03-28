@@ -1,0 +1,38 @@
+Phase 1 — Foundation
+Choisir la stack backend — Node.js/Express, ou BaaS comme Supabase (recommandé pour la rapidité), Firebase, PocketBase
+Définir le schéma de BDD — modèle Project avec tous les champs actuels (title, lieu, category, status, date, cover, gallery, streamableId, notionId, seo, tags, featured…)
+Mettre en place l'authentification — login admin avec session/JWT, route /login côté admin, protection des routes API
+Phase 2 — API CRUD Projets
+GET /api/projects — liste avec filtres/tri/pagination server-side
+GET /api/projects/:id — détail d'un projet
+POST /api/projects — création
+PATCH /api/projects/:id — mise à jour partielle
+DELETE /api/projects/:id — suppression
+POST /api/projects/:id/duplicate — duplication
+Remplacer useProjects (mock) par des appels fetch/axios vers ces endpoints
+Phase 3 — Médias
+Choisir un service de stockage — Cloudinary, AWS S3, Supabase Storage
+POST /api/upload — endpoint d'upload fichier, retourne une URL
+Cover upload — relier le bouton "changer la cover" à l'endpoint d'upload
+Gallery upload — relier le drag & drop de la galerie
+Ordre de la galerie — sauvegarder le tri en BDD (champ order ou tableau d'URLs ordonné)
+Phase 4 — Intégration Streamable
+GET /api/streamable/verify/:id — appel réel à l'API Streamable, retourne titre + thumbnail + durée
+Remplacer le mock setTimeout du bouton "Vérifier" par cet appel
+Sauvegarder les métadonnées vidéo retournées dans le projet
+Phase 5 — Intégration Notion
+Configurer l'API Notion — clé API + ID de la base Notion dans les variables d'environnement
+POST /api/notion/import — importer un projet depuis une page Notion
+POST /api/notion/push/:id — pousser les modifs d'un projet vers Notion
+Gérer le mapping des champs Notion ↔ champs admin
+Remplacer les mocks setTimeout des boutons "Notion" par ces appels
+Phase 6 — Publication & Site Public
+Connecter le site public aux données BDD — le index.html statique actuel doit soit devenir dynamique, soit être généré (SSG) depuis les projets publiés
+GET /api/projects?status=published — endpoint public (non authentifié) pour le site
+Gestion des slugs URL — générer un slug unique par projet pour les URLs publiques
+og:image / SEO — servir les métadonnées SEO depuis les champs du projet
+Phase 7 — Robustesse Admin
+Gestion des erreurs API — remplacer les toasts de succès mock par des toasts conditionnels (succès/erreur selon la réponse serveur)
+Loading states réels — les spinners actuels sont sur setTimeout, les lier aux états de requête
+Variables d'environnement — VITE_API_URL, clés Notion, Streamable, stockage
+Recommandation d'ordre : Phase 1 → 2 → 3 → 7 en parallèle, puis 4 et 5 indépendamment, puis 6 en dernier car elle touche au site public.
