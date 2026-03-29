@@ -86,8 +86,13 @@ function mapToSupabase(data) {
     message:       'Message client',
     source:        'Source',
   }
+  const DATE_KEYS = ['dateRelance', 'dateDevis', 'dateMission']
   for (const [uiKey, dbKey] of Object.entries(mapping)) {
-    if (data[uiKey] !== undefined) out[dbKey] = data[uiKey]
+    if (data[uiKey] !== undefined) {
+      // Ne pas envoyer les champs date quand null (évite erreurs schema cache PostgREST)
+      if (DATE_KEYS.includes(uiKey) && data[uiKey] === null) continue
+      out[dbKey] = data[uiKey]
+    }
   }
   return out
 }

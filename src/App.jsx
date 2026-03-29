@@ -323,6 +323,7 @@ export default function App() {
           {/* Lead chatbot flottant */}
           {view === 'leads' && (
             <LeadChatbot
+              hasDetail={!!selectedLeadId}
               onCreateLead={async (data) => {
                 const { error } = await createLead(data)
                 if (error) addToast('Erreur lors de la création', 'error')

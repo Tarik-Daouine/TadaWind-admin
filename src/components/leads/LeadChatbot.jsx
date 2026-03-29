@@ -73,7 +73,7 @@ function useIsMobile() {
   return mobile
 }
 
-export default function LeadChatbot({ onCreateLead }) {
+export default function LeadChatbot({ onCreateLead, hasDetail = false }) {
   const mobile = useIsMobile()
   const [open, setOpen]         = useState(false)
   const [step, setStep]         = useState('input')   // 'input' | 'preview'
@@ -81,6 +81,7 @@ export default function LeadChatbot({ onCreateLead }) {
   const [etablissement, setEtablissement] = useState(null)
   const [form, setForm]         = useState({})
   const [saving, setSaving]     = useState(false)
+  const [createError, setCreateError] = useState('')
   const drawerRef               = useRef()
   const [viewportH, setViewportH] = useState(window.innerHeight)
 
@@ -105,6 +106,7 @@ export default function LeadChatbot({ onCreateLead }) {
     setText('')
     setForm({})
     setEtablissement(null)
+    setCreateError('')
   }
 
   function handleAnalyser() {
@@ -120,15 +122,17 @@ export default function LeadChatbot({ onCreateLead }) {
 
   async function handleCreate() {
     setSaving(true)
+    setCreateError('')
     const { error } = await onCreateLead(form)
     setSaving(false)
-    if (!error) handleClose()
+    if (error) { setCreateError('Erreur lors de la création. Réessaie.'); return }
+    handleClose()
   }
 
   return (
     <>
-      {/* Bouton flottant */}
-      <button
+      {/* Bouton flottant — masqué quand un lead est ouvert (évite chevauchement avec Enregistrer) */}
+      {(!hasDetail || open) && <button
         onClick={() => setOpen(true)}
         style={{
           position: 'fixed',
@@ -157,7 +161,7 @@ export default function LeadChatbot({ onCreateLead }) {
           <path d="M12 5v14M5 12h14"/>
         </svg>
         Analyser une transcription
-      </button>
+      </button>}
 
       {/* Overlay + Drawer */}
       {open && (
@@ -364,6 +368,16 @@ export default function LeadChatbot({ onCreateLead }) {
             </div>
 
             {/* Footer */}
+            <div style={{ flexShrink: 0 }}>
+              {createError && (
+                <div style={{
+                  padding: '8px 20px', background: 'var(--red-dim)',
+                  borderTop: '1px solid var(--red)', color: 'var(--red)',
+                  fontSize: 12, textAlign: 'center',
+                }}>
+                  {createError}
+                </div>
+              )}
             <div style={{
               padding: '12px 20px',
               paddingBottom: mobile ? 'max(12px, env(safe-area-inset-bottom))' : '12px',
@@ -371,7 +385,6 @@ export default function LeadChatbot({ onCreateLead }) {
               display: 'flex',
               justifyContent: 'space-between',
               gap: 8,
-              flexShrink: 0,
             }}>
               {step === 'input' ? (
                 <>
@@ -412,6 +425,7 @@ export default function LeadChatbot({ onCreateLead }) {
                   </button>
                 </>
               )}
+            </div>
             </div>
           </div>
         </>
