@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase.js'
-import { getStreamableCredentials, saveStreamableCredentials } from '../../lib/streamable.js'
 import Button from '../ui/Button.jsx'
 
 const SETTING_ID = 'main'
@@ -11,10 +10,6 @@ export default function SettingsPage({ onToast }) {
   const [saving, setSaving]   = useState(false)
   const [missing, setMissing] = useState(false)
 
-  // Credentials Streamable — stockés en localStorage uniquement
-  const [stCreds, setStCreds]     = useState(() => getStreamableCredentials())
-  const [showPass, setShowPass]   = useState(false)
-  const [savingCreds, setSavingCreds] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -57,12 +52,6 @@ export default function SettingsPage({ onToast }) {
 
   const set = (key, val) => setForm(prev => ({ ...prev, [key]: val }))
 
-  const handleSaveCreds = () => {
-    setSavingCreds(true)
-    saveStreamableCredentials(stCreds.email, stCreds.password)
-    setTimeout(() => setSavingCreds(false), 600)
-    onToast?.('Identifiants Streamable sauvegardés', 'success')
-  }
 
   if (loading) {
     return (
@@ -161,62 +150,6 @@ CREATE POLICY "admin_write_settings" ON settings
           </div>
         </div>
 
-        {/* ── Streamable ────────────────────────────────────────── */}
-        <div style={{ borderTop: '1px solid var(--border)', marginTop: 32, paddingTop: 28 }}>
-          <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 4, color: 'var(--text)' }}>
-            Compte Streamable
-          </h3>
-          <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 20, lineHeight: 1.5 }}>
-            Utilisés pour lister et importer vos vidéos depuis Streamable.
-            Stockés uniquement dans ce navigateur, jamais envoyés à Supabase.
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--muted)', marginBottom: 6, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                Email
-              </label>
-              <input
-                type="email"
-                value={stCreds.email}
-                onChange={e => setStCreds(p => ({ ...p, email: e.target.value }))}
-                placeholder="votre@email.com"
-                style={inputStyle}
-                onFocus={e => { e.target.style.borderColor = 'var(--red)'; e.target.style.boxShadow = '0 0 0 3px var(--red-dim)' }}
-                onBlur={e => { e.target.style.borderColor = 'var(--border-md)'; e.target.style.boxShadow = 'none' }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--muted)', marginBottom: 6, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                Mot de passe
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type={showPass ? 'text' : 'password'}
-                  value={stCreds.password}
-                  onChange={e => setStCreds(p => ({ ...p, password: e.target.value }))}
-                  placeholder="••••••••"
-                  style={{ ...inputStyle, paddingRight: 40 }}
-                  onFocus={e => { e.target.style.borderColor = 'var(--red)'; e.target.style.boxShadow = '0 0 0 3px var(--red-dim)' }}
-                  onBlur={e => { e.target.style.borderColor = 'var(--border-md)'; e.target.style.boxShadow = 'none' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPass(p => !p)}
-                  style={{
-                    position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    color: 'var(--muted)', fontSize: 13, padding: 2,
-                  }}
-                >{showPass ? '🙈' : '👁'}</button>
-              </div>
-            </div>
-            <div style={{ paddingTop: 4 }}>
-              <Button variant="ghost" onClick={handleSaveCreds} loading={savingCreds}>
-                Sauvegarder les identifiants
-              </Button>
-            </div>
-          </div>
-        </div>
 
       </div>
     </div>

@@ -9,7 +9,7 @@ function useIsMobile() {
   }, [])
   return mobile
 }
-import { fetchStreamableMeta, fetchAllStreamableVideos, getStreamableCredentials } from './lib/streamable.js'
+import { fetchStreamableMeta, fetchAllStreamableVideos } from './lib/streamable.js'
 import StreamableSyncModal from './components/projects/StreamableSyncModal.jsx'
 import { useAuth } from './hooks/useAuth.js'
 import { useProjects } from './hooks/useProjects.js'
@@ -112,11 +112,10 @@ export default function App() {
   // ── Streamable bulk sync ─────────────────────────────────────────────────────
   const handleStreamableSync = async () => {
     setStreamableSynced(false)
-    const { email, password } = getStreamableCredentials()
     const existingIds = new Set(projects.map(p => p.streamableId).filter(Boolean))
 
-    // 1. Tente de lister toutes les vidéos du compte
-    const { videos: allVideos, corsBlocked } = await fetchAllStreamableVideos(email, password)
+    // 1. Liste toutes les vidéos via Edge Function (server-side, pas de CORS)
+    const { videos: allVideos, corsBlocked } = await fetchAllStreamableVideos()
 
     // 2. Vérification de cohérence des projets existants
     const withVideo = projects.filter(p => p.streamableId)

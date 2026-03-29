@@ -1,41 +1,18 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers Streamable — utilisés par TabVideo et le bulk sync (Topbar)
 // ─────────────────────────────────────────────────────────────────────────────
+import { supabase } from './supabase.js'
 
-// Credentials stockés dans localStorage (jamais envoyés à Supabase)
-const LS_EMAIL = 'tw_streamable_email'
-const LS_PASS  = 'tw_streamable_password'
-
-export function getStreamableCredentials() {
-  return {
-    email:    localStorage.getItem(LS_EMAIL)    || '',
-    password: localStorage.getItem(LS_PASS) || '',
-  }
-}
-
-export function saveStreamableCredentials(email, password) {
-  localStorage.setItem(LS_EMAIL, email)
-  localStorage.setItem(LS_PASS, password)
-}
-
-// Liste toutes les vidéos du compte Streamable (nécessite Basic Auth).
-// Retourne { videos: [...], error: string|null, corsBlocked: bool }
-export async function fetchAllStreamableVideos(email, password) {
-  if (!email || !password) return { videos: [], error: 'Identifiants manquants', corsBlocked: false }
-  const auth = btoa(`${email}:${password}`)
+// Liste toutes les vidéos du compte Streamable via l'Edge Function Supabase.
+// Les credentials sont stockés dans les secrets Supabase (côté serveur).
+// Retourne { videos: [...], error: string|null, corsBlocked: false }
+export async function fetchAllStreamableVideos() {
   try {
-    const res = await fetch('https://api.streamable.com/videos', {
-      headers: { Authorization: `Basic ${auth}`, Accept: 'application/json' },
-    })
-    if (res.status === 401) return { videos: [], error: 'Identifiants incorrects', corsBlocked: false }
-    if (!res.ok)            return { videos: [], error: `Erreur API Streamable (${res.status})`, corsBlocked: false }
-    const data = await res.json()
-    // L'API peut retourner un tableau ou un objet { videos: [...] }
-    const videos = Array.isArray(data) ? data : (data.videos || data.results || [])
-    return { videos, error: null, corsBlocked: false }
+    const { data, error } = await supabase.functions.invoke('streamable-list')
+    if (error) return { videos: [], error: error.message, corsBlocked: false }
+    return { videos: data?.videos || [], error: null, corsBlocked: false }
   } catch (e) {
-    const corsBlocked = e instanceof TypeError
-    return { videos: [], error: corsBlocked ? null : e.message, corsBlocked }
+    return { videos: [], error: e.message, corsBlocked: false }
   }
 }
 
