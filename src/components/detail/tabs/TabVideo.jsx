@@ -75,14 +75,24 @@ async function fetchStreamableMeta(id) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function TabVideo({ project, onChange, onToast }) {
+export default function TabVideo({ project, projects = [], onChange, onToast }) {
   const [loading, setLoading]   = useState(false)
   const [localId, setLocalId]   = useState(project.streamableId || '')
   const [meta, setMeta]         = useState(null)   // métadonnées récupérées
+  const [dupWarning, setDupWarning] = useState(null) // titre du projet doublon
 
   const handleVerify = async () => {
     const id = localId.trim()
     if (!id) return
+
+    // ── Vérification doublon ────────────────────────────────────────────────
+    const duplicate = projects.find(p => p.id !== project.id && p.streamableId === id)
+    if (duplicate) {
+      setDupWarning(duplicate.title || duplicate.id)
+      // On continue quand même — avertissement non bloquant
+    } else {
+      setDupWarning(null)
+    }
 
     setLoading(true)
     setMeta(null)
@@ -159,6 +169,22 @@ export default function TabVideo({ project, onChange, onToast }) {
           </Button>
         </div>
       </div>
+
+      {/* ── Avertissement doublon ────────────────────────────────── */}
+      {dupWarning && (
+        <div style={{
+          background: 'var(--red-dim)', border: '1px solid var(--red)',
+          borderRadius: 'var(--radius)', padding: '10px 14px',
+          marginBottom: 16, fontSize: 12, color: 'var(--red)',
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <span>⚠️</span>
+          <span>
+            Cet ID Streamable est déjà utilisé par le projet <strong>"{dupWarning}"</strong>.
+            Vérifie que ce n'est pas une erreur.
+          </span>
+        </div>
+      )}
 
       {/* ── Badge statut + métadonnées ───────────────────────────── */}
       <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>

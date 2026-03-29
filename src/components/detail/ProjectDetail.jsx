@@ -33,7 +33,7 @@ function formatDateTime(iso) {
   }
 }
 
-export default function ProjectDetail({ project, onUpdate, onClose, onToast }) {
+export default function ProjectDetail({ project, projects = [], onUpdate, onClose, onToast }) {
   const [tab, setTab] = useState('infos')
   const [editedProject, setEditedProject] = useState({ ...project })
   const [isDirty, setIsDirty] = useState(false)
@@ -191,7 +191,7 @@ export default function ProjectDetail({ project, onUpdate, onClose, onToast }) {
           <TabInfos project={editedProject} onChange={handleChange} />
         )}
         {tab === 'video' && (
-          <TabVideo project={editedProject} onChange={handleChange} onToast={onToast} />
+          <TabVideo project={editedProject} projects={projects} onChange={handleChange} onToast={onToast} />
         )}
         {tab === 'gallery' && (
           <TabGallery project={editedProject} onChange={handleChange} />

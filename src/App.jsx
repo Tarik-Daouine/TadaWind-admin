@@ -255,6 +255,7 @@ export default function App() {
                     }}>
                       <ProjectDetail
                         project={selectedProject}
+                        projects={projects}
                         onUpdate={updateProject}
                         onClose={() => setSelectedId(null)}
                         onToast={addToast}
