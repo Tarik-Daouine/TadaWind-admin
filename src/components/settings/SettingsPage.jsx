@@ -54,10 +54,12 @@ export default function SettingsPage({ onToast }) {
 
   // Injecte le bookmarklet dans un container div non géré par React
   // (évite que React écrase le href javascript: lors des re-renders)
+  // Dépend de [loading] car le div n'est monté qu'après loading=false
   const bookmarkContainerRef = useRef(null)
   useEffect(() => {
+    if (loading) return
     const container = bookmarkContainerRef.current
-    if (!container) return
+    if (!container || container.hasChildNodes()) return
     const adminUrl = `${window.location.protocol}//${window.location.host}${import.meta.env.BASE_URL}`
     const EXCLUDE = ['my-videos','login','register','upload','about','pricing','help','contact','settings','embed']
     const js = `(function(){var ids=[];var ex=${JSON.stringify(EXCLUDE)};document.querySelectorAll('a[href]').forEach(function(a){try{var u=new URL(a.href);if(u.hostname.indexOf('streamable.com')>-1){var p=u.pathname.split('/').filter(Boolean);if(p.length===1&&/^[a-zA-Z0-9]{4,8}$/.test(p[0])&&ex.indexOf(p[0])===-1)ids.push(p[0]);}}catch(e){}});ids=ids.filter(function(v,i,a){return a.indexOf(v)===i;});if(!ids.length){alert('Aucune vid\\u00e9o Streamable trouv\\u00e9e.');return;}window.open('${adminUrl}?streamable_ids='+ids.join(','),'_blank');})()`
@@ -76,7 +78,7 @@ export default function SettingsPage({ onToast }) {
     a.addEventListener('click', e => { e.preventDefault(); alert('Glisse ce bouton dans ta barre de favoris — ne clique pas ici.') })
     container.innerHTML = ''
     container.appendChild(a)
-  }, [])
+  }, [loading])
 
 
   if (loading) {
