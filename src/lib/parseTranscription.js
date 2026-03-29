@@ -3,32 +3,47 @@
 // Retourne { lead: {...}, etablissement: string|null }
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ── Dictionnaires ─────────────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────────
 
-const ETABLISSEMENTS = [
-  { label: 'camping',          mots: ['camping', 'campsite', 'bungalow', 'mobil-home', 'emplacement', 'aire naturelle'] },
-  { label: 'hôtel',            mots: ['hôtel', 'hotel', 'lodge', 'auberge de jeunesse'] },
-  { label: 'restaurant',       mots: ['restaurant', 'brasserie', 'bistro', 'bistrot', 'auberge', 'traiteur', 'taverne'] },
-  { label: 'château',          mots: ['château', 'manoir', 'bastide', 'gentilhommière'] },
-  { label: 'gîte',             mots: ['gîte', 'gite', 'chambres d\'hôtes', 'chambre d\'hote', 'chambre hote'] },
-  { label: 'domaine viticole', mots: ['domaine', 'vignoble', 'cave', 'cave coopérative', 'château viticole'] },
-  { label: 'site touristique', mots: ['abbaye', 'prieuré', 'cathédrale', 'église', 'grotte', 'gouffre', 'zoo', 'parc naturel', 'réserve', 'musée', 'monument'] },
-  { label: 'camping',          mots: ['terrain de camping'] },
-  { label: 'mairie',           mots: ['mairie', 'commune', 'collectivité', 'communauté de communes', 'syndicat'] },
-  { label: 'entreprise',       mots: ['entreprise', 'société', 'sarl', 'sas', 'sasu', 'eurl', 'holding', 'groupe', 'cabinet', 'agence', 'bureau d\'études'] },
-  { label: 'commerce',         mots: ['boutique', 'magasin', 'commerce', 'épicerie', 'librairie', 'boulangerie', 'pharmacie'] },
-  { label: 'artisan',          mots: ['artisan', 'artisanat', 'menuisier', 'maçon', 'plombier', 'électricien'] },
-  { label: 'immobilier',       mots: ['immobilier', 'promoteur', 'lotissement', 'agence immobilière', 'notaire'] },
-  { label: 'santé',            mots: ['clinique', 'cabinet médical', 'cabinet dentaire', 'médecin', 'kiné', 'ostéo'] },
+function normalize(str) {
+  return str
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/['']/g, "'")
+}
+
+function contains(text, mots) {
+  const n = normalize(text)
+  return mots.some(m => n.includes(normalize(m)))
+}
+
+// ── Dictionnaires ──────────────────────────────────────────────────────────────
+
+// Mots-clés d'établissements (ordre : plus long en premier pour "auberge de jeunesse" > "auberge")
+const ETAB_KEYWORDS = [
+  { label: 'auberge',          pattern: /auberge(?:\s+de\s+jeunesse)?/i },
+  { label: 'camping',          pattern: /camping|terrain\s+de\s+camping/i },
+  { label: 'hôtel',            pattern: /h[oô]tel|lodge/i },
+  { label: 'château',          pattern: /ch[aâ]teau|manoir|bastide/i },
+  { label: 'domaine viticole', pattern: /domaine|vignoble|cave\s+(?:coop|vitic)/i },
+  { label: 'gîte',             pattern: /g[iî]te|chambre[s]?\s+d['']h[oô]te/i },
+  { label: 'église',           pattern: /[eé]glise|cath[eé]drale|abbaye|prieur[eé]/i },
+  { label: 'restaurant',       pattern: /restaurant|brasserie|bistrot?|auberge\s+(?!de\s+jeunesse)|traiteur/i },
+  { label: 'mairie',           pattern: /mairie|commune\b|collectivit[eé]|communaut[eé]\s+de\s+communes/i },
+  { label: 'site touristique', pattern: /grotte|gouffre|zoo|parc\s+(?:naturel|d'attraction)|mus[eé]e|monument/i },
+  { label: 'entreprise',       pattern: /entreprise|soci[eé]t[eé]|sarl|sas[u]?|eurl|holding|cabinet\s+(?!m[eé]d)|agence\b/i },
+  { label: 'commerce',         pattern: /boutique|magasin\b|[eé]picerie|boulangerie|pharmacie/i },
 ]
 
 const MOTS_PROFESSIONNEL = [
-  'camping', 'campsite', 'hôtel', 'hotel', 'lodge', 'restaurant', 'brasserie', 'bistro', 'bistrot',
+  'camping', 'hôtel', 'hotel', 'lodge', 'restaurant', 'brasserie', 'bistro', 'bistrot',
   'auberge', 'château', 'manoir', 'domaine', 'gîte', 'gite', 'mairie', 'commune', 'association',
   'entreprise', 'société', 'sarl', 'sas', 'sasu', 'eurl', 'artisan', 'boutique', 'agence',
   'cabinet', 'clinique', 'musée', 'vignoble', 'cave', 'abbaye', 'prieuré', 'cathédrale',
   'grotte', 'zoo', 'parc', 'office de tourisme', 'maison de retraite', 'ehpad', 'syndicat',
   'communauté', 'collectivité', 'promoteur', 'immobilier', 'commerce', 'magasin',
+  'église', 'eglise',
 ]
 
 const MOTS_PARTICULIER = [
@@ -44,56 +59,98 @@ const VILLES_PERIGORD = [
   'Thénon', 'Ribérac', 'Nontron', 'Excideuil', 'Hautefort', 'Rouffignac', 'Le Bugue',
   'Trémolat', 'Limeuil', 'Castelnaud', 'La Roque-Gageac', 'Montfort', 'Vézac',
   'Sainte-Alvère', 'Issigeac', 'Eymet', 'Sigoulès', 'Villeréal', 'Beaumont-du-Périgord',
-  'Cahors', 'Gourdon', 'Figeac', 'Souillac',
+  'Cahors', 'Gourdon', 'Figeac', 'Souillac', 'Le Buisson', 'Buisson-de-Cadouin',
+  'Saint-Chamassy', 'Montignac-Lascaux', 'Les Milandes',
 ]
 
 const TYPES_BESOIN = [
-  { label: 'drone', mots: ['drone', 'aérien', 'aerien', 'survol', 'prise de vue aérienne', 'prise de vue aerienne', 'vue du ciel', 'fpv'] },
-  { label: 'vidéo', mots: ['vidéo', 'video', 'film', 'tournage', 'reportage', 'clip', 'rushe', 'rushs', 'montage', 'documentaire', 'interview'] },
-  { label: 'photo', mots: ['photo', 'photographie', 'shooting', 'cliché', 'cliche', 'portraits', 'prise de vue'] },
-  { label: 'corporate', mots: ['corporate', 'institutionnel', 'présentation entreprise', 'communication interne', 'teaser'] },
-  { label: 'événementiel', mots: ['événement', 'evenement', 'event', 'soirée', 'soiree', 'cérémonie', 'ceremonie', 'gala', 'concert', 'spectacle'] },
+  { label: 'drone',          mots: ['drone', 'aérien', 'aerien', 'survol', 'prise de vue aérienne', 'vue du ciel', 'fpv', 'vol'] },
+  { label: 'vidéo',          mots: ['vidéo', 'video', 'film', 'tournage', 'reportage', 'clip', 'rushe', 'montage', 'documentaire', 'pub', 'promo', 'publicité', 'publicite', 'spot'] },
+  { label: 'photo',          mots: ['photo', 'photographie', 'shooting', 'cliché', 'portraits', 'prise de vue'] },
+  { label: 'corporate',      mots: ['corporate', 'institutionnel', 'présentation entreprise', 'communication interne', 'teaser', 'marque employeur'] },
+  { label: 'événementiel',   mots: ['événement', 'evenement', 'event', 'soirée', 'soiree', 'cérémonie', 'ceremonie', 'gala', 'concert', 'spectacle'] },
 ]
 
 const MOTS_PRIORITE_HAUTE = [
   'urgent', 'urgence', 'dès que possible', 'des que possible', 'asap', 'rapidement', 'très vite',
   'cette semaine', 'ce mois', 'prioritaire', 'impératif', 'imperatif', 'absolument', 'vite',
+  'cette saison', 'cet été', 'cet ete', 'avant l\'été', 'avant lete',
 ]
 const MOTS_PRIORITE_BASSE = [
   'pas urgent', 'plus tard', 'éventuellement', 'eventuellement', 'à terme', 'a terme',
-  'dans quelques mois', 'dans plusieurs mois', 'dans un an', 'à l\'avenir', 'plus tard dans l\'année',
-  'prochaine saison',
+  'dans quelques mois', 'dans plusieurs mois', 'dans un an', 'à l\'avenir', 'prochaine saison',
+]
+
+// Négations explicites — à tester AVANT les listes positives
+const PAS_INTERESSE = [
+  'pas intéressé', 'pas interesse', 'non intéressé', 'non interesse',
+  'pas intéressée', 'pas interessee', "n'est pas intéressé", "n est pas interesse",
+  'intéresse pas', 'interesse pas', 'pas vraiment intéressé', 'pas vraiment interesse',
+  'pas du tout intéressé', 'pas du tout interesse',
 ]
 
 const MOTS_INTERET_FORT = [
   'très intéressé', 'tres interesse', 'super intéressé', 'enthousiaste', 'ravi', 'enchanté',
   'on fonce', 'partant', 'validé', 'valide', 'accord de principe', 'il veut', 'elle veut',
-  'vraiment motivé', 'vraiment interesse', 'ça l\'intéresse', 'ca l\'interesse',
-  'fonctionne', 'banco', 'deal', 'ok pour', 'accord', 'super motivé',
+  'vraiment motivé', 'banco', 'deal', 'super motivé', 'intéressé', 'interesse', 'intéressée',
 ]
 const MOTS_INTERET_FAIBLE = [
   'pas sûr', 'pas sur', 'hésite', 'hesite', 'réfléchit', 'reflechit', 'peut-être', 'peut etre',
-  'on verra', 'doute', 'peu convaincu', 'pas convaincu', 'mitigé', 'mitige', 'réticent',
+  'on verra', 'doute', 'peu convaincu', 'pas convaincu', 'mitigé', 'réticent',
   'pas très chaud', 'pas trop', 'à voir',
 ]
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
+const MOTS_PRESTATAIRE = [
+  'déjà un prestataire', 'deja un prestataire', 'déjà quelqu\'un', 'déjà un drone',
+  'déjà un télépilote', 'deja un telepilote', 'ont déjà', 'a déjà un', 'déjà équipé',
+  'prestataire existant', 'travaillent déjà avec',
+]
 
-function normalize(str) {
-  return str
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+// Verbes qui indiquent la fin du nom d'établissement (début d'une proposition verbale)
+const STOP_VERBES = /\s+(?:souhaite[nt]?|veule?n?t?|veut|ont\b|a\b|ait\b|dit\b|cherche[nt]?|propose[nt]?|est\b|sont\b|fait\b|font\b|parle[nt]?|demande[nt]?|n[''](?:a|est|ont)|nous\b|car\b|donc\b|mais\b|qui\b|avec\b|pour\b|ne\b)\b/i
+
+// ── Détection établissement + nom complet ──────────────────────────────────────
+
+function detectEtablissementInfo(text) {
+  for (const { label, pattern } of ETAB_KEYWORDS) {
+    const m = text.match(pattern)
+    if (!m) continue
+
+    // Extraire depuis le début du mot-clé jusqu'au premier verbe ou ponctuation
+    const slice = text.slice(m.index)
+    const nom = slice
+      .split(STOP_VERBES)[0]   // coupe au premier verbe
+      .replace(/[.!?,;].*$/, '') // coupe à la ponctuation
+      .trim()
+
+    return { label, nom: nom.length > 3 ? nom : '' }
+  }
+  return { label: null, nom: '' }
 }
 
-function contains(text, mots) {
-  const n = normalize(text)
-  return mots.some(m => n.includes(normalize(m)))
+// ── Détection ville ────────────────────────────────────────────────────────────
+
+function detectVille(text) {
+  // 1. Dictionnaire Périgord
+  for (const v of VILLES_PERIGORD) {
+    if (normalize(text).includes(normalize(v))) return v
+  }
+  // 2. Après prépositions
+  const prep = /(?:à|au|en|de\s+|autour\s+de|secteur\s+de|du\s+côté\s+de|près\s+de|dans\s+le|dans\s+la|côté)\s+([A-ZÀ-Ü][a-zà-ü\-]+(?:\s+[A-ZÀ-Ü][a-zà-ü\-]+)?)/g
+  let m
+  while ((m = prep.exec(text)) !== null) {
+    const candidate = m[1].trim()
+    if (candidate.length > 2) return candidate
+  }
+  return ''
 }
 
-function firstMatch(text, mots) {
-  const n = normalize(text)
-  return mots.find(m => n.includes(normalize(m))) || null
+// ── Détection prénom / nom ─────────────────────────────────────────────────────
+
+function detectContact(text) {
+  const re = /(?:contact[:\s]+|parler\s+[aà]|rencontré[e]?|m\.|mme|monsieur|madame)\s+([A-ZÀ-Ü][a-zà-ü\-]+)(?:\s+([A-ZÀ-Ü][A-ZÀ-Üa-zà-ü\-]+))?/gi
+  const m = re.exec(text)
+  return m ? { prenom: m[1] || '', nom: m[2] || '' } : { prenom: '', nom: '' }
 }
 
 // ── Détection email ────────────────────────────────────────────────────────────
@@ -106,60 +163,18 @@ function detectEmail(text) {
 // ── Détection téléphone ────────────────────────────────────────────────────────
 
 function detectTelephone(text) {
-  const m = text.match(
-    /(?:(?:\+|00)33[\s.\-]?)?0?[1-9](?:[\s.\-]?\d{2}){4}/
-  )
+  const m = text.match(/(?:(?:\+|00)33[\s.\-]?)?0?[1-9](?:[\s.\-]?\d{2}){4}/)
   if (!m) return ''
-  // Normalise format
   return m[0].replace(/[\s.\-]/g, '').replace(/^0033/, '+33').replace(/^33/, '+33')
 }
 
-// ── Détection ville ────────────────────────────────────────────────────────────
+// ── Détection type besoin ──────────────────────────────────────────────────────
 
-function detectVille(text) {
-  // 1. Chercher dans le dictionnaire Périgord (exact, insensible casse)
-  for (const v of VILLES_PERIGORD) {
-    if (normalize(text).includes(normalize(v))) return v
+function detectTypeBesoin(text) {
+  for (const { label, mots } of TYPES_BESOIN) {
+    if (contains(text, mots)) return label
   }
-  // 2. Extraire après prépositions
-  const prep = /(?:à|au|en|autour de|secteur de|du côté de|du cote de|près de|pres de|dans le|dans la|côté)\s+([A-ZÀ-Ü][a-zà-ü\-]+(?:\s+[A-ZÀ-Ü][a-zà-ü\-]+)?)/g
-  let m
-  while ((m = prep.exec(text)) !== null) {
-    const candidate = m[1].trim()
-    if (candidate.length > 2) return candidate
-  }
-  return ''
-}
-
-// ── Détection nom entreprise ───────────────────────────────────────────────────
-
-function detectNomEntreprise(text) {
-  // Patterns: "le camping [Nom]", "hôtel [Nom]", "société [Nom]", "restaurant [Nom]"
-  const patterns = [
-    /(?:le|la|les|l'|au|du)?\s*(?:camping|hôtel|hotel|restaurant|gîte|gite|château|chateau|domaine|abbaye|mairie|société|societe|entreprise|agence|cabinet)\s+([A-ZÀ-Ü][^\n,.!?]{2,40})/gi,
-    /(?:s'appelle|se nomme|nommé|nommee|appelé|appelee|c'est)\s+([A-ZÀ-Ü][^\n,.!?]{2,40})/gi,
-    /(?:société|societe|sarl|sas|eurl)\s+([A-ZÀ-Ü][^\n,.!?]{2,40})/gi,
-  ]
-  for (const re of patterns) {
-    const m = re.exec(text)
-    if (m) return m[1].trim().replace(/\s+/g, ' ')
-  }
-  return ''
-}
-
-// ── Détection prénom / nom ─────────────────────────────────────────────────────
-
-function detectContact(text) {
-  const patterns = [
-    /(?:contact[:\s]+|parler à|rencontré|m\.|mme|monsieur|madame)\s+([A-ZÀ-Ü][a-zà-ü\-]+)(?:\s+([A-ZÀ-Ü][A-ZÀ-Üa-zà-ü\-]+))?/gi,
-  ]
-  for (const re of patterns) {
-    const m = re.exec(text)
-    if (m) {
-      return { prenom: m[1] || '', nom: m[2] || '' }
-    }
-  }
-  return { prenom: '', nom: '' }
+  return 'drone' // défaut : la prestation principale de TadaWind
 }
 
 // ── Détection next step ────────────────────────────────────────────────────────
@@ -171,8 +186,9 @@ function detectNextStep(text) {
     /(recontacter?[^.!?\n]{0,60})/gi,
     /(faire (?:une )?visite[^.!?\n]{0,60})/gi,
     /(prendre (?:un )?(?:rdv|rendez-vous)[^.!?\n]{0,60})/gi,
-    /(faire (?:une )?offre[^.!?\n]{0,60})/gi,
+    /(voir avec (?:la )?direction[^.!?\n]{0,40})/gi,
     /(proposer[^.!?\n]{0,60})/gi,
+    /(relancer?[^.!?\n]{0,60})/gi,
   ]
   for (const re of patterns) {
     const m = re.exec(text)
@@ -181,25 +197,7 @@ function detectNextStep(text) {
       return step.charAt(0).toUpperCase() + step.slice(1)
     }
   }
-  return ''
-}
-
-// ── Détection type besoin ──────────────────────────────────────────────────────
-
-function detectTypeBesoin(text) {
-  for (const { label, mots } of TYPES_BESOIN) {
-    if (contains(text, mots)) return label
-  }
-  return ''
-}
-
-// ── Détection établissement ────────────────────────────────────────────────────
-
-function detectEtablissement(text) {
-  for (const { label, mots } of ETABLISSEMENTS) {
-    if (contains(text, mots)) return label
-  }
-  return null
+  return 'À relancer' // défaut : toujours un next step
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -209,49 +207,61 @@ function detectEtablissement(text) {
 export function parseTranscription(text) {
   if (!text || !text.trim()) return { lead: {}, etablissement: null }
 
-  const etablissement = detectEtablissement(text)
+  // ── Établissement : label + nom complet ──────────────────────────────────────
+  const { label: etablissement, nom: nomEtablissement } = detectEtablissementInfo(text)
 
-  // typeClient
-  let typeClient = ''
-  if (contains(text, MOTS_PARTICULIER)) {
-    typeClient = 'Particulier'
-  } else if (contains(text, MOTS_PROFESSIONNEL) || etablissement) {
-    typeClient = 'Professionnel'
-  }
+  // ── Négation explicite (à tester avant toute détection positive) ─────────────
+  const pasInteresse = contains(text, PAS_INTERESSE)
 
-  // priorité
+  // ── Type client ──────────────────────────────────────────────────────────────
+  let typeClient = 'Professionnel' // défaut terrain = B2B
+  if (contains(text, MOTS_PARTICULIER)) typeClient = 'Particulier'
+
+  // ── Priorité ─────────────────────────────────────────────────────────────────
   let priorite = 'Normale'
   if (contains(text, MOTS_PRIORITE_HAUTE)) priorite = 'Haute'
   else if (contains(text, MOTS_PRIORITE_BASSE)) priorite = 'Basse'
 
-  // niveau d'intérêt
+  // ── Niveau d'intérêt — négation en premier ───────────────────────────────────
   let niveauInteret = ''
-  if (contains(text, MOTS_INTERET_FORT)) niveauInteret = 'Fort'
-  else if (contains(text, MOTS_INTERET_FAIBLE)) niveauInteret = 'Faible'
+  if (pasInteresse) {
+    niveauInteret = 'Faible'
+  } else if (contains(text, MOTS_INTERET_FORT)) {
+    niveauInteret = 'Fort'
+  } else if (contains(text, MOTS_INTERET_FAIBLE)) {
+    niveauInteret = 'Faible'
+  }
 
-  // commentaires : uniquement enrichissements heuristiques
+  // ── Statut ───────────────────────────────────────────────────────────────────
+  const statut = pasInteresse ? 'Perdu' : 'nouveau'
+
+  // ── Prestataire existant ─────────────────────────────────────────────────────
+  const prestataire = contains(text, MOTS_PRESTATAIRE)
+
+  // ── Commentaires internes ────────────────────────────────────────────────────
   const commentaires = etablissement
     ? `Type établissement détecté : ${etablissement}`
     : ''
 
-  // message : transcription brute tronquée
-  const message = text.slice(0, 500)
-
+  // ── Contact ──────────────────────────────────────────────────────────────────
   const { prenom, nom } = detectContact(text)
+
+  // ── Nom entreprise : priorité au nom reconstruit depuis le contexte ───────────
+  const nomEntreprise = nomEtablissement || ''
 
   const lead = {
     prenom,
     nom,
     email:         detectEmail(text),
     telephone:     detectTelephone(text),
-    nomEntreprise: detectNomEntreprise(text),
+    nomEntreprise,
     typeClient,
-    prestataire:   false,
+    prestataire,
     ville:         detectVille(text),
     typeBesoin:    detectTypeBesoin(text),
-    message,
-    source:        'Autre',       // 'Autre' = "Terrain" dans l'UI
-    statut:        'nouveau',
+    message:       text.slice(0, 500),
+    source:        'Autre',
+    statut,
     priorite,
     niveauInteret,
     probabilite:   '',

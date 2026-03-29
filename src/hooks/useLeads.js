@@ -169,6 +169,7 @@ export function useLeads() {
   // ── CREATE ─────────────────────────────────────────────────────────────────
   const createLead = async (data) => {
     const row = {
+      'ID': crypto.randomUUID(),
       ...mapToSupabase(data),
       'Timestamp': new Date().toISOString(),
     }
