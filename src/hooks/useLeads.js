@@ -86,12 +86,13 @@ function mapToSupabase(data) {
     message:       'Message client',
     source:        'Source',
   }
-  const DATE_KEYS = ['dateRelance', 'dateDevis', 'dateMission']
   for (const [uiKey, dbKey] of Object.entries(mapping)) {
-    if (data[uiKey] !== undefined) {
-      // Ne pas envoyer les champs date quand null (évite erreurs schema cache PostgREST)
-      if (DATE_KEYS.includes(uiKey) && data[uiKey] === null) continue
-      out[dbKey] = data[uiKey]
+    const val = data[uiKey]
+    // Skip null et '' : PostgREST n'a pas besoin de valider le nom de colonne
+    // pour un champ absent du payload (contourne les bugs de schema cache sur les
+    // noms avec apostrophes/accents comme "Niveau d'intérêt", "Date d'envoi devis")
+    if (val !== undefined && val !== null && val !== '') {
+      out[dbKey] = val
     }
   }
   return out
