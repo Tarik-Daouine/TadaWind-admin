@@ -101,22 +101,6 @@ export default function ProjectDetail({ project, projects = [], onUpdate, onClos
           {/* Badges */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             <Badge variant="status" value={editedProject.status} />
-            {editedProject.notionSync && (
-              <span style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                fontSize: 11,
-                padding: '2px 8px',
-                borderRadius: 20,
-                background: 'var(--blue-dim)',
-                color: 'var(--blue)',
-                fontWeight: 600,
-              }}>
-                <span style={{ fontWeight: 800, fontSize: 10 }}>N</span>
-                Notion
-              </span>
-            )}
           </div>
 
           {/* Save button (only when dirty) */}

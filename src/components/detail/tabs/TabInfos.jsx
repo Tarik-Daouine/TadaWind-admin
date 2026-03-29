@@ -14,26 +14,6 @@ function slugify(str) {
 
 export default function TabInfos({ project, onChange }) {
   const [tagInput, setTagInput] = useState('')
-  const [importLoading, setImportLoading] = useState(false)
-  const [pushLoading, setPushLoading] = useState(false)
-
-  const handleImport = async () => {
-    setImportLoading(true)
-    await new Promise(r => setTimeout(r, 1500))
-    setImportLoading(false)
-    onChange({
-      shortDesc: 'Description importée depuis Notion — ' + (project.shortDesc || 'Vue aérienne spectaculaire réalisée par drone.'),
-      longDesc: 'Contenu Notion importé : ' + (project.longDesc || 'Description complète du projet, réalisé par Tada-Wind en Nouvelle-Aquitaine.'),
-      notionSync: true,
-    })
-  }
-
-  const handlePush = async () => {
-    setPushLoading(true)
-    await new Promise(r => setTimeout(r, 1000))
-    setPushLoading(false)
-    onChange({ notionSync: true })
-  }
 
   const addTag = () => {
     const t = tagInput.trim()
@@ -55,45 +35,6 @@ export default function TabInfos({ project, onChange }) {
 
   return (
     <div>
-      {/* Notion bar */}
-      <div style={{
-        background: 'var(--blue-dim)',
-        border: '1px solid rgba(79,127,243,0.2)',
-        borderRadius: 'var(--radius)',
-        padding: '10px 14px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 20,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{
-            width: 18,
-            height: 18,
-            borderRadius: 4,
-            background: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 11,
-            fontWeight: 800,
-            color: '#000',
-            flexShrink: 0,
-          }}>N</span>
-          <span style={{ fontSize: 12, color: 'var(--muted)' }}>
-            Champs Notion · Sync: {project.notionSync ? 'À jour' : 'Non synchronisé'}
-          </span>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Button variant="ghost" size="sm" loading={importLoading} onClick={handleImport}>
-            Importer
-          </Button>
-          <Button variant="ghost" size="sm" loading={pushLoading} onClick={handlePush}>
-            Push
-          </Button>
-        </div>
-      </div>
-
       {/* 2-column grid */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 20px' }}>
         {/* Titre — full width */}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import Button from '../../ui/Button.jsx'
 import Badge from '../../ui/Badge.jsx'
+import { fetchStreamableMeta, formatDuration } from '../../../lib/streamable.js'
 
 const IconUpload = () => (
   <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
@@ -17,61 +18,6 @@ const IconLink = () => (
     <line x1="10" y1="14" x2="21" y2="3"/>
   </svg>
 )
-
-function formatDuration(seconds) {
-  if (!seconds) return null
-  const m = Math.floor(seconds / 60)
-  const s = Math.round(seconds % 60)
-  return `${m}:${s.toString().padStart(2, '0')}`
-}
-
-// ── Fetch métadonnées Streamable ──────────────────────────────────────────────
-// Tente d'abord l'API principale (status + durée), puis oEmbed en fallback.
-// Les deux sont des GET publics sans auth.
-async function fetchStreamableMeta(id) {
-  // 1. API principale → title, status, duration, thumbnail
-  try {
-    const res = await fetch(`https://api.streamable.com/videos/${id}`, {
-      headers: { Accept: 'application/json' },
-    })
-    if (res.ok) {
-      const d = await res.json()
-      const mp4 = d.files?.mp4 || d.files?.['mp4-mobile'] || {}
-      return {
-        title:     d.title        || '',
-        thumbnail: d.thumbnail_url|| '',
-        duration:  mp4.duration   || null,
-        width:     mp4.width      || null,
-        height:    mp4.height     || null,
-        status:    d.status,      // 2 = prête
-        ready:     d.status === 2,
-        source:    'api',
-      }
-    }
-  } catch (_) { /* CORS ou réseau → fallback */ }
-
-  // 2. oEmbed fallback → title + thumbnail uniquement
-  try {
-    const url = encodeURIComponent(`https://streamable.com/${id}`)
-    const res = await fetch(`https://api.streamable.com/oembed.json?url=${url}`)
-    if (res.ok) {
-      const d = await res.json()
-      return {
-        title:     d.title         || '',
-        thumbnail: d.thumbnail_url || '',
-        duration:  null,
-        width:     d.width         || null,
-        height:    d.height        || null,
-        status:    null,
-        ready:     true,           // si oEmbed répond, la vidéo existe
-        source:    'oembed',
-      }
-    }
-  } catch (_) { /* CORS complet → on se rabat sur l'iframe seule */ }
-
-  // 3. Ni l'un ni l'autre → on retourne null (iframe sera quand même affichée)
-  return null
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 

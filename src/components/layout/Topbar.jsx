@@ -61,26 +61,14 @@ function SyncButton({ label, icon, onClick, loading, synced }) {
   )
 }
 
-export default function Topbar({ search, onSearch, onNewProject, mobile, onMenuToggle }) {
-  const [notionLoading, setNotionLoading] = useState(false)
-  const [notionSynced, setNotionSynced] = useState(true)
+export default function Topbar({ search, onSearch, onNewProject, mobile, onMenuToggle, onStreamableSync, streamableSynced = true }) {
   const [streamableLoading, setStreamableLoading] = useState(false)
-  const [streamableSynced, setStreamableSynced] = useState(true)
-
-  const handleNotionSync = async () => {
-    setNotionLoading(true)
-    setNotionSynced(false)
-    await new Promise(r => setTimeout(r, 2000))
-    setNotionLoading(false)
-    setNotionSynced(true)
-  }
 
   const handleStreamableSync = async () => {
+    if (!onStreamableSync) return
     setStreamableLoading(true)
-    setStreamableSynced(false)
-    await new Promise(r => setTimeout(r, 2000))
+    await onStreamableSync()
     setStreamableLoading(false)
-    setStreamableSynced(true)
   }
 
   return (
@@ -152,19 +140,6 @@ export default function Topbar({ search, onSearch, onNewProject, mobile, onMenuT
 
       {/* Sync buttons + New project — masqués sur mobile */}
       {!mobile && <>
-        <SyncButton
-          label="Notion"
-          icon={
-            <span style={{
-              width: 16, height: 16, borderRadius: 4, background: '#fff',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 10, fontWeight: 800, color: '#000', flexShrink: 0,
-            }}>N</span>
-          }
-          onClick={handleNotionSync}
-          loading={notionLoading}
-          synced={notionSynced}
-        />
         <SyncButton
           label="Streamable"
           icon={

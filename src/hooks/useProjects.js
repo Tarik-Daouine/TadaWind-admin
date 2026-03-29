@@ -53,15 +53,13 @@ function mapProject(row) {
     date:             row.created_at ? row.created_at.split('T')[0] : '',
 
     // Champs UI-only (pas encore en DB — defaults vides)
-    region:     '',
-    tags:       [],
-    longDesc:   '',
-    featured:   false,
-    notionId:   '',
-    notionSync: false,
-    seoTitle:   '',
-    seoDesc:    '',
-    slug:       '',
+    region:   '',
+    tags:     [],
+    longDesc: '',
+    featured: false,
+    seoTitle: '',
+    seoDesc:  '',
+    slug:     '',
   }
 }
 

@@ -9,6 +9,7 @@ function useIsMobile() {
   }, [])
   return mobile
 }
+import { fetchStreamableMeta } from './lib/streamable.js'
 import { useAuth } from './hooks/useAuth.js'
 import { useProjects } from './hooks/useProjects.js'
 import { useLeads } from './hooks/useLeads.js'
@@ -105,6 +106,41 @@ export default function App() {
     }
   }
 
+  // ── Streamable bulk sync ────────────────────────────────────────────────────
+  const [streamableSynced, setStreamableSynced] = useState(true)
+
+  const handleStreamableSync = async () => {
+    const withVideo = projects.filter(p => p.streamableId)
+    if (!withVideo.length) {
+      addToast('Aucun projet avec un ID Streamable', 'info')
+      return
+    }
+    setStreamableSynced(false)
+    let ok = 0, ko = 0
+    for (const p of withVideo) {
+      const result = await fetchStreamableMeta(p.streamableId)
+      if (result && result.ready) {
+        await updateProject(p.id, {
+          streamableMeta: {
+            duration: result.duration,
+            width:    result.width,
+            height:   result.height,
+            source:   result.source,
+          },
+        })
+        ok++
+      } else if (result && !result.ready) {
+        ko++
+      }
+    }
+    setStreamableSynced(true)
+    if (ko > 0) {
+      addToast(`Streamable : ${ok} OK — ${ko} vidéo${ko > 1 ? 's' : ''} introuvable${ko > 1 ? 's' : ''}`, 'error')
+    } else {
+      addToast(`Streamable : ${ok} vidéo${ok > 1 ? 's' : ''} vérifiée${ok > 1 ? 's' : ''}`, 'success')
+    }
+  }
+
   const handleDelete = (id) => {
     const p = projects.find(x => x.id === id)
     setDeleteModal({ open: true, id, title: p?.title || '' })
@@ -186,6 +222,8 @@ export default function App() {
           onNewProject={handleNewProject}
           mobile={mobile}
           onMenuToggle={() => setSidebarOpen(p => !p)}
+          onStreamableSync={handleStreamableSync}
+          streamableSynced={streamableSynced}
         />
 
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
