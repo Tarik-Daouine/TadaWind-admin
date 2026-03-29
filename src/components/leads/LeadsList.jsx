@@ -3,7 +3,7 @@ import LeadRow from './LeadRow.jsx'
 
 const PAGE_SIZE = 15
 
-const STATUT_OPTIONS = ['nouveau', 'Prospect contacté', 'Opportunité', 'Relancé', 'Converti', 'Perdu']
+const STATUT_OPTIONS = ['nouveau', 'Prospect contacté', 'À relancer', 'Opportunité', 'Relancé', 'Converti', 'Perdu']
 const SOURCE_OPTIONS  = ['tadawind_site', 'Autre', 'Réseau']
 const PRIORITE_OPTIONS = ['Haute', 'Normale', 'Basse']
 const CLIENT_OPTIONS  = ['Particulier', 'Professionnel']

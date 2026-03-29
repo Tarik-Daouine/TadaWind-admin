@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react'
 const STATUT_OPTIONS = [
   { value: 'nouveau',           label: 'Nouveau',           color: '#4f7ff3' },
   { value: 'Prospect contacté', label: 'Prospect contacté', color: '#f59e0b' },
+  { value: 'À relancer',        label: 'À relancer',        color: '#f97316' },
   { value: 'Opportunité',       label: 'Opportunité',       color: '#22c55e' },
   { value: 'Relancé',           label: 'Relancé',           color: '#f59e0b' },
   { value: 'Converti',          label: 'Converti',          color: '#16a34a' },

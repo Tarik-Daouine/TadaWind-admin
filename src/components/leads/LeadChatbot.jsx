@@ -3,7 +3,7 @@ import { parseTranscription } from '../../lib/parseTranscription.js'
 
 // ── Constantes UI ──────────────────────────────────────────────────────────────
 
-const STATUT_OPTIONS    = ['nouveau', 'Prospect contacté', 'Opportunité', 'Relancé', 'Converti', 'Perdu']
+const STATUT_OPTIONS    = ['nouveau', 'Prospect contacté', 'À relancer', 'Opportunité', 'Relancé', 'Converti', 'Perdu']
 const PRIORITE_OPTIONS  = ['Haute', 'Normale', 'Basse']
 const INTERET_OPTIONS   = ['', 'Fort', 'Moyen', 'Faible']
 const TYPE_CLIENT_OPT   = ['', 'Professionnel', 'Particulier']

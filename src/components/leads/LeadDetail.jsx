@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 
-const STATUT_OPTIONS    = ['nouveau', 'Prospect contacté', 'Opportunité', 'Relancé', 'Converti', 'Perdu']
+const STATUT_OPTIONS    = ['nouveau', 'Prospect contacté', 'À relancer', 'Opportunité', 'Relancé', 'Converti', 'Perdu']
 const PRIORITE_OPTIONS  = ['Haute', 'Normale', 'Basse']
 const INTERET_OPTIONS   = ['Fort', 'Moyen', 'Faible']
 const NEXT_STEP_OPTIONS = ['RDV sur place', 'Envoyer proposition', 'Relance']
@@ -9,6 +9,7 @@ const PROBA_OPTIONS     = ['100', '80', '60', '40', '20', '0']
 const STATUT_COLORS = {
   'nouveau':           '#4f7ff3',
   'Prospect contacté': '#f59e0b',
+  'À relancer':        '#f97316',
   'Opportunité':       '#22c55e',
   'Relancé':           '#f59e0b',
   'Converti':          '#16a34a',

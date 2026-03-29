@@ -174,11 +174,13 @@ function detectTelephone(text) {
 
 function detectTypeBesoin(text) {
   // Supprimer les contextes négatifs avant scoring :
-  // - "pas drone", "sans vidéo", "ni photo"
-  // - "par le/la/les drone" (ex: "pas intéressés par le drone" → on vire aussi l'objet du "par")
+  // 1. "pas intéressé par le drone", "non convaincu par la photo" → retire mot + objet du refus
+  // 2. "pas drone", "sans vidéo", "ni photo" → retire le mot nié
+  // L'ordre compte : step 1 traite les constructions "pas X par le Y" AVANT que step 2
+  // ne retire seulement "X", ce qui laisserait "par le Y" isolé à tort.
   const cleaned = normalize(text)
+    .replace(/(?:pas|non)\s+\S+\s+par\s+(?:le|la|les|un|une)\s+\S+/g, ' ')
     .replace(/(?:pas|sans|ni|non)\s+\S+/g, ' ')
-    .replace(/\bpar\s+(?:le|la|les|un|une)\s+\S+/g, ' ')
   let bestLabel = 'drone'
   let bestScore = 0
   for (const { label, mots } of TYPES_BESOIN) {
