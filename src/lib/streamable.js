@@ -6,14 +6,10 @@ import { supabase } from './supabase.js'
 // Liste toutes les vidéos du compte Streamable via l'Edge Function Supabase.
 // Les credentials sont stockés dans les secrets Supabase (côté serveur).
 // Retourne { videos: [...], error: string|null, corsBlocked: false }
+// Streamable n'expose pas d'endpoint public pour lister toutes les vidéos.
+// La fonction Edge retournera toujours videos: [] — l'import se fait manuellement.
 export async function fetchAllStreamableVideos() {
-  try {
-    const { data, error } = await supabase.functions.invoke('streamable-list')
-    if (error) return { videos: [], error: error.message, corsBlocked: false }
-    return { videos: data?.videos || [], error: null, corsBlocked: false }
-  } catch (e) {
-    return { videos: [], error: e.message, corsBlocked: false }
-  }
+  return { videos: [], error: null, corsBlocked: false }
 }
 
 export function formatDuration(seconds) {

@@ -176,16 +176,15 @@ export default function StreamableSyncModal({ results, onClose, onImport, onUnli
             </Section>
           )}
 
-          {/* CORS bloqué — import manuel */}
-          {corsBlocked && (
-            <Section title="Import manuel" count="" color="var(--amber)">
+          {/* Import manuel — toujours affiché (Streamable n'a pas d'endpoint liste) */}
+          {true && (
+            <Section title="Importer une vidéo" count="" color="var(--blue)">
               <div style={{
-                background: 'var(--amber-dim)', border: '1px solid rgba(245,158,11,0.25)',
+                background: 'var(--s3)', border: '1px solid var(--border)',
                 borderRadius: 'var(--radius)', padding: '10px 12px', marginBottom: 12,
-                fontSize: 12, color: 'var(--amber)', lineHeight: 1.5,
+                fontSize: 12, color: 'var(--muted)', lineHeight: 1.5,
               }}>
-                ⚠️ La liste des vidéos n'est pas accessible depuis le navigateur (CORS avec auth).
-                Colle l'ID ou l'URL d'une vidéo Streamable pour l'importer manuellement.
+                Colle l'ID ou l'URL d'une vidéo Streamable pour créer un nouveau projet.
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <input
@@ -212,7 +211,7 @@ export default function StreamableSyncModal({ results, onClose, onImport, onUnli
           )}
 
           {/* Tout est OK */}
-          {!corsBlocked && ok.length > 0 && broken.length === 0 && newVideos.length === 0 && (
+          {ok.length > 0 && broken.length === 0 && newVideos.length === 0 && (
             <div style={{
               textAlign: 'center', padding: '16px 0',
               fontSize: 13, color: 'var(--muted)',
