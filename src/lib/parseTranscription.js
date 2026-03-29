@@ -149,7 +149,8 @@ function detectVille(text) {
 
 function detectContact(text) {
   // "rencontré le gérant Thomas" → on permet un article+rôle optionnel entre le trigger et le prénom
-  const re = /(?:\bcontact[:\s]+|\bparl[eé]r?\s+[aà]|\brencontré[e]?(?:\s+(?:le|la|les|l[''])\s*\w+)?|\b[Mm]\.|\b[Mm]me\b|\b[Mm]onsieur\b|\b[Mm]adame\b)\s+([A-ZÀ-Ü][a-zà-ü\-]+)(?:\s+([A-ZÀ-Ü][A-ZÀ-Üa-zà-ü\-]+))?/g
+  // [^\s]+ au lieu de \w+ car \w ne couvre pas les caractères accentués (gérant, directeur, etc.)
+  const re = /(?:\bcontact[:\s]+|\bparl[eé]r?\s+[aà]|\brencontré[e]?(?:\s+(?:le|la|les|l[''])\s*[^\s]+)?|\b[Mm]\.|\b[Mm]me\b|\b[Mm]onsieur\b|\b[Mm]adame\b)\s+([A-ZÀ-Ü][a-zà-ü\-]+)(?:\s+([A-ZÀ-Ü][A-ZÀ-Üa-zà-ü\-]+))?/g
   const m = re.exec(text)
   return m ? { prenom: m[1] || '', nom: m[2] || '' } : { prenom: '', nom: '' }
 }
@@ -172,9 +173,12 @@ function detectTelephone(text) {
 // ── Détection type besoin ──────────────────────────────────────────────────────
 
 function detectTypeBesoin(text) {
-  // Supprimer les contextes négatifs avant scoring ("pas drone", "sans vidéo", "ni photo")
-  // pour éviter qu'un mot nié contribue au score de son type
-  const cleaned = normalize(text).replace(/(?:pas|sans|ni)\s+\S+/g, ' ')
+  // Supprimer les contextes négatifs avant scoring :
+  // - "pas drone", "sans vidéo", "ni photo"
+  // - "par le/la/les drone" (ex: "pas intéressés par le drone" → on vire aussi l'objet du "par")
+  const cleaned = normalize(text)
+    .replace(/(?:pas|sans|ni|non)\s+\S+/g, ' ')
+    .replace(/\bpar\s+(?:le|la|les|un|une)\s+\S+/g, ' ')
   let bestLabel = 'drone'
   let bestScore = 0
   for (const { label, mots } of TYPES_BESOIN) {
