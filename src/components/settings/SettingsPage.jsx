@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase.js'
 import Button from '../ui/Button.jsx'
 
@@ -52,14 +52,30 @@ export default function SettingsPage({ onToast }) {
 
   const set = (key, val) => setForm(prev => ({ ...prev, [key]: val }))
 
-  // Génère le bookmarklet et l'injecte via ref (contourne la restriction React sur javascript: URLs)
-  const bookmarkRef = useRef(null)
+  // Injecte le bookmarklet dans un container div non géré par React
+  // (évite que React écrase le href javascript: lors des re-renders)
+  const bookmarkContainerRef = useRef(null)
   useEffect(() => {
-    if (!bookmarkRef.current) return
+    const container = bookmarkContainerRef.current
+    if (!container) return
     const adminUrl = `${window.location.protocol}//${window.location.host}${import.meta.env.BASE_URL}`
     const EXCLUDE = ['my-videos','login','register','upload','about','pricing','help','contact','settings','embed']
     const js = `(function(){var ids=[];var ex=${JSON.stringify(EXCLUDE)};document.querySelectorAll('a[href]').forEach(function(a){try{var u=new URL(a.href);if(u.hostname.indexOf('streamable.com')>-1){var p=u.pathname.split('/').filter(Boolean);if(p.length===1&&/^[a-zA-Z0-9]{4,8}$/.test(p[0])&&ex.indexOf(p[0])===-1)ids.push(p[0]);}}catch(e){}});ids=ids.filter(function(v,i,a){return a.indexOf(v)===i;});if(!ids.length){alert('Aucune vid\\u00e9o Streamable trouv\\u00e9e.');return;}window.open('${adminUrl}?streamable_ids='+ids.join(','),'_blank');})()`
-    bookmarkRef.current.href = `javascript:${encodeURIComponent(js)}`
+    const a = document.createElement('a')
+    a.href = `javascript:${encodeURIComponent(js)}`
+    a.textContent = '▶ Sync Streamable → Admin'
+    a.title = 'Glisse dans ta barre de favoris'
+    Object.assign(a.style, {
+      display: 'inline-flex', alignItems: 'center',
+      padding: '7px 14px', borderRadius: '6px',
+      background: 'var(--blue-dim)', border: '1px solid rgba(79,127,243,0.35)',
+      color: 'var(--blue)', fontSize: '13px', fontWeight: '600',
+      textDecoration: 'none', cursor: 'grab', userSelect: 'none',
+      whiteSpace: 'nowrap', fontFamily: 'var(--sans)',
+    })
+    a.addEventListener('click', e => { e.preventDefault(); alert('Glisse ce bouton dans ta barre de favoris — ne clique pas ici.') })
+    container.innerHTML = ''
+    container.appendChild(a)
   }, [])
 
 
@@ -171,21 +187,7 @@ CREATE POLICY "admin_write_settings" ON settings
 
           {/* Bouton à glisser */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
-            <a
-              ref={bookmarkRef}
-              href="#"
-              onClick={e => { e.preventDefault(); alert('Glisse ce bouton dans ta barre de favoris — ne clique pas ici.') }}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                padding: '7px 14px', borderRadius: 'var(--radius)',
-                background: 'var(--blue-dim)', border: '1px solid rgba(79,127,243,0.35)',
-                color: 'var(--blue)', fontSize: 13, fontWeight: 600,
-                textDecoration: 'none', cursor: 'grab', userSelect: 'none',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              ▶ Sync Streamable → Admin
-            </a>
+            <div ref={bookmarkContainerRef} />
             <div style={{
               flex: 1, minWidth: 200, fontSize: 12, color: 'var(--muted)',
               background: 'var(--s3)', border: '1px solid var(--border)',
