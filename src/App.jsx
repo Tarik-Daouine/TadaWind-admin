@@ -90,6 +90,28 @@ export default function App() {
   const [streamableSynced, setStreamableSynced] = useState(true)
   const [syncModal, setSyncModal]               = useState(null) // null | results object
 
+  // ── Bookmarklet : ?streamable_ids=abc,def,ghi ────────────────────────────
+  useEffect(() => {
+    if (projectsLoading) return
+    const params = new URLSearchParams(window.location.search)
+    const idsParam = params.get('streamable_ids')
+    if (!idsParam) return
+
+    // Nettoie l'URL sans rechargement
+    const clean = new URL(window.location.href)
+    clean.searchParams.delete('streamable_ids')
+    window.history.replaceState({}, '', clean.toString())
+
+    const incoming = idsParam.split(',').map(s => s.trim()).filter(Boolean)
+    const existing = new Set(projects.map(p => p.streamableId).filter(Boolean))
+    const newVideos = incoming
+      .filter(id => !existing.has(id))
+      .map(id => ({ shortcode: id, title: '' }))
+
+    setSyncModal({ ok: [], broken: [], newVideos, corsBlocked: false })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectsLoading])
+
   // ── Gardes auth ───────────────────────────────────────────────────────────
   if (authLoading) return <LoadingScreen message="Initialisation…" />
   if (!session)    return <LoginPage onLogin={signIn} />

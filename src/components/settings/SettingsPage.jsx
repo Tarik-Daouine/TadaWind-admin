@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../lib/supabase.js'
 import Button from '../ui/Button.jsx'
 
@@ -51,6 +51,14 @@ export default function SettingsPage({ onToast }) {
   }
 
   const set = (key, val) => setForm(prev => ({ ...prev, [key]: val }))
+
+  // Génère le bookmarklet avec l'URL courante de l'admin
+  const bookmarkletHref = useMemo(() => {
+    const adminUrl = `${window.location.protocol}//${window.location.host}${import.meta.env.BASE_URL}`
+    const EXCLUDE = ['my-videos','login','register','upload','about','pricing','help','contact','settings','embed']
+    const js = `(function(){var ids=[];var ex=${JSON.stringify(EXCLUDE)};document.querySelectorAll('a[href]').forEach(function(a){try{var u=new URL(a.href);if(u.hostname.indexOf('streamable.com')>-1){var p=u.pathname.split('/').filter(Boolean);if(p.length===1&&/^[a-zA-Z0-9]{4,8}$/.test(p[0])&&ex.indexOf(p[0])===-1)ids.push(p[0]);}}catch(e){}});ids=ids.filter(function(v,i,a){return a.indexOf(v)===i;});if(!ids.length){alert('Aucune vidéo Streamable trouvée. Vérifie d\\'être sur ta page Streamable.');return;}window.open('${adminUrl}?streamable_ids='+ids.join(','),'_blank');})()`
+    return `javascript:${encodeURIComponent(js)}`
+  }, [])
 
 
   if (loading) {
@@ -150,6 +158,43 @@ CREATE POLICY "admin_write_settings" ON settings
           </div>
         </div>
 
+        {/* ── Bookmarklet Streamable ───────────────────────── */}
+        <div style={{ marginTop: 40, paddingTop: 32, borderTop: '1px solid var(--border)' }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 4, color: 'var(--text)' }}>
+            Bookmarklet Streamable
+          </h3>
+          <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20, lineHeight: 1.6 }}>
+            Glisse ce bouton dans ta barre de favoris. Sur ta page Streamable, clique dessus pour envoyer automatiquement tes vidéos dans l'admin.
+          </p>
+
+          {/* Bouton à glisser */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+            <a
+              href={bookmarkletHref}
+              onClick={e => { e.preventDefault(); alert('Glisse ce bouton dans ta barre de favoris — ne clique pas ici.') }}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '7px 14px', borderRadius: 'var(--radius)',
+                background: 'var(--blue-dim)', border: '1px solid rgba(79,127,243,0.35)',
+                color: 'var(--blue)', fontSize: 13, fontWeight: 600,
+                textDecoration: 'none', cursor: 'grab', userSelect: 'none',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              ▶ Sync Streamable → Admin
+            </a>
+            <div style={{
+              flex: 1, minWidth: 200, fontSize: 12, color: 'var(--muted)',
+              background: 'var(--s3)', border: '1px solid var(--border)',
+              borderRadius: 'var(--radius)', padding: '8px 12px', lineHeight: 1.6,
+            }}>
+              <strong style={{ color: 'var(--text)' }}>Comment utiliser :</strong><br />
+              1. Glisse le bouton ci-contre dans ta barre de favoris<br />
+              2. Va sur <strong>streamable.com/my-videos</strong><br />
+              3. Clique sur le favoris → l'admin s'ouvre avec les vidéos manquantes
+            </div>
+          </div>
+        </div>
 
       </div>
     </div>
