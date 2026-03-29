@@ -148,7 +148,8 @@ function detectVille(text) {
 // ── Détection prénom / nom ─────────────────────────────────────────────────────
 
 function detectContact(text) {
-  const re = /(?:\bcontact[:\s]+|\bparl[eé]r?\s+[aà]|\brencontré[e]?|\b[Mm]\.|\b[Mm]me\b|\b[Mm]onsieur\b|\b[Mm]adame\b)\s+([A-ZÀ-Ü][a-zà-ü\-]+)(?:\s+([A-ZÀ-Ü][A-ZÀ-Üa-zà-ü\-]+))?/g
+  // "rencontré le gérant Thomas" → on permet un article+rôle optionnel entre le trigger et le prénom
+  const re = /(?:\bcontact[:\s]+|\bparl[eé]r?\s+[aà]|\brencontré[e]?(?:\s+(?:le|la|les|l[''])\s*\w+)?|\b[Mm]\.|\b[Mm]me\b|\b[Mm]onsieur\b|\b[Mm]adame\b)\s+([A-ZÀ-Ü][a-zà-ü\-]+)(?:\s+([A-ZÀ-Ü][A-ZÀ-Üa-zà-ü\-]+))?/g
   const m = re.exec(text)
   return m ? { prenom: m[1] || '', nom: m[2] || '' } : { prenom: '', nom: '' }
 }
@@ -171,12 +172,13 @@ function detectTelephone(text) {
 // ── Détection type besoin ──────────────────────────────────────────────────────
 
 function detectTypeBesoin(text) {
-  // Scoring : on retourne le type avec le plus grand nombre de mots-clés matchés
-  // (évite que "pas drone" → type=drone quand "vidéo promo" est aussi présent)
+  // Supprimer les contextes négatifs avant scoring ("pas drone", "sans vidéo", "ni photo")
+  // pour éviter qu'un mot nié contribue au score de son type
+  const cleaned = normalize(text).replace(/(?:pas|sans|ni)\s+\S+/g, ' ')
   let bestLabel = 'drone'
   let bestScore = 0
   for (const { label, mots } of TYPES_BESOIN) {
-    const score = mots.reduce((n, m) => n + (normalize(text).includes(normalize(m)) ? 1 : 0), 0)
+    const score = mots.reduce((n, m) => n + (cleaned.includes(normalize(m)) ? 1 : 0), 0)
     if (score > bestScore) { bestScore = score; bestLabel = label }
   }
   return bestLabel
@@ -198,6 +200,9 @@ function detectNextStep(text) {
   for (const re of patterns) {
     const m = re.exec(text)
     if (m) {
+      // Ignorer si l'action est précédée de "ne pas" (ex: "Ne pas relancer avant mai")
+      const before = text.slice(Math.max(0, m.index - 15), m.index)
+      if (/ne\s+pas\s*$/i.test(before)) continue
       const step = m[1].trim()
       return step.charAt(0).toUpperCase() + step.slice(1)
     }
@@ -216,7 +221,9 @@ export function parseTranscription(text) {
   const { label: etablissement, nom: nomEtablissement } = detectEtablissementInfo(text)
 
   // ── Négation explicite (à tester avant toute détection positive) ─────────────
-  const pasInteresse = contains(text, PAS_INTERESSE)
+  // Regex précise : "pas/non intéressé(e)(s)" NON suivi de "par" (sinon c'est un refus ciblé
+  // sur un service particulier, pas un désintérêt global — ex: "pas intéressé par le drone")
+  const pasInteresse = /(?:pas|non)\s+int[eé]ress[eé]e?s?(?!\s+par\b)/i.test(text)
 
   // ── Type client ──────────────────────────────────────────────────────────────
   let typeClient = 'Professionnel' // défaut terrain = B2B

@@ -18,13 +18,13 @@ import { supabase } from '../lib/supabase.js'
 // Message client          text
 // Source                  text  'tadawind_site' | 'Autre' | 'Réseau'
 // Statut                  text  'nouveau' | 'Prospect contacté' | 'Opportunité' | 'Relancé' | 'Converti' | 'Perdu'
-// Priorité                text  'Haute' | 'Normale' | 'Basse'
-// Niveau d'intérêt        text  'Fort' | 'Moyen' | 'Faible'
-// Probabilité             text  (% en texte, ex: '80')
+// Priorite                text  'Haute' | 'Normale' | 'Basse'
+// Niveau interet          text  'Fort' | 'Moyen' | 'Faible'
+// Probabilite             text  (% en texte, ex: '80')
 // Next step               text
 // Date de relance         timestamptz
-// Date d'envoi devis      timestamptz
-// Montant devis estimé (€) text
+// Date envoi devis        timestamptz
+// Montant devis estime    text
 // Commentaires internes   text
 // Timestamp               text
 // ─────────────────────────────────────────────────────────────────────────────
@@ -32,29 +32,29 @@ import { supabase } from '../lib/supabase.js'
 // ── MAPPER Supabase → UI ──────────────────────────────────────────────────────
 function mapLead(row) {
   return {
-    id:            row['ID']                        ?? '',
-    prenom:        row['Prénom']                    ?? '',
-    nom:           row['Nom']                       ?? '',
-    email:         row['Email']                     ?? '',
-    telephone:     row['Téléphone']                 ?? '',
-    nomEntreprise: row['Nom entreprise']            ?? '',
-    typeClient:    row['Type de client']            ?? '',
-    prestataire:   row['Prestataire existant ?']    ?? false,
-    ville:         row['Ville / Lieu mission']      ?? '',
-    dateMission:   row['Date souhaitée mission']    ?? null,
-    typeBesoin:    row['Type de besoin']            ?? '',
-    message:       row['Message client']            ?? '',
-    source:        row['Source']                    ?? '',
-    statut:        row['Statut']                    ?? 'nouveau',
-    priorite:      row['Priorité']                  ?? 'Normale',
-    niveauInteret: row["Niveau d\u2019int\u00e9r\u00eat"]          ?? '',
-    probabilite:   row['Probabilité']               ?? '',
-    nextStep:      row['Next step']                 ?? '',
-    dateRelance:   row['Date de relance']           ?? null,
-    dateDevis:     row["Date d\u2019envoi devis"]        ?? null,
-    montantDevis:  row['Montant devis estimé (€)']  ?? '',
-    commentaires:  row['Commentaires internes']     ?? '',
-    timestamp:     row['Timestamp']                 ?? '',
+    id:            row['ID']                       ?? '',
+    prenom:        row['Prenom']                   ?? '',
+    nom:           row['Nom']                      ?? '',
+    email:         row['Email']                    ?? '',
+    telephone:     row['Telephone']                ?? '',
+    nomEntreprise: row['Nom entreprise']           ?? '',
+    typeClient:    row['Type de client']           ?? '',
+    prestataire:   row['Prestataire existant']     ?? false,
+    ville:         row['Ville / Lieu mission']     ?? '',
+    dateMission:   row['Date souhaitee mission']   ?? null,
+    typeBesoin:    row['Type de besoin']           ?? '',
+    message:       row['Message client']           ?? '',
+    source:        row['Source']                   ?? '',
+    statut:        row['Statut']                   ?? 'nouveau',
+    priorite:      row['Priorite']                 ?? 'Normale',
+    niveauInteret: row['Niveau interet']           ?? '',
+    probabilite:   row['Probabilite']              ?? '',
+    nextStep:      row['Next step']                ?? '',
+    dateRelance:   row['Date de relance']          ?? null,
+    dateDevis:     row['Date envoi devis']         ?? null,
+    montantDevis:  row['Montant devis estime']     ?? '',
+    commentaires:  row['Commentaires internes']    ?? '',
+    timestamp:     row['Timestamp']                ?? '',
   }
 }
 
@@ -64,33 +64,30 @@ function mapToSupabase(data) {
   const out = {}
   const mapping = {
     statut:        'Statut',
-    priorite:      'Priorité',
-    niveauInteret: "Niveau d\u2019int\u00e9r\u00eat",
-    probabilite:   'Probabilité',
+    priorite:      'Priorite',
+    niveauInteret: 'Niveau interet',
+    probabilite:   'Probabilite',
     nextStep:      'Next step',
     dateRelance:   'Date de relance',
-    dateDevis:     "Date d\u2019envoi devis",
-    montantDevis:  'Montant devis estimé (€)',
+    dateDevis:     'Date envoi devis',
+    montantDevis:  'Montant devis estime',
     commentaires:  'Commentaires internes',
     // Coordonnées également éditables
-    prenom:        'Prénom',
+    prenom:        'Prenom',
     nom:           'Nom',
     email:         'Email',
-    telephone:     'Téléphone',
+    telephone:     'Telephone',
     nomEntreprise: 'Nom entreprise',
     typeClient:    'Type de client',
-    prestataire:   'Prestataire existant ?',
+    prestataire:   'Prestataire existant',
     ville:         'Ville / Lieu mission',
-    dateMission:   'Date souhaitée mission',
+    dateMission:   'Date souhaitee mission',
     typeBesoin:    'Type de besoin',
     message:       'Message client',
     source:        'Source',
   }
   for (const [uiKey, dbKey] of Object.entries(mapping)) {
     const val = data[uiKey]
-    // Skip null et '' : PostgREST n'a pas besoin de valider le nom de colonne
-    // pour un champ absent du payload (contourne les bugs de schema cache sur les
-    // noms avec apostrophes/accents comme "Niveau d'intérêt", "Date d'envoi devis")
     if (val !== undefined && val !== null && val !== '') {
       out[dbKey] = val
     }
