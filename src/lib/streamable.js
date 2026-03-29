@@ -2,6 +2,43 @@
 // Helpers Streamable — utilisés par TabVideo et le bulk sync (Topbar)
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Credentials stockés dans localStorage (jamais envoyés à Supabase)
+const LS_EMAIL = 'tw_streamable_email'
+const LS_PASS  = 'tw_streamable_password'
+
+export function getStreamableCredentials() {
+  return {
+    email:    localStorage.getItem(LS_EMAIL)    || '',
+    password: localStorage.getItem(LS_PASS) || '',
+  }
+}
+
+export function saveStreamableCredentials(email, password) {
+  localStorage.setItem(LS_EMAIL, email)
+  localStorage.setItem(LS_PASS, password)
+}
+
+// Liste toutes les vidéos du compte Streamable (nécessite Basic Auth).
+// Retourne { videos: [...], error: string|null, corsBlocked: bool }
+export async function fetchAllStreamableVideos(email, password) {
+  if (!email || !password) return { videos: [], error: 'Identifiants manquants', corsBlocked: false }
+  const auth = btoa(`${email}:${password}`)
+  try {
+    const res = await fetch('https://api.streamable.com/videos', {
+      headers: { Authorization: `Basic ${auth}`, Accept: 'application/json' },
+    })
+    if (res.status === 401) return { videos: [], error: 'Identifiants incorrects', corsBlocked: false }
+    if (!res.ok)            return { videos: [], error: `Erreur API Streamable (${res.status})`, corsBlocked: false }
+    const data = await res.json()
+    // L'API peut retourner un tableau ou un objet { videos: [...] }
+    const videos = Array.isArray(data) ? data : (data.videos || data.results || [])
+    return { videos, error: null, corsBlocked: false }
+  } catch (e) {
+    const corsBlocked = e instanceof TypeError
+    return { videos: [], error: corsBlocked ? null : e.message, corsBlocked }
+  }
+}
+
 export function formatDuration(seconds) {
   if (!seconds) return null
   const m = Math.floor(seconds / 60)

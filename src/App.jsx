@@ -9,7 +9,8 @@ function useIsMobile() {
   }, [])
   return mobile
 }
-import { fetchStreamableMeta } from './lib/streamable.js'
+import { fetchStreamableMeta, fetchAllStreamableVideos, getStreamableCredentials } from './lib/streamable.js'
+import StreamableSyncModal from './components/projects/StreamableSyncModal.jsx'
 import { useAuth } from './hooks/useAuth.js'
 import { useProjects } from './hooks/useProjects.js'
 import { useLeads } from './hooks/useLeads.js'
@@ -87,6 +88,7 @@ export default function App() {
   const mobile                                = useIsMobile()
   const [sidebarOpen, setSidebarOpen]         = useState(false)
   const [streamableSynced, setStreamableSynced] = useState(true)
+  const [syncModal, setSyncModal]               = useState(null) // null | results object
 
   // ── Gardes auth ───────────────────────────────────────────────────────────
   if (authLoading) return <LoadingScreen message="Initialisation…" />
@@ -107,37 +109,65 @@ export default function App() {
     }
   }
 
-  // ── Streamable bulk sync ────────────────────────────────────────────────────
+  // ── Streamable bulk sync ─────────────────────────────────────────────────────
   const handleStreamableSync = async () => {
-    const withVideo = projects.filter(p => p.streamableId)
-    if (!withVideo.length) {
-      addToast('Aucun projet avec un ID Streamable', 'info')
-      return
-    }
     setStreamableSynced(false)
-    let ok = 0, ko = 0
+    const { email, password } = getStreamableCredentials()
+    const existingIds = new Set(projects.map(p => p.streamableId).filter(Boolean))
+
+    // 1. Tente de lister toutes les vidéos du compte
+    const { videos: allVideos, corsBlocked } = await fetchAllStreamableVideos(email, password)
+
+    // 2. Vérification de cohérence des projets existants
+    const withVideo = projects.filter(p => p.streamableId)
+    const ok = [], broken = []
     for (const p of withVideo) {
       const result = await fetchStreamableMeta(p.streamableId)
       if (result && result.ready) {
         await updateProject(p.id, {
-          streamableMeta: {
-            duration: result.duration,
-            width:    result.width,
-            height:   result.height,
-            source:   result.source,
-          },
+          streamableMeta: { duration: result.duration, width: result.width, height: result.height, source: result.source },
         })
-        ok++
-      } else if (result && !result.ready) {
-        ko++
+        ok.push(p)
+      } else {
+        broken.push(p)
       }
     }
+
+    // 3. Nouvelles vidéos Streamable non encore importées
+    const newVideos = allVideos
+      .filter(v => {
+        const sc = v.shortcode || v.id || ''
+        return sc && !existingIds.has(sc)
+      })
+      .map(v => ({ shortcode: v.shortcode || v.id, title: v.title || '' }))
+
     setStreamableSynced(true)
-    if (ko > 0) {
-      addToast(`Streamable : ${ok} OK — ${ko} vidéo${ko > 1 ? 's' : ''} introuvable${ko > 1 ? 's' : ''}`, 'error')
-    } else {
-      addToast(`Streamable : ${ok} vidéo${ok > 1 ? 's' : ''} vérifiée${ok > 1 ? 's' : ''}`, 'success')
+    setSyncModal({ ok, broken, newVideos, corsBlocked })
+  }
+
+  const handleSyncImport = async (shortcode, title, meta) => {
+    const p = await createProject({
+      title:          title || shortcode,
+      streamableId:   shortcode,
+      streamableUrl:  `https://streamable.com/${shortcode}`,
+      streamableMeta: meta ? { duration: meta.duration, width: meta.width, height: meta.height, source: meta.source } : null,
+    })
+    if (p) {
+      addToast(`"${title || shortcode}" importé`, 'success')
+      setSyncModal(prev => prev ? ({
+        ...prev,
+        newVideos: prev.newVideos.filter(v => v.shortcode !== shortcode),
+      }) : null)
     }
+  }
+
+  const handleSyncUnlink = async (projectId) => {
+    await updateProject(projectId, { streamableId: '', streamableUrl: '', streamableStatus: 'missing', streamableMeta: null })
+    addToast('Vidéo déliée du projet', 'success')
+    setSyncModal(prev => prev ? ({
+      ...prev,
+      broken: prev.broken.filter(p => p.id !== projectId),
+    }) : null)
   }
 
   const handleDelete = (id) => {
@@ -378,6 +408,16 @@ export default function App() {
           {view === 'settings' && <SettingsPage onToast={addToast} />}
         </div>
       </div>
+
+      {/* Streamable sync modal */}
+      {syncModal && (
+        <StreamableSyncModal
+          results={syncModal}
+          onClose={() => setSyncModal(null)}
+          onImport={handleSyncImport}
+          onUnlink={handleSyncUnlink}
+        />
+      )}
 
       {/* Delete confirmation modal */}
       <Modal
