@@ -67,6 +67,7 @@ export default function App() {
     createProject,
     updateProject,
     deleteProject,
+    deleteProjects,
     duplicateProject,
     reorderProjects,
   } = useProjects()
@@ -326,6 +327,14 @@ export default function App() {
                       onSelect={setSelectedId}
                       onDelete={handleDelete}
                       onDuplicate={handleDuplicate}
+                      onBulkDelete={async (ids) => {
+                        const { error } = await deleteProjects(ids)
+                        if (error) addToast('Erreur lors de la suppression', 'error')
+                        else {
+                          if (ids.includes(selectedId)) setSelectedId(null)
+                          addToast(`${ids.length} projet${ids.length > 1 ? 's' : ''} supprimé${ids.length > 1 ? 's' : ''}`, 'success')
+                        }
+                      }}
                       search={search}
                       filters={filters}
                       sort={sort}

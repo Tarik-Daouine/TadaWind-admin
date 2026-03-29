@@ -56,6 +56,7 @@ export default function ProjectList({
   onSelect,
   onDelete,
   onDuplicate,
+  onBulkDelete,
   filters,
   sort,
   search,
@@ -67,6 +68,23 @@ export default function ProjectList({
   const [page, setPage] = useState(1)
   const [dragSrc, setDragSrc] = useState(null)
   const [dragOver, setDragOver] = useState(null)
+  const [checkedIds, setCheckedIds] = useState(new Set())
+
+  const toggleCheck = (id) => {
+    setCheckedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+  const toggleAll = () => {
+    setCheckedIds(prev =>
+      prev.size === paginated.length
+        ? new Set()
+        : new Set(paginated.map(p => p.id))
+    )
+  }
+  const clearSelection = () => setCheckedIds(new Set())
 
   // Filter + sort
   const filtered = useMemo(() => {
@@ -225,6 +243,54 @@ export default function ProjectList({
           </div>
         </div>
 
+        {/* Barre de sélection */}
+        {checkedIds.size > 0 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '6px 0', marginBottom: 8,
+            background: 'var(--red-dim)', borderRadius: 'var(--radius)',
+            padding: '6px 10px', border: '1px solid rgba(191,24,24,0.2)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                type="checkbox"
+                checked={checkedIds.size === paginated.length}
+                onChange={toggleAll}
+                style={{ width: 14, height: 14, accentColor: 'var(--red)', cursor: 'pointer' }}
+              />
+              <span style={{ fontSize: 12, color: 'var(--text)', fontWeight: 600 }}>
+                {checkedIds.size} sélectionné{checkedIds.size > 1 ? 's' : ''}
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button
+                onClick={clearSelection}
+                style={{
+                  fontSize: 11, padding: '3px 9px', borderRadius: 5, cursor: 'pointer',
+                  border: '1px solid var(--border-md)', background: 'transparent', color: 'var(--muted)',
+                  fontFamily: 'var(--sans)',
+                }}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => {
+                  const ids = Array.from(checkedIds)
+                  clearSelection()
+                  onBulkDelete && onBulkDelete(ids)
+                }}
+                style={{
+                  fontSize: 11, padding: '3px 9px', borderRadius: 5, cursor: 'pointer',
+                  border: '1px solid rgba(191,24,24,0.4)', background: 'var(--red)', color: '#fff',
+                  fontFamily: 'var(--sans)', fontWeight: 600,
+                }}
+              >
+                Supprimer {checkedIds.size}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Filter bar */}
         <div style={{ display: 'flex', gap: 6 }}>
           <SelectFilter
@@ -280,7 +346,7 @@ export default function ProjectList({
               key={project.id}
               project={project}
               isSelected={project.id === selectedId}
-              onClick={() => onSelect(project.id === selectedId ? null : project.id)}
+              onClick={() => checkedIds.size > 0 ? toggleCheck(project.id) : onSelect(project.id === selectedId ? null : project.id)}
               onEdit={() => onSelect(project.id)}
               onDuplicate={onDuplicate}
               onDelete={onDelete}
@@ -291,6 +357,9 @@ export default function ProjectList({
               onDragEnd={handleDragEnd}
               onDrop={() => handleDrop(idx)}
               onStatusChange={onStatusChange}
+              isChecked={checkedIds.has(project.id)}
+              onCheck={toggleCheck}
+              selectionActive={checkedIds.size > 0}
             />
           ))
         )}

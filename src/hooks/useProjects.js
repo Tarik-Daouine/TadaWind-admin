@@ -139,19 +139,20 @@ export function useProjects() {
     const { data: inserted, error } = await supabase
       .from('projects')
       .insert({
-        title:         initialData.title    || 'Nouveau projet',
-        category:      initialData.category || 'Nature',
-        status:        'draft',
-        order:         1,
+        title:          initialData.title    || 'Nouveau projet',
+        category:       initialData.category || 'Nature',
+        status:         'draft',
+        order:          1,
         // Champs texte optionnels → null (évite les conflits de contrainte UNIQUE sur '')
-        location:      null,
-        streamableid:  null,
-        streamableurl: null,
-        cover:         null,
-        gallery:       [],
-        livrables:     null,
-        objectif:      null,
-        url:           null,
+        location:       null,
+        streamableid:   initialData.streamableId  || null,
+        streamableurl:  initialData.streamableUrl || null,
+        streamablemeta: initialData.streamableMeta || null,
+        cover:          null,
+        gallery:        [],
+        livrables:      null,
+        objectif:       null,
+        url:            null,
       })
       .select()
       .single()
@@ -262,6 +263,17 @@ export function useProjects() {
     return mapped
   }
 
+  // ── DELETE BULK ────────────────────────────────────────────────────────────
+  const deleteProjects = async (ids) => {
+    const { error } = await supabase
+      .from('projects')
+      .delete()
+      .in('id', ids)
+    if (error) return { error: error.message }
+    setProjects(prev => prev.filter(p => !ids.includes(p.id)))
+    return { error: null }
+  }
+
   // ── REORDER ────────────────────────────────────────────────────────────────
   const reorderProjects = async (orderedItems) => {
     // orderedItems = [{id, order}, ...]
@@ -285,6 +297,7 @@ export function useProjects() {
     createProject,
     updateProject,
     deleteProject,
+    deleteProjects,
     duplicateProject,
     reorderProjects,
   }

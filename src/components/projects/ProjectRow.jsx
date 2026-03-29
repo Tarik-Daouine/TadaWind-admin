@@ -154,9 +154,11 @@ export default function ProjectRow({
   isDragOver, isDragging,
   onDragStart, onDragOver, onDragEnd, onDrop,
   onStatusChange,
+  isChecked, onCheck, selectionActive,
 }) {
   const [hovered, setHovered] = useState(false)
   const [imgError, setImgError] = useState(false)
+  const showCheckbox = hovered || isChecked || selectionActive
 
   return (
     <div
@@ -178,20 +180,29 @@ export default function ProjectRow({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Drag handle */}
+      {/* Checkbox ou drag handle */}
       <div style={{
         position: 'absolute',
         left: 4,
         top: '50%',
         transform: 'translateY(-50%)',
-        color: 'var(--muted2)',
-        opacity: hovered ? 1 : 0,
-        transition: 'opacity 0.15s',
-        pointerEvents: 'none',
         display: 'flex',
         alignItems: 'center',
+        zIndex: 1,
       }}>
-        <IconGrip />
+        {showCheckbox ? (
+          <input
+            type="checkbox"
+            checked={!!isChecked}
+            onChange={e => { e.stopPropagation(); onCheck && onCheck(project.id) }}
+            onClick={e => e.stopPropagation()}
+            style={{ width: 14, height: 14, cursor: 'pointer', accentColor: 'var(--red)' }}
+          />
+        ) : (
+          <div style={{ color: 'var(--muted2)', opacity: hovered ? 1 : 0, transition: 'opacity 0.15s', pointerEvents: 'none' }}>
+            <IconGrip />
+          </div>
+        )}
       </div>
 
       {/* Main row */}

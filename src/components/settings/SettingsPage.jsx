@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { supabase } from '../../lib/supabase.js'
 import Button from '../ui/Button.jsx'
 
@@ -52,12 +52,14 @@ export default function SettingsPage({ onToast }) {
 
   const set = (key, val) => setForm(prev => ({ ...prev, [key]: val }))
 
-  // Génère le bookmarklet avec l'URL courante de l'admin
-  const bookmarkletHref = useMemo(() => {
+  // Génère le bookmarklet et l'injecte via ref (contourne la restriction React sur javascript: URLs)
+  const bookmarkRef = useRef(null)
+  useEffect(() => {
+    if (!bookmarkRef.current) return
     const adminUrl = `${window.location.protocol}//${window.location.host}${import.meta.env.BASE_URL}`
     const EXCLUDE = ['my-videos','login','register','upload','about','pricing','help','contact','settings','embed']
-    const js = `(function(){var ids=[];var ex=${JSON.stringify(EXCLUDE)};document.querySelectorAll('a[href]').forEach(function(a){try{var u=new URL(a.href);if(u.hostname.indexOf('streamable.com')>-1){var p=u.pathname.split('/').filter(Boolean);if(p.length===1&&/^[a-zA-Z0-9]{4,8}$/.test(p[0])&&ex.indexOf(p[0])===-1)ids.push(p[0]);}}catch(e){}});ids=ids.filter(function(v,i,a){return a.indexOf(v)===i;});if(!ids.length){alert('Aucune vidéo Streamable trouvée. Vérifie d\\'être sur ta page Streamable.');return;}window.open('${adminUrl}?streamable_ids='+ids.join(','),'_blank');})()`
-    return `javascript:${encodeURIComponent(js)}`
+    const js = `(function(){var ids=[];var ex=${JSON.stringify(EXCLUDE)};document.querySelectorAll('a[href]').forEach(function(a){try{var u=new URL(a.href);if(u.hostname.indexOf('streamable.com')>-1){var p=u.pathname.split('/').filter(Boolean);if(p.length===1&&/^[a-zA-Z0-9]{4,8}$/.test(p[0])&&ex.indexOf(p[0])===-1)ids.push(p[0]);}}catch(e){}});ids=ids.filter(function(v,i,a){return a.indexOf(v)===i;});if(!ids.length){alert('Aucune vid\\u00e9o Streamable trouv\\u00e9e.');return;}window.open('${adminUrl}?streamable_ids='+ids.join(','),'_blank');})()`
+    bookmarkRef.current.href = `javascript:${encodeURIComponent(js)}`
   }, [])
 
 
@@ -170,7 +172,8 @@ CREATE POLICY "admin_write_settings" ON settings
           {/* Bouton à glisser */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
             <a
-              href={bookmarkletHref}
+              ref={bookmarkRef}
+              href="#"
               onClick={e => { e.preventDefault(); alert('Glisse ce bouton dans ta barre de favoris — ne clique pas ici.') }}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
