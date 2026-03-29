@@ -97,8 +97,7 @@ export default function TabVideo({ project, onChange, onToast }) {
         streamableId:     id,
         streamableUrl:    `https://streamable.com/${id}`,
         streamableStatus: 'iframe-only',
-        streamableTitle:  '',
-        streamableMeta:   null,
+        streamableMeta: null,
       })
       onToast?.('Vidéo sauvegardée (aperçu iframe uniquement)', 'success')
       return
@@ -115,8 +114,7 @@ export default function TabVideo({ project, onChange, onToast }) {
       streamableId:     id,
       streamableUrl:    `https://streamable.com/${id}`,
       streamableStatus: 'ok',
-      streamableTitle:  result.title,
-      streamableMeta:   {
+      streamableMeta: {
         duration: result.duration,
         width:    result.width,
         height:   result.height,
@@ -128,7 +126,7 @@ export default function TabVideo({ project, onChange, onToast }) {
 
   const hasVideo = ['ok', 'iframe-only'].includes(project.streamableStatus) && project.streamableId
   const currentMeta = meta || (project.streamableMeta ? project.streamableMeta : null)
-  const currentTitle = meta?.title || project.streamableTitle || ''
+  const currentTitle = meta?.title || project.title || ''
 
   return (
     <div>

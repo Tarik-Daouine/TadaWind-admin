@@ -12,10 +12,9 @@ import { supabase } from '../lib/supabase.js'
 // location     text       → UI: lieu
 // objectif     text       → UI: shortDesc
 // livrables    text
-// streamableid    text       → UI: streamableId
-// streamableurl   text       → UI: streamableUrl
-// streamabletitle text       → UI: streamableTitle  (titre récupéré via API)
-// streamablemeta  jsonb      → UI: streamableMeta   ({ duration, width, height, source })
+// streamableid   text       → UI: streamableId
+// streamableurl  text       → UI: streamableUrl
+// streamablemeta jsonb      → UI: streamableMeta   ({ duration, width, height, source })
 // cover        text
 // gallery      text[]
 // thumb        text       (fallback cover)
@@ -43,11 +42,10 @@ function mapProject(row) {
     updatedAt: row.updated_at ?? '',
 
     // Mapping renommage DB → UI
-    lieu:             row.location         ?? '',
-    streamableId:     row.streamableid     ?? '',
-    streamableUrl:    row.streamableurl    ?? '',
-    streamableTitle:  row.streamabletitle  ?? '',
-    streamableMeta:   row.streamablemeta   ?? null,
+    lieu:           row.location      ?? '',
+    streamableId:   row.streamableid  ?? '',
+    streamableUrl:  row.streamableurl ?? '',
+    streamableMeta: row.streamablemeta ?? null,
 
     // Champs dérivés (calculés, pas en DB)
     streamableStatus: row.streamableid ? 'ok' : 'missing',
@@ -82,10 +80,9 @@ function mapToSupabase(data) {
   // Renommage UI → DB
   if (data.lieu !== undefined)          out.location      = data.lieu
   if (data.shortDesc !== undefined)     out.objectif      = data.shortDesc
-  if (data.streamableId    !== undefined) out.streamableid    = data.streamableId
-  if (data.streamableUrl   !== undefined) out.streamableurl   = data.streamableUrl
-  if (data.streamableTitle !== undefined) out.streamabletitle = data.streamableTitle
-  if (data.streamableMeta  !== undefined) out.streamablemeta  = data.streamableMeta
+  if (data.streamableId   !== undefined) out.streamableid   = data.streamableId
+  if (data.streamableUrl  !== undefined) out.streamableurl  = data.streamableUrl
+  if (data.streamableMeta !== undefined) out.streamablemeta = data.streamableMeta
 
   // Timestamp de mise à jour systématique
   out.updated_at = new Date().toISOString()
