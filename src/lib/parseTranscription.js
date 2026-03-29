@@ -195,7 +195,7 @@ function detectTypeBesoin(text) {
 function detectNextStep(text) {
   const patterns = [
     /(rappeler?[^.!?\n]{0,60})/gi,
-    /(envoyer? (?:un |le )?devis[^.!?\n]{0,60})/gi,
+    /(envoyer? (?:un |le |une )?(?:devis|proposition|propale|offre)[^.!?\n]{0,60})/gi,
     /(recontacter?[^.!?\n]{0,60})/gi,
     /(faire (?:une )?visite[^.!?\n]{0,60})/gi,
     /(prendre (?:un )?(?:rdv|rendez-vous)[^.!?\n]{0,60})/gi,
