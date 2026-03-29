@@ -148,7 +148,7 @@ function detectVille(text) {
 // ── Détection prénom / nom ─────────────────────────────────────────────────────
 
 function detectContact(text) {
-  const re = /(?:contact[:\s]+|parler\s+[aà]|rencontré[e]?|m\.|mme|monsieur|madame)\s+([A-ZÀ-Ü][a-zà-ü\-]+)(?:\s+([A-ZÀ-Ü][A-ZÀ-Üa-zà-ü\-]+))?/gi
+  const re = /(?:\bcontact[:\s]+|\bparl[eé]r?\s+[aà]|\brencontré[e]?|\b[Mm]\.|\b[Mm]me\b|\b[Mm]onsieur\b|\b[Mm]adame\b)\s+([A-ZÀ-Ü][a-zà-ü\-]+)(?:\s+([A-ZÀ-Ü][A-ZÀ-Üa-zà-ü\-]+))?/g
   const m = re.exec(text)
   return m ? { prenom: m[1] || '', nom: m[2] || '' } : { prenom: '', nom: '' }
 }
@@ -171,10 +171,15 @@ function detectTelephone(text) {
 // ── Détection type besoin ──────────────────────────────────────────────────────
 
 function detectTypeBesoin(text) {
+  // Scoring : on retourne le type avec le plus grand nombre de mots-clés matchés
+  // (évite que "pas drone" → type=drone quand "vidéo promo" est aussi présent)
+  let bestLabel = 'drone'
+  let bestScore = 0
   for (const { label, mots } of TYPES_BESOIN) {
-    if (contains(text, mots)) return label
+    const score = mots.reduce((n, m) => n + (normalize(text).includes(normalize(m)) ? 1 : 0), 0)
+    if (score > bestScore) { bestScore = score; bestLabel = label }
   }
-  return 'drone' // défaut : la prestation principale de TadaWind
+  return bestLabel
 }
 
 // ── Détection next step ────────────────────────────────────────────────────────
@@ -215,7 +220,8 @@ export function parseTranscription(text) {
 
   // ── Type client ──────────────────────────────────────────────────────────────
   let typeClient = 'Professionnel' // défaut terrain = B2B
-  if (contains(text, MOTS_PARTICULIER)) typeClient = 'Particulier'
+  // Particulier seulement si pas d'établissement et mot-clé perso explicite
+  if (!etablissement && contains(text, MOTS_PARTICULIER)) typeClient = 'Particulier'
 
   // ── Priorité ─────────────────────────────────────────────────────────────────
   let priorite = 'Normale'
@@ -239,9 +245,7 @@ export function parseTranscription(text) {
   const prestataire = contains(text, MOTS_PRESTATAIRE)
 
   // ── Commentaires internes ────────────────────────────────────────────────────
-  const commentaires = etablissement
-    ? `Type établissement détecté : ${etablissement}`
-    : ''
+  const commentaires = ''
 
   // ── Contact ──────────────────────────────────────────────────────────────────
   const { prenom, nom } = detectContact(text)

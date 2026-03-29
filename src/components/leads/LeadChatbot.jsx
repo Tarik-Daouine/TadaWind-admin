@@ -7,6 +7,7 @@ const STATUT_OPTIONS    = ['nouveau', 'Prospect contacté', 'Opportunité', 'Rel
 const PRIORITE_OPTIONS  = ['Haute', 'Normale', 'Basse']
 const INTERET_OPTIONS   = ['', 'Fort', 'Moyen', 'Faible']
 const TYPE_CLIENT_OPT   = ['', 'Professionnel', 'Particulier']
+const ETAB_TYPE_OPTIONS = ['', 'camping', 'hôtel', 'château', 'gîte', 'restaurant', 'domaine viticole', 'église', 'mairie', 'auberge', 'site touristique', 'entreprise', 'commerce']
 
 // ── Sous-composants ────────────────────────────────────────────────────────────
 
@@ -111,7 +112,7 @@ export default function LeadChatbot({ onCreateLead, hasDetail = false }) {
 
   function handleAnalyser() {
     const { lead, etablissement: etab } = parseTranscription(text)
-    setForm(lead)
+    setForm({ ...lead, typeEtablissement: etab || '' })
     setEtablissement(etab)
     setStep('preview')
   }
@@ -123,7 +124,11 @@ export default function LeadChatbot({ onCreateLead, hasDetail = false }) {
   async function handleCreate() {
     setSaving(true)
     setCreateError('')
-    const { error } = await onCreateLead(form)
+    const { typeEtablissement, commentaires, ...rest } = form
+    const finalCommentaires = typeEtablissement
+      ? `Établissement : ${typeEtablissement}${commentaires ? '\n' + commentaires : ''}`
+      : (commentaires || '')
+    const { error } = await onCreateLead({ ...rest, commentaires: finalCommentaires })
     setSaving(false)
     if (error) { setCreateError('Erreur lors de la création. Réessaie.'); return }
     handleClose()
@@ -301,16 +306,10 @@ export default function LeadChatbot({ onCreateLead, hasDetail = false }) {
                       </Field>
                     </div>
 
-                    {/* Badge établissement détecté */}
-                    {etablissement && (
-                      <div style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 5,
-                        fontSize: 10, color: 'var(--muted)',
-                      }}>
-                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} />
-                        Établissement détecté : <strong style={{ color: 'var(--text)', marginLeft: 3 }}>{etablissement}</strong>
-                      </div>
-                    )}
+                    {/* Type d'établissement */}
+                    <Field label="Type d'établissement">
+                      <Select value={form.typeEtablissement || ''} onChange={v => setField('typeEtablissement', v)} options={ETAB_TYPE_OPTIONS} />
+                    </Field>
                   </div>
 
                   {/* ── Section champs détectés ── */}
