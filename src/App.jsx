@@ -86,6 +86,7 @@ export default function App() {
   const [deletingLead, setDeletingLead]       = useState(false)
   const mobile                                = useIsMobile()
   const [sidebarOpen, setSidebarOpen]         = useState(false)
+  const [streamableSynced, setStreamableSynced] = useState(true)
 
   // ── Gardes auth ───────────────────────────────────────────────────────────
   if (authLoading) return <LoadingScreen message="Initialisation…" />
@@ -107,8 +108,6 @@ export default function App() {
   }
 
   // ── Streamable bulk sync ────────────────────────────────────────────────────
-  const [streamableSynced, setStreamableSynced] = useState(true)
-
   const handleStreamableSync = async () => {
     const withVideo = projects.filter(p => p.streamableId)
     if (!withVideo.length) {
