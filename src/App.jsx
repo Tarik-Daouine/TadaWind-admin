@@ -173,6 +173,7 @@ export default function App() {
       streamableId:   shortcode,
       streamableUrl:  `https://streamable.com/${shortcode}`,
       streamableMeta: meta ? { duration: meta.duration, width: meta.width, height: meta.height, source: meta.source } : null,
+      cover:          meta?.thumbnail || null,
     })
     if (p) {
       addToast(`"${title || shortcode}" importé`, 'success')

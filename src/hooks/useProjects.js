@@ -148,7 +148,7 @@ export function useProjects() {
         streamableid:   initialData.streamableId  || null,
         streamableurl:  initialData.streamableUrl || null,
         streamablemeta: initialData.streamableMeta || null,
-        cover:          null,
+        cover:          initialData.cover || null,
         gallery:        [],
         livrables:      null,
         objectif:       null,
