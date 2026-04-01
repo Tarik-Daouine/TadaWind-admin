@@ -6,6 +6,8 @@ const PRIORITE_OPTIONS  = ['Haute', 'Normale', 'Basse']
 const INTERET_OPTIONS   = ['Fort', 'Moyen', 'Faible']
 const NEXT_STEP_OPTIONS = ['RDV sur place', 'Envoyer proposition', 'Relance']
 const PROBA_OPTIONS     = ['100', '80', '60', '40', '20', '0']
+const ETAB_OPTIONS      = ['camping', 'hotel', 'auberge', 'chateau', 'domaine', 'site_touristique', 'entreprise', 'particulier', 'autre']
+const ETAB_LABELS       = { camping: 'Camping', hotel: 'Hôtel', auberge: 'Auberge', chateau: 'Château', domaine: 'Domaine', site_touristique: 'Site touristique', entreprise: 'Entreprise', particulier: 'Particulier', autre: 'Autre' }
 
 const STATUT_COLORS = {
   'nouveau':           '#4f7ff3',
@@ -126,6 +128,7 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
       nextStep:      lead.nextStep,
       dateRelance:   formatDateInput(lead.dateRelance),
       dateDevis:     formatDateInput(lead.dateDevis),
+      typeEtablissement: lead.typeEtablissement,
       montantDevis:  lead.montantDevis,
       montantReel:   lead.montantReel ?? '',
       commentaires:  lead.commentaires,

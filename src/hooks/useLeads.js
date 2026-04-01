@@ -26,6 +26,7 @@ import { supabase } from '../lib/supabase.js'
 // Date envoi devis        timestamptz
 // Montant devis estime    text
 // montant_reel            numeric  (nullable — montant réel après conversion)
+// type_etablissement      text     (nullable — enum: camping|hotel|auberge|chateau|domaine|site_touristique|entreprise|particulier|autre)
 // Commentaires internes   text
 // Timestamp               text
 // ─────────────────────────────────────────────────────────────────────────────
@@ -54,8 +55,9 @@ function mapLead(row) {
     dateRelance:   row['Date de relance']          ?? null,
     dateDevis:     row['Date envoi devis']         ?? null,
     montantDevis:  row['Montant devis estime']     ?? '',
-    montantReel:   row['montant_reel']             ?? null,
-    commentaires:  row['Commentaires internes']    ?? '',
+    montantReel:        row['montant_reel']             ?? null,
+    typeEtablissement:  row['type_etablissement']      ?? '',
+    commentaires:       row['Commentaires internes']   ?? '',
     timestamp:     row['Timestamp']                ?? '',
   }
 }
@@ -73,8 +75,9 @@ function mapToSupabase(data) {
     dateRelance:   'Date de relance',
     dateDevis:     'Date envoi devis',
     montantDevis:  'Montant devis estime',
-    montantReel:   'montant_reel',
-    commentaires:  'Commentaires internes',
+    montantReel:       'montant_reel',
+    typeEtablissement: 'type_etablissement',
+    commentaires:      'Commentaires internes',
     // Coordonnées également éditables
     prenom:        'Prenom',
     nom:           'Nom',
