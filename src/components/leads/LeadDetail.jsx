@@ -28,14 +28,14 @@ function formatDateDisplay(isoStr) {
   } catch { return isoStr }
 }
 
-function SectionTitle({ children, accent }) {
+function SectionTitle({ children, accent, accentDim }) {
   return (
     <div style={{
       fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
       letterSpacing: '0.08em',
       color: accent || 'var(--muted2)',
       marginBottom: 12, paddingBottom: 8,
-      borderBottom: `1px solid ${accent ? `${accent}33` : 'var(--border)'}`,
+      borderBottom: `1px solid ${accentDim || 'var(--border)'}`,
       display: 'flex', alignItems: 'center', gap: 7,
     }}>
       {accent && (
@@ -50,15 +50,14 @@ function SectionTitle({ children, accent }) {
   )
 }
 
-function SectionCard({ children, accent, style }) {
+function SectionCard({ children, borderColor }) {
   return (
     <div style={{
       background: 'var(--s2)',
-      border: `1px solid ${accent ? `${accent}22` : 'var(--border)'}`,
+      border: `1px solid ${borderColor || 'var(--border)'}`,
       borderRadius: 'var(--radius)',
       padding: '14px 16px',
       marginBottom: 12,
-      ...style,
     }}>
       {children}
     </div>
@@ -242,8 +241,8 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
 
         {/* Section Coordonnées */}
-        <SectionCard accent="var(--blue)">
-          <SectionTitle accent="var(--blue)">Coordonnées</SectionTitle>
+        <SectionCard borderColor="var(--blue-dim)">
+          <SectionTitle accent="var(--blue)" accentDim="var(--blue-dim)">Coordonnées</SectionTitle>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
             <FieldInput label="Prénom"    value={crm.prenom} onChange={v => setCrmField('prenom', v)} />
             <FieldInput label="Nom"       value={crm.nom}    onChange={v => setCrmField('nom', v)} />
@@ -258,8 +257,8 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
         </SectionCard>
 
         {/* Section Mission */}
-        <SectionCard accent="var(--amber)">
-          <SectionTitle accent="var(--amber)">Mission</SectionTitle>
+        <SectionCard borderColor="var(--amber-dim)">
+          <SectionTitle accent="var(--amber)" accentDim="var(--amber-dim)">Mission</SectionTitle>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
             <FieldInput label="Ville / Lieu"   value={crm.ville}       onChange={v => setCrmField('ville', v)} />
             <FieldInput label="Date souhaitée" value={crm.dateMission} onChange={v => setCrmField('dateMission', v)} type="date" />
@@ -269,8 +268,8 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
         </SectionCard>
 
         {/* Section Suivi CRM */}
-        <SectionCard accent="var(--red)">
-          <SectionTitle accent="var(--red)">Suivi CRM</SectionTitle>
+        <SectionCard borderColor="var(--red-dim)">
+          <SectionTitle accent="var(--red)" accentDim="var(--red-dim)">Suivi CRM</SectionTitle>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
             <FieldSelect label="Statut"           value={crm.statut}       onChange={v => setCrmField('statut', v)}       options={STATUT_OPTIONS} />
             <FieldSelect label="Priorité"         value={crm.priorite}     onChange={v => setCrmField('priorite', v)}     options={PRIORITE_OPTIONS} />
