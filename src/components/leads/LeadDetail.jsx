@@ -28,13 +28,37 @@ function formatDateDisplay(isoStr) {
   } catch { return isoStr }
 }
 
-function SectionTitle({ children }) {
+function SectionTitle({ children, accent }) {
   return (
     <div style={{
       fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-      letterSpacing: '0.08em', color: 'var(--muted2)',
-      marginBottom: 10, paddingBottom: 6,
-      borderBottom: '1px solid var(--border)',
+      letterSpacing: '0.08em',
+      color: accent || 'var(--muted2)',
+      marginBottom: 12, paddingBottom: 8,
+      borderBottom: `1px solid ${accent ? `${accent}33` : 'var(--border)'}`,
+      display: 'flex', alignItems: 'center', gap: 7,
+    }}>
+      {accent && (
+        <span style={{
+          width: 3, height: 12, borderRadius: 2,
+          background: accent, flexShrink: 0,
+          display: 'inline-block',
+        }} />
+      )}
+      {children}
+    </div>
+  )
+}
+
+function SectionCard({ children, accent, style }) {
+  return (
+    <div style={{
+      background: 'var(--s2)',
+      border: `1px solid ${accent ? `${accent}22` : 'var(--border)'}`,
+      borderRadius: 'var(--radius)',
+      padding: '14px 16px',
+      marginBottom: 12,
+      ...style,
     }}>
       {children}
     </div>
@@ -218,8 +242,8 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
 
         {/* Section Coordonnées */}
-        <div style={{ marginBottom: 24 }}>
-          <SectionTitle>Coordonnées</SectionTitle>
+        <SectionCard accent="var(--blue)">
+          <SectionTitle accent="var(--blue)">Coordonnées</SectionTitle>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
             <FieldInput label="Prénom"    value={crm.prenom} onChange={v => setCrmField('prenom', v)} />
             <FieldInput label="Nom"       value={crm.nom}    onChange={v => setCrmField('nom', v)} />
@@ -231,22 +255,22 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
             <FieldSelect label="Type de client"       value={crm.typeClient}  onChange={v => setCrmField('typeClient', v)}  options={['Particulier', 'Professionnel']} />
             <FieldSelect label="Prestataire existant" value={crm.prestataire ? 'Oui' : 'Non'} onChange={v => setCrmField('prestataire', v === 'Oui')} options={['Oui', 'Non']} />
           </div>
-        </div>
+        </SectionCard>
 
         {/* Section Mission */}
-        <div style={{ marginBottom: 24 }}>
-          <SectionTitle>Mission</SectionTitle>
+        <SectionCard accent="var(--amber)">
+          <SectionTitle accent="var(--amber)">Mission</SectionTitle>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
             <FieldInput label="Ville / Lieu"   value={crm.ville}       onChange={v => setCrmField('ville', v)} />
             <FieldInput label="Date souhaitée" value={crm.dateMission} onChange={v => setCrmField('dateMission', v)} type="date" />
           </div>
           <FieldInput label="Type de besoin" value={crm.typeBesoin} onChange={v => setCrmField('typeBesoin', v)} />
           <FieldInput label="Message client"  value={crm.message}   onChange={v => setCrmField('message', v)}   multiline />
-        </div>
+        </SectionCard>
 
         {/* Section Suivi CRM */}
-        <div style={{ marginBottom: 24 }}>
-          <SectionTitle>Suivi CRM</SectionTitle>
+        <SectionCard accent="var(--red)">
+          <SectionTitle accent="var(--red)">Suivi CRM</SectionTitle>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
             <FieldSelect label="Statut"           value={crm.statut}       onChange={v => setCrmField('statut', v)}       options={STATUT_OPTIONS} />
             <FieldSelect label="Priorité"         value={crm.priorite}     onChange={v => setCrmField('priorite', v)}     options={PRIORITE_OPTIONS} />
@@ -260,7 +284,7 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
           </div>
           <FieldInput label="Montant devis estimé (€)" value={crm.montantDevis} onChange={v => setCrmField('montantDevis', v)} />
           <FieldInput label="Commentaires internes" value={crm.commentaires} onChange={v => setCrmField('commentaires', v)} multiline />
-        </div>
+        </SectionCard>
       </div>
 
       {/* Footer */}
