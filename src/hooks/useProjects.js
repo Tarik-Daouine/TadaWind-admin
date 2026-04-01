@@ -22,6 +22,13 @@ import { supabase } from '../lib/supabase.js'
 // published    bool       (legacy, remplacé par status)
 // created_at   timestamptz
 // updated_at   timestamptz
+// slug         text       UNIQUE, nullable
+// tags         text[]     → UI: tags
+// region       text
+// long_desc    text       → UI: longDesc
+// seo_title    text       → UI: seoTitle
+// seo_desc     text       → UI: seoDesc
+// featured     bool       DEFAULT false
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ── MAPPER Supabase → UI ──────────────────────────────────────────────────────
@@ -52,25 +59,23 @@ function mapProject(row) {
     shortDesc:        row.objectif ?? '',
     date:             row.created_at ? row.created_at.split('T')[0] : '',
 
-    // Champs UI-only (pas encore en DB — defaults vides)
-    region:   '',
-    tags:     [],
-    longDesc: '',
-    featured: false,
-    seoTitle: '',
-    seoDesc:  '',
-    slug:     '',
+    // Champs maintenant persistés en DB
+    slug:     row.slug      ?? '',
+    tags:     row.tags      ?? [],
+    region:   row.region    ?? '',
+    longDesc: row.long_desc ?? '',
+    featured: row.featured  ?? false,
+    seoTitle: row.seo_title ?? '',
+    seoDesc:  row.seo_desc  ?? '',
   }
 }
 
 // ── MAPPER UI → Supabase ──────────────────────────────────────────────────────
-// Ne transmet QUE les colonnes qui existent réellement en base.
-// Tout champ UI-only (slug, tags, seoTitle…) est silencieusement ignoré.
 function mapToSupabase(data) {
   const out = {}
 
   // Colonnes directes (même nom UI et DB)
-  const direct = ['title', 'status', 'category', 'order', 'cover', 'gallery', 'livrables', 'objectif', 'url']
+  const direct = ['title', 'status', 'category', 'order', 'cover', 'gallery', 'livrables', 'objectif', 'url', 'tags', 'region', 'featured']
   direct.forEach(key => {
     if (data[key] !== undefined) out[key] = data[key]
   })
@@ -81,6 +86,10 @@ function mapToSupabase(data) {
   if (data.streamableId   !== undefined) out.streamableid   = data.streamableId
   if (data.streamableUrl  !== undefined) out.streamableurl  = data.streamableUrl
   if (data.streamableMeta !== undefined) out.streamablemeta = data.streamableMeta
+  if (data.longDesc  !== undefined) out.long_desc  = data.longDesc  || null
+  if (data.seoTitle  !== undefined) out.seo_title  = data.seoTitle  || null
+  if (data.seoDesc   !== undefined) out.seo_desc   = data.seoDesc   || null
+  if (data.slug      !== undefined) out.slug       = data.slug      || null
 
   // Timestamp de mise à jour systématique
   out.updated_at = new Date().toISOString()
@@ -153,6 +162,13 @@ export function useProjects() {
         livrables:      null,
         objectif:       null,
         url:            null,
+        slug:           initialData.slug     || null,
+        tags:           initialData.tags     || [],
+        region:         initialData.region   || null,
+        long_desc:      initialData.longDesc || null,
+        seo_title:      initialData.seoTitle || null,
+        seo_desc:       initialData.seoDesc  || null,
+        featured:       initialData.featured ?? false,
       })
       .select()
       .single()
@@ -249,6 +265,13 @@ export function useProjects() {
         livrables:     src.livrables     || null,
         objectif:      src.shortDesc     || src.objectif || null,
         url:           src.url           || null,
+        tags:          src.tags          || [],
+        region:        src.region        || null,
+        long_desc:     src.longDesc      || null,
+        seo_title:     src.seoTitle      || null,
+        seo_desc:      src.seoDesc       || null,
+        featured:      false,
+        slug:          null,
       })
       .select()
       .single()
