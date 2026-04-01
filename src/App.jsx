@@ -25,6 +25,7 @@ import Button from './components/ui/Button.jsx'
 import Toast from './components/ui/Toast.jsx'
 import MediaLibrary from './components/media/MediaLibrary.jsx'
 import SettingsPage from './components/settings/SettingsPage.jsx'
+import AnalyticsPage from './components/analytics/AnalyticsPage.jsx'
 import LeadsList from './components/leads/LeadsList.jsx'
 import LeadDetail from './components/leads/LeadDetail.jsx'
 import LeadChatbot from './components/leads/LeadChatbot.jsx'
@@ -437,6 +438,9 @@ export default function App() {
 
           {/* Settings view */}
           {view === 'settings' && <SettingsPage onToast={addToast} />}
+
+          {/* Analytics view */}
+          {view === 'analytics' && <AnalyticsPage />}
         </div>
       </div>
 

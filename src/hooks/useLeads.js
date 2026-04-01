@@ -25,6 +25,7 @@ import { supabase } from '../lib/supabase.js'
 // Date de relance         timestamptz
 // Date envoi devis        timestamptz
 // Montant devis estime    text
+// montant_reel            numeric  (nullable — montant réel après conversion)
 // Commentaires internes   text
 // Timestamp               text
 // ─────────────────────────────────────────────────────────────────────────────
@@ -53,6 +54,7 @@ function mapLead(row) {
     dateRelance:   row['Date de relance']          ?? null,
     dateDevis:     row['Date envoi devis']         ?? null,
     montantDevis:  row['Montant devis estime']     ?? '',
+    montantReel:   row['montant_reel']             ?? null,
     commentaires:  row['Commentaires internes']    ?? '',
     timestamp:     row['Timestamp']                ?? '',
   }
@@ -71,6 +73,7 @@ function mapToSupabase(data) {
     dateRelance:   'Date de relance',
     dateDevis:     'Date envoi devis',
     montantDevis:  'Montant devis estime',
+    montantReel:   'montant_reel',
     commentaires:  'Commentaires internes',
     // Coordonnées également éditables
     prenom:        'Prenom',
@@ -86,9 +89,13 @@ function mapToSupabase(data) {
     message:       'Message client',
     source:        'Source',
   }
+  // Champs numériques nullable : on envoie null si vide
+  const nullableNumeric = new Set(['montant_reel'])
   for (const [uiKey, dbKey] of Object.entries(mapping)) {
     const val = data[uiKey]
-    if (val !== undefined && val !== null && val !== '') {
+    if (nullableNumeric.has(dbKey)) {
+      out[dbKey] = (val === '' || val === undefined) ? null : Number(val)
+    } else if (val !== undefined && val !== null && val !== '') {
       out[dbKey] = val
     }
   }
