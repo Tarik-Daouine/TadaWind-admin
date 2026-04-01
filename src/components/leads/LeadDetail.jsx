@@ -129,15 +129,29 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
 
   useEffect(() => {
     setCrm({
-      statut:       lead.statut,
-      priorite:     lead.priorite,
+      // CRM
+      statut:        lead.statut,
+      priorite:      lead.priorite,
       niveauInteret: lead.niveauInteret,
-      probabilite:  lead.probabilite,
-      nextStep:     lead.nextStep,
-      dateRelance:  formatDateInput(lead.dateRelance),
-      dateDevis:    formatDateInput(lead.dateDevis),
-      montantDevis: lead.montantDevis,
-      commentaires: lead.commentaires,
+      probabilite:   lead.probabilite,
+      nextStep:      lead.nextStep,
+      dateRelance:   formatDateInput(lead.dateRelance),
+      dateDevis:     formatDateInput(lead.dateDevis),
+      montantDevis:  lead.montantDevis,
+      commentaires:  lead.commentaires,
+      // Coordonnées
+      prenom:        lead.prenom,
+      nom:           lead.nom,
+      email:         lead.email,
+      telephone:     lead.telephone,
+      nomEntreprise: lead.nomEntreprise,
+      typeClient:    lead.typeClient,
+      prestataire:   lead.prestataire,
+      // Mission
+      ville:        lead.ville,
+      dateMission:  formatDateInput(lead.dateMission),
+      typeBesoin:   lead.typeBesoin,
+      message:      lead.message,
     })
     setDirty(false)
   }, [lead.id])
@@ -151,8 +165,9 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
     setSaving(true)
     await onUpdate(lead.id, {
       ...crm,
-      dateRelance: crm.dateRelance || null,
-      dateDevis:   crm.dateDevis   || null,
+      dateRelance:  crm.dateRelance  || null,
+      dateDevis:    crm.dateDevis    || null,
+      dateMission:  crm.dateMission  || null,
     })
     setSaving(false)
     setDirty(false)
@@ -205,39 +220,28 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
         {/* Section Coordonnées */}
         <div style={{ marginBottom: 24 }}>
           <SectionTitle>Coordonnées</SectionTitle>
-          <InfoRow label="Email">
-            {lead.email
-              ? <a href={`mailto:${lead.email}`} style={{ color: 'var(--blue)', textDecoration: 'none' }}>{lead.email}</a>
-              : '—'}
-          </InfoRow>
-          <InfoRow label="Téléphone">
-            {lead.telephone
-              ? <a href={`tel:${lead.telephone}`} style={{ color: 'var(--blue)', textDecoration: 'none' }}>{lead.telephone}</a>
-              : '—'}
-          </InfoRow>
-          <InfoRow label="Nom entreprise">{lead.nomEntreprise}</InfoRow>
-          <InfoRow label="Type de client">{lead.typeClient}</InfoRow>
-          <InfoRow label="Prestataire existant">{lead.prestataire ? 'Oui' : 'Non'}</InfoRow>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
+            <FieldInput label="Prénom"    value={crm.prenom} onChange={v => setCrmField('prenom', v)} />
+            <FieldInput label="Nom"       value={crm.nom}    onChange={v => setCrmField('nom', v)} />
+          </div>
+          <FieldInput  label="Email"           value={crm.email}         onChange={v => setCrmField('email', v)}         type="email" />
+          <FieldInput  label="Téléphone"        value={crm.telephone}     onChange={v => setCrmField('telephone', v)} />
+          <FieldInput  label="Nom entreprise"   value={crm.nomEntreprise} onChange={v => setCrmField('nomEntreprise', v)} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
+            <FieldSelect label="Type de client"       value={crm.typeClient}  onChange={v => setCrmField('typeClient', v)}  options={['Particulier', 'Professionnel']} />
+            <FieldSelect label="Prestataire existant" value={crm.prestataire ? 'Oui' : 'Non'} onChange={v => setCrmField('prestataire', v === 'Oui')} options={['Oui', 'Non']} />
+          </div>
         </div>
 
         {/* Section Mission */}
         <div style={{ marginBottom: 24 }}>
           <SectionTitle>Mission</SectionTitle>
-          <InfoRow label="Ville / Lieu">{lead.ville}</InfoRow>
-          <InfoRow label="Date souhaitée">{formatDateDisplay(lead.dateMission)}</InfoRow>
-          <InfoRow label="Type de besoin">{lead.typeBesoin}</InfoRow>
-          {lead.message && (
-            <div style={{ marginTop: 8 }}>
-              <div style={{ fontSize: 10, color: 'var(--muted2)', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Message</div>
-              <div style={{
-                fontSize: 12, color: 'var(--muted)', lineHeight: 1.6,
-                background: 'var(--s2)', borderRadius: 6, padding: '10px 12px',
-                whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-              }}>
-                {lead.message}
-              </div>
-            </div>
-          )}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
+            <FieldInput label="Ville / Lieu"   value={crm.ville}       onChange={v => setCrmField('ville', v)} />
+            <FieldInput label="Date souhaitée" value={crm.dateMission} onChange={v => setCrmField('dateMission', v)} type="date" />
+          </div>
+          <FieldInput label="Type de besoin" value={crm.typeBesoin} onChange={v => setCrmField('typeBesoin', v)} />
+          <FieldInput label="Message client"  value={crm.message}   onChange={v => setCrmField('message', v)}   multiline />
         </div>
 
         {/* Section Suivi CRM */}
