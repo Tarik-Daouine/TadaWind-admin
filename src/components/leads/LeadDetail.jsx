@@ -127,6 +127,7 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
       dateRelance:   formatDateInput(lead.dateRelance),
       dateDevis:     formatDateInput(lead.dateDevis),
       montantDevis:  lead.montantDevis,
+      montantReel:   lead.montantReel ?? '',
       commentaires:  lead.commentaires,
       // Coordonnées
       prenom:        lead.prenom,
@@ -247,7 +248,45 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
             <FieldInput label="Date de relance"    value={crm.dateRelance} onChange={v => setCrmField('dateRelance', v)} type="date" />
             <FieldInput label="Date d'envoi devis" value={crm.dateDevis}   onChange={v => setCrmField('dateDevis', v)}   type="date" />
           </div>
-          <FieldInput label="Montant devis estimé (€)" value={crm.montantDevis} onChange={v => setCrmField('montantDevis', v)} />
+          {/* ── Financier ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
+            <FieldInput label="Montant estimé (€)" value={crm.montantDevis} onChange={v => setCrmField('montantDevis', v)} type="number" />
+            <FieldInput label="Montant réel (€)"   value={crm.montantReel  ?? ''} onChange={v => setCrmField('montantReel', v)}  type="number" />
+          </div>
+
+          {/* Suggestion probabilité */}
+          {(() => {
+            const suggested =
+              crm.priorite === 'Haute' && crm.niveauInteret === 'Fort'  ? '80' :
+              crm.priorite === 'Haute' && crm.niveauInteret === 'Moyen' ? '70' :
+              crm.niveauInteret === 'Fort'                              ? '60' :
+              crm.niveauInteret === 'Faible' || crm.priorite === 'Basse' ? '30' : '40'
+            const current = crm.probabilite
+            if (!current || current === suggested) return null
+            return (
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                background: 'var(--s3)', border: '1px solid var(--border)',
+                borderRadius: 6, padding: '6px 10px', marginBottom: 10, gap: 8,
+              }}>
+                <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                  Suggestion probabilité : <strong style={{ color: 'var(--text)' }}>{suggested} %</strong>
+                  <span style={{ color: 'var(--muted2)' }}> (selon priorité + intérêt)</span>
+                </span>
+                <button
+                  onClick={() => setCrmField('probabilite', suggested)}
+                  style={{
+                    fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 4,
+                    background: 'var(--red-dim)', border: '1px solid var(--red-glow)',
+                    color: 'var(--red)', cursor: 'pointer', flexShrink: 0, fontFamily: 'var(--sans)',
+                  }}
+                >
+                  Appliquer
+                </button>
+              </div>
+            )
+          })()}
+
           <FieldInput label="Commentaires internes" value={crm.commentaires} onChange={v => setCrmField('commentaires', v)} multiline />
         </SectionCard>
       </div>

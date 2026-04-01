@@ -19,6 +19,10 @@ const PRIORITE_COLORS = {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+function fmtEur(n) {
+  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n)
+}
+
 function fmtPct(n, decimals = 1) {
   return Number(n).toFixed(decimals).replace('.', ',') + ' %'
 }
@@ -170,7 +174,8 @@ export default function AnalyticsPage() {
   }
 
   const { total, nouveaux, convertis, perdus, tauxConversion,
-          funnel, sources, types, relances } = stats
+          funnel, sources, types, relances, finance } = stats
+  const { hasMontants, pipelinePondere, caReel } = finance
 
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -319,6 +324,47 @@ export default function AnalyticsPage() {
             </table>
           )}
         </div>
+
+        {/* ── Pipeline financier (affiché uniquement si des montants sont renseignés) ── */}
+        {hasMontants && (
+          <div style={{ marginTop: 20 }}>
+            <div style={{
+              display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14,
+            }}>
+              <div style={{
+                background: 'var(--s2)', border: '1px solid var(--border)',
+                borderLeft: '3px solid var(--green)',
+                borderRadius: 'var(--radius-lg)', padding: '18px 20px',
+              }}>
+                <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', marginBottom: 8 }}>
+                  Pipeline pondéré
+                </div>
+                <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--green)', fontFamily: 'var(--serif)', lineHeight: 1, marginBottom: 6 }}>
+                  {fmtEur(pipelinePondere)}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--muted2)' }}>
+                  Σ(montant estimé × probabilité) — leads actifs
+                </div>
+              </div>
+
+              <div style={{
+                background: 'var(--s2)', border: '1px solid var(--border)',
+                borderLeft: caReel > 0 ? '3px solid var(--green)' : '3px solid var(--border-strong)',
+                borderRadius: 'var(--radius-lg)', padding: '18px 20px',
+              }}>
+                <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', marginBottom: 8 }}>
+                  CA réel encaissé
+                </div>
+                <div style={{ fontSize: 26, fontWeight: 700, color: caReel > 0 ? 'var(--green)' : 'var(--muted2)', fontFamily: 'var(--serif)', lineHeight: 1, marginBottom: 6 }}>
+                  {caReel > 0 ? fmtEur(caReel) : '—'}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--muted2)' }}>
+                  Σ montants réels — leads convertis
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

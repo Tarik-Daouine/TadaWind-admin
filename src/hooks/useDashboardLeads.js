@@ -3,15 +3,18 @@ import { supabase } from '../lib/supabase.js'
 
 function mapRow(row) {
   return {
-    statut:      row['Statut']            ?? 'nouveau',
-    source:      row['Source']            ?? '',
-    typeClient:  row['Type de client']    ?? '',
-    priorite:    row['Priorite']          ?? 'Normale',
-    timestamp:   row['Timestamp']         ?? '',
-    dateRelance: row['Date de relance']   ?? null,
-    prenom:      row['Prenom']            ?? '',
-    nom:         row['Nom']               ?? '',
-    email:       row['Email']             ?? '',
+    statut:       row['Statut']            ?? 'nouveau',
+    source:       row['Source']            ?? '',
+    typeClient:   row['Type de client']    ?? '',
+    priorite:     row['Priorite']          ?? 'Normale',
+    probabilite:  row['Probabilite']       ?? '',
+    timestamp:    row['Timestamp']         ?? '',
+    dateRelance:  row['Date de relance']   ?? null,
+    montantDevis: row['Montant devis estime'] ?? '',
+    montantReel:  row['montant_reel']      ?? null,
+    prenom:       row['Prenom']            ?? '',
+    nom:          row['Nom']              ?? '',
+    email:        row['Email']            ?? '',
   }
 }
 
@@ -47,7 +50,7 @@ export function useDashboardLeads() {
 
       const { data, error } = await supabase
         .from('leads')
-        .select('Statut, Source, "Type de client", Priorite, Timestamp, "Date de relance", Prenom, Nom, Email')
+        .select('Statut, Source, "Type de client", Priorite, Probabilite, Timestamp, "Date de relance", "Montant devis estime", montant_reel, Prenom, Nom, Email')
         .order('Timestamp', { ascending: false })
 
       if (cancelled) return
@@ -96,7 +99,27 @@ export function useDashboardLeads() {
       return new Date(r.dateRelance) < today
     })
 
-    return { total, nouveaux, convertis, perdus, tauxConversion, funnel, sources, types, relances }
+    // ── Pipeline financier (conditionnel) ────────────────────────────────────
+    // hasMontants = vrai dès qu'au moins un lead a un montant estimé renseigné
+    const hasMontants = rows.some(r => r.montantDevis !== '' && r.montantDevis != null)
+
+    // pipeline pondéré = Σ(montant_estime × probabilite/100) pour leads actifs
+    const pipelinePondere = rows
+      .filter(r => !CLOSED.includes(r.statut) && r.montantDevis)
+      .reduce((sum, r) => {
+        const montant = parseFloat(r.montantDevis) || 0
+        const proba   = parseFloat(r.probabilite)  || 50  // 50% par défaut si vide
+        return sum + montant * (proba / 100)
+      }, 0)
+
+    // chiffre d'affaires réel = somme des montants_reel des leads convertis
+    const caReel = rows
+      .filter(r => r.statut === 'Converti' && r.montantReel != null)
+      .reduce((sum, r) => sum + (parseFloat(r.montantReel) || 0), 0)
+
+    const finance = { hasMontants, pipelinePondere, caReel }
+
+    return { total, nouveaux, convertis, perdus, tauxConversion, funnel, sources, types, relances, finance }
   }, [rows])
 
   return { loading, error, stats }
