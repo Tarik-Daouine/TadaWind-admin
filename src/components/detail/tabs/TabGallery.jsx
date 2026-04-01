@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react'
 import Button from '../../ui/Button.jsx'
+import { SectionCard, SectionTitle } from '../../ui/SectionCard.jsx'
 import { uploadMedia } from '../../../lib/storage.js'
 
 const IconStar = ({ filled }) => (
@@ -77,7 +78,6 @@ export default function TabGallery({ project, onChange }) {
     }
   }
 
-  // Drag-and-drop
   const handleDragStart = (idx) => {
     dragIdx.current = idx
     setDraggingIdx(idx)
@@ -110,21 +110,73 @@ export default function TabGallery({ project, onChange }) {
 
   return (
     <div>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 14, fontWeight: 600 }}>Galerie</span>
+      {/* ── Couverture ───────────────────────────────────────────── */}
+      <SectionCard borderColor="var(--amber-dim)">
+        <SectionTitle accent="var(--amber)" accentDim="var(--amber-dim)">Couverture</SectionTitle>
+        {cover ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <img src={cover} alt="cover" style={{ width: 48, height: 36, objectFit: 'cover', borderRadius: 4 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1, maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {cover}
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              loading={uploading}
+              disabled={uploading}
+              onClick={() => coverInputRef.current?.click()}
+            >
+              Changer
+            </Button>
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={e => handleFileUpload(e, 'covers')}
+            />
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 12, color: 'var(--muted2)', flex: 1 }}>Aucune image de couverture</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              loading={uploading}
+              disabled={uploading}
+              onClick={() => coverInputRef.current?.click()}
+            >
+              Uploader
+            </Button>
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={e => handleFileUpload(e, 'covers')}
+            />
+          </div>
+        )}
+      </SectionCard>
+
+      {/* ── Galerie ──────────────────────────────────────────────── */}
+      <SectionCard borderColor="var(--blue-dim)">
+        <SectionTitle accent="var(--blue)" accentDim="var(--blue-dim)">
+          Galerie
           <span style={{
-            fontSize: 11,
-            padding: '1px 7px',
-            borderRadius: 20,
-            background: 'var(--s3)',
-            color: 'var(--muted)',
+            fontSize: 11, fontWeight: 600,
+            padding: '1px 7px', borderRadius: 20,
+            background: 'var(--s3)', color: 'var(--muted)',
+            marginLeft: 4,
           }}>
             {gallery.length}
           </span>
-        </div>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        </SectionTitle>
+
+        {/* Boutons d'ajout */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: showAdd ? 12 : 0 }}>
           <Button variant="ghost" size="sm" onClick={() => setShowAdd(!showAdd)}>
             + URL
           </Button>
@@ -145,173 +197,133 @@ export default function TabGallery({ project, onChange }) {
             onChange={e => handleFileUpload(e, 'gallery')}
           />
         </div>
-      </div>
 
-      {/* Cover indicator */}
-      {cover && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          padding: '8px 12px',
-          background: 'var(--amber-dim)',
-          border: '1px solid rgba(245,158,11,0.2)',
-          borderRadius: 'var(--radius)',
-          marginBottom: 16,
-        }}>
-          <img src={cover} alt="cover" style={{ width: 40, height: 30, objectFit: 'cover', borderRadius: 4 }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--amber)' }}>
-              Image de couverture
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1, maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {cover}
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            loading={uploading}
-            disabled={uploading}
-            onClick={() => coverInputRef.current?.click()}
-          >
-            Changer
-          </Button>
-          <input
-            ref={coverInputRef}
-            type="file"
-            accept="image/*"
-            style={{ display: 'none' }}
-            onChange={e => handleFileUpload(e, 'covers')}
-          />
-        </div>
-      )}
-
-      {/* Add image row (URL) */}
-      {showAdd && (
-        <div style={{
-          display: 'flex',
-          gap: 8,
-          marginBottom: 16,
-          animation: 'slideDown 0.15s ease both',
-        }}>
-          <input
-            type="url"
-            value={urlInput}
-            onChange={e => setUrlInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') addImage() }}
-            placeholder="https://images.unsplash.com/…"
-            autoFocus
-            style={{
-              flex: 1,
-              height: 36,
-              padding: '0 12px',
-              background: 'var(--s3)',
-              border: '1px solid var(--border-md)',
-              borderRadius: 'var(--radius)',
-              color: 'var(--text)',
-              fontSize: 13,
-              fontFamily: 'var(--sans)',
-              outline: 'none',
-            }}
-            onFocus={e => { e.target.style.borderColor = 'var(--red)'; e.target.style.boxShadow = '0 0 0 3px var(--red-dim)' }}
-            onBlur={e => { e.target.style.borderColor = 'var(--border-md)'; e.target.style.boxShadow = 'none' }}
-          />
-          <Button variant="primary" size="sm" onClick={addImage}>Ajouter</Button>
-          <Button variant="ghost" size="sm" onClick={() => { setShowAdd(false); setUrlInput('') }}>Annuler</Button>
-        </div>
-      )}
-
-      {/* Image grid */}
-      {gallery.length === 0 ? (
-        <div
-          onClick={() => galleryInputRef.current?.click()}
-          style={{
-            border: '2px dashed var(--border-md)',
-            borderRadius: 'var(--radius-lg)',
+        {/* Add image row (URL) */}
+        {showAdd && (
+          <div style={{
             display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 48,
-            color: 'var(--muted2)',
-            gap: 10,
-            cursor: 'pointer',
+            gap: 8,
+            marginBottom: 12,
+            animation: 'slideDown 0.15s ease both',
           }}>
-          <IconImage />
-          <span style={{ fontSize: 13 }}>Aucune image</span>
-          <span style={{ fontSize: 11 }}>Cliquez pour uploader ou utilisez les boutons ci-dessus</span>
-        </div>
-      ) : (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 10,
-        }}>
-          {gallery.map((url, idx) => {
-            const isCover = url === cover
-            const isDraggingOver = dragOverIdx === idx
+            <input
+              type="url"
+              value={urlInput}
+              onChange={e => setUrlInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') addImage() }}
+              placeholder="https://images.unsplash.com/…"
+              autoFocus
+              style={{
+                flex: 1,
+                height: 36,
+                padding: '0 12px',
+                background: 'var(--s3)',
+                border: '1px solid var(--border-md)',
+                borderRadius: 'var(--radius)',
+                color: 'var(--text)',
+                fontSize: 13,
+                fontFamily: 'var(--sans)',
+                outline: 'none',
+              }}
+              onFocus={e => { e.target.style.borderColor = 'var(--red)'; e.target.style.boxShadow = '0 0 0 3px var(--red-dim)' }}
+              onBlur={e => { e.target.style.borderColor = 'var(--border-md)'; e.target.style.boxShadow = 'none' }}
+            />
+            <Button variant="primary" size="sm" onClick={addImage}>Ajouter</Button>
+            <Button variant="ghost" size="sm" onClick={() => { setShowAdd(false); setUrlInput('') }}>Annuler</Button>
+          </div>
+        )}
 
-            return (
-              <div
-                key={url + idx}
-                draggable
-                onDragStart={() => handleDragStart(idx)}
-                onDragOver={e => handleDragOver(e, idx)}
-                onDrop={e => handleDrop(e, idx)}
-                onDragEnd={handleDragEnd}
-                style={{
-                  position: 'relative',
-                  borderRadius: 'var(--radius)',
-                  overflow: 'hidden',
-                  border: isDraggingOver
-                    ? '2px solid var(--blue)'
-                    : isCover
-                      ? '2px solid var(--amber)'
-                      : '1px solid var(--border)',
-                  cursor: 'grab',
-                  opacity: draggingIdx === idx ? 0.4 : 1,
-                  transition: 'border-color 0.15s, opacity 0.15s',
-                }}
-              >
-                <div style={{ aspectRatio: '16 / 9' }}>
-                  <img
-                    src={url}
-                    alt={`Gallery ${idx + 1}`}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                    draggable={false}
+        {/* Image grid */}
+        {gallery.length === 0 ? (
+          <div
+            onClick={() => galleryInputRef.current?.click()}
+            style={{
+              border: '2px dashed var(--border-md)',
+              borderRadius: 'var(--radius-lg)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 40,
+              color: 'var(--muted2)',
+              gap: 10,
+              cursor: 'pointer',
+              marginTop: 10,
+            }}>
+            <IconImage />
+            <span style={{ fontSize: 13 }}>Aucune image</span>
+            <span style={{ fontSize: 11 }}>Cliquez pour uploader ou utilisez les boutons ci-dessus</span>
+          </div>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 10,
+            marginTop: 10,
+          }}>
+            {gallery.map((url, idx) => {
+              const isCover = url === cover
+              const isDraggingOver = dragOverIdx === idx
+
+              return (
+                <div
+                  key={url + idx}
+                  draggable
+                  onDragStart={() => handleDragStart(idx)}
+                  onDragOver={e => handleDragOver(e, idx)}
+                  onDrop={e => handleDrop(e, idx)}
+                  onDragEnd={handleDragEnd}
+                  style={{
+                    position: 'relative',
+                    borderRadius: 'var(--radius)',
+                    overflow: 'hidden',
+                    border: isDraggingOver
+                      ? '2px solid var(--blue)'
+                      : isCover
+                        ? '2px solid var(--amber)'
+                        : '1px solid var(--border)',
+                    cursor: 'grab',
+                    opacity: draggingIdx === idx ? 0.4 : 1,
+                    transition: 'border-color 0.15s, opacity 0.15s',
+                  }}
+                >
+                  <div style={{ aspectRatio: '16 / 9' }}>
+                    <img
+                      src={url}
+                      alt={`Gallery ${idx + 1}`}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                      draggable={false}
+                    />
+                  </div>
+
+                  {isCover && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 5,
+                      left: 5,
+                      background: 'rgba(245,158,11,0.9)',
+                      borderRadius: 4,
+                      padding: '2px 6px',
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: '#000',
+                      letterSpacing: '0.06em',
+                    }}>
+                      COVER
+                    </div>
+                  )}
+
+                  <GalleryOverlay
+                    onDelete={() => removeImage(idx)}
+                    onSetCover={() => setCover(url)}
+                    isCover={isCover}
                   />
                 </div>
-
-                {/* Cover badge */}
-                {isCover && (
-                  <div style={{
-                    position: 'absolute',
-                    top: 5,
-                    left: 5,
-                    background: 'rgba(245,158,11,0.9)',
-                    borderRadius: 4,
-                    padding: '2px 6px',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: '#000',
-                    letterSpacing: '0.06em',
-                  }}>
-                    COVER
-                  </div>
-                )}
-
-                {/* Hover overlay */}
-                <GalleryOverlay
-                  onDelete={() => removeImage(idx)}
-                  onSetCover={() => setCover(url)}
-                  isCover={isCover}
-                />
-              </div>
-            )
-          })}
-        </div>
-      )}
+              )
+            })}
+          </div>
+        )}
+      </SectionCard>
     </div>
   )
 }

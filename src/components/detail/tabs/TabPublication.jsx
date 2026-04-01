@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import Button from '../../ui/Button.jsx'
 import Input from '../../ui/Input.jsx'
+import { SectionCard, SectionTitle } from '../../ui/SectionCard.jsx'
 
 const STATUS_CARDS = [
   {
@@ -118,18 +119,9 @@ export default function TabPublication({ project, onChange, onToast }) {
 
   return (
     <div>
-      {/* ===== STATUT ===== */}
-      <div style={{ marginBottom: 28 }}>
-        <div style={{
-          fontSize: 11,
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase',
-          color: 'var(--muted)',
-          fontWeight: 600,
-          marginBottom: 12,
-        }}>
-          Statut
-        </div>
+      {/* ── Statut ───────────────────────────────────────────────── */}
+      <SectionCard borderColor="var(--blue-dim)">
+        <SectionTitle accent="var(--blue)" accentDim="var(--blue-dim)">Statut</SectionTitle>
         <div style={{ display: 'flex', gap: 10 }}>
           {STATUS_CARDS.map(card => (
             <StatusCard
@@ -140,26 +132,17 @@ export default function TabPublication({ project, onChange, onToast }) {
             />
           ))}
         </div>
-      </div>
+      </SectionCard>
 
-      {/* ===== MISE EN AVANT ===== */}
-      <div style={{ marginBottom: 28 }}>
-        <div style={{
-          fontSize: 11,
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase',
-          color: 'var(--muted)',
-          fontWeight: 600,
-          marginBottom: 12,
-        }}>
-          Mise en avant
-        </div>
+      {/* ── Mise en avant ────────────────────────────────────────── */}
+      <SectionCard borderColor="var(--amber-dim)">
+        <SectionTitle accent="var(--amber)" accentDim="var(--amber-dim)">Mise en avant</SectionTitle>
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '14px 16px',
-          background: 'var(--s2)',
+          padding: '10px 12px',
+          background: 'var(--s3)',
           border: '1px solid var(--border-md)',
           borderRadius: 'var(--radius)',
         }}>
@@ -172,30 +155,18 @@ export default function TabPublication({ project, onChange, onToast }) {
             onChange={v => onChange({ featured: v })}
           />
         </div>
-      </div>
+      </SectionCard>
 
-      {/* ===== SEO ===== */}
-      <div style={{ marginBottom: 28 }}>
-        <div style={{
-          fontSize: 11,
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase',
-          color: 'var(--muted)',
-          fontWeight: 600,
-          marginBottom: 12,
-        }}>
-          SEO
-        </div>
+      {/* ── SEO ──────────────────────────────────────────────────── */}
+      <SectionCard borderColor="var(--green-dim)">
+        <SectionTitle accent="var(--green)" accentDim="var(--green-dim)">SEO</SectionTitle>
 
         {/* SEO Title */}
         <div style={{ marginBottom: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
             <label style={{
-              fontSize: 11,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              color: 'var(--muted)',
-              fontWeight: 500,
+              fontSize: 11, letterSpacing: '0.08em',
+              textTransform: 'uppercase', color: 'var(--muted)', fontWeight: 500,
             }}>
               Titre SEO
             </label>
@@ -210,16 +181,12 @@ export default function TabPublication({ project, onChange, onToast }) {
             placeholder="Titre pour les moteurs de recherche"
             maxLength={80}
             style={{
-              width: '100%',
-              height: 38,
-              padding: '0 12px',
+              width: '100%', height: 38, padding: '0 12px',
               background: 'var(--s3)',
               border: `1px solid ${seoTitleLen > 60 ? 'var(--red)' : 'var(--border-md)'}`,
-              borderRadius: 'var(--radius)',
-              color: 'var(--text)',
-              fontSize: 13,
-              fontFamily: 'var(--sans)',
-              outline: 'none',
+              borderRadius: 'var(--radius)', color: 'var(--text)',
+              fontSize: 13, fontFamily: 'var(--sans)', outline: 'none',
+              boxSizing: 'border-box',
             }}
             onFocus={e => { e.target.style.borderColor = 'var(--red)'; e.target.style.boxShadow = '0 0 0 3px var(--red-dim)' }}
             onBlur={e => { e.target.style.borderColor = seoTitleLen > 60 ? 'var(--red)' : 'var(--border-md)'; e.target.style.boxShadow = 'none' }}
@@ -230,11 +197,8 @@ export default function TabPublication({ project, onChange, onToast }) {
         <div style={{ marginBottom: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
             <label style={{
-              fontSize: 11,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              color: 'var(--muted)',
-              fontWeight: 500,
+              fontSize: 11, letterSpacing: '0.08em',
+              textTransform: 'uppercase', color: 'var(--muted)', fontWeight: 500,
             }}>
               Méta-description
             </label>
@@ -249,17 +213,12 @@ export default function TabPublication({ project, onChange, onToast }) {
             rows={3}
             maxLength={200}
             style={{
-              width: '100%',
-              padding: '8px 12px',
+              width: '100%', padding: '8px 12px',
               background: 'var(--s3)',
               border: `1px solid ${seoDescLen > 160 ? 'var(--red)' : 'var(--border-md)'}`,
-              borderRadius: 'var(--radius)',
-              color: 'var(--text)',
-              fontSize: 13,
-              fontFamily: 'var(--sans)',
-              outline: 'none',
-              resize: 'vertical',
-              lineHeight: 1.5,
+              borderRadius: 'var(--radius)', color: 'var(--text)',
+              fontSize: 13, fontFamily: 'var(--sans)', outline: 'none',
+              resize: 'vertical', lineHeight: 1.5, boxSizing: 'border-box',
             }}
             onFocus={e => { e.target.style.borderColor = 'var(--red)'; e.target.style.boxShadow = '0 0 0 3px var(--red-dim)' }}
             onBlur={e => { e.target.style.borderColor = seoDescLen > 160 ? 'var(--red)' : 'var(--border-md)'; e.target.style.boxShadow = 'none' }}
@@ -267,48 +226,33 @@ export default function TabPublication({ project, onChange, onToast }) {
         </div>
 
         {/* Slug display */}
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 14 }}>
           <label style={{
-            display: 'block',
-            fontSize: 11,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            color: 'var(--muted)',
-            fontWeight: 500,
-            marginBottom: 6,
+            display: 'block', fontSize: 11, letterSpacing: '0.08em',
+            textTransform: 'uppercase', color: 'var(--muted)', fontWeight: 500, marginBottom: 6,
           }}>
             URL (slug)
           </label>
           <div style={{
-            padding: '7px 12px',
-            background: 'var(--s3)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius)',
-            fontSize: 12,
-            color: 'var(--muted)',
-            fontFamily: 'monospace',
+            padding: '7px 12px', background: 'var(--s3)',
+            border: '1px solid var(--border)', borderRadius: 'var(--radius)',
+            fontSize: 12, color: 'var(--muted)', fontFamily: 'monospace',
           }}>
             tada-wind.fr/projets/<span style={{ color: 'var(--text)' }}>{project.slug || '—'}</span>
           </div>
         </div>
 
         {/* Google SERP preview */}
-        <div style={{ marginBottom: 16 }}>
+        <div>
           <div style={{
-            fontSize: 11,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            color: 'var(--muted)',
-            fontWeight: 500,
-            marginBottom: 8,
+            fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase',
+            color: 'var(--muted)', fontWeight: 500, marginBottom: 8,
           }}>
             Aperçu Google
           </div>
           <div style={{
-            background: 'white',
-            borderRadius: 8,
-            padding: '16px 20px',
-            fontFamily: 'Arial, sans-serif',
+            background: 'white', borderRadius: 8,
+            padding: '16px 20px', fontFamily: 'Arial, sans-serif',
           }}>
             <div style={{ fontSize: 12, color: '#202124', marginBottom: 2 }}>
               tada-wind.fr › projets › {project.slug || 'projet'}
@@ -321,7 +265,7 @@ export default function TabPublication({ project, onChange, onToast }) {
             </div>
           </div>
         </div>
-      </div>
+      </SectionCard>
 
       {/* Publish button */}
       {project.status !== 'published' && (
@@ -338,16 +282,10 @@ export default function TabPublication({ project, onChange, onToast }) {
 
       {project.status === 'published' && (
         <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 8,
-          padding: '12px 16px',
-          background: 'var(--green-dim)',
-          border: '1px solid rgba(34,197,94,0.2)',
-          borderRadius: 'var(--radius)',
-          fontSize: 13,
-          color: 'var(--green)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          gap: 8, padding: '12px 16px',
+          background: 'var(--green-dim)', border: '1px solid rgba(34,197,94,0.2)',
+          borderRadius: 'var(--radius)', fontSize: 13, color: 'var(--green)',
         }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="20 6 9 17 4 12"/>

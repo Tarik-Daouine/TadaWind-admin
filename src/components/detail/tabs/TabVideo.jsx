@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import Button from '../../ui/Button.jsx'
 import Badge from '../../ui/Badge.jsx'
+import { SectionCard, SectionTitle } from '../../ui/SectionCard.jsx'
 import { fetchStreamableMeta, formatDuration } from '../../../lib/streamable.js'
 
 const IconUpload = () => (
@@ -24,18 +25,16 @@ const IconLink = () => (
 export default function TabVideo({ project, projects = [], onChange, onToast }) {
   const [loading, setLoading]   = useState(false)
   const [localId, setLocalId]   = useState(project.streamableId || '')
-  const [meta, setMeta]         = useState(null)   // métadonnées récupérées
-  const [dupWarning, setDupWarning] = useState(null) // titre du projet doublon
+  const [meta, setMeta]         = useState(null)
+  const [dupWarning, setDupWarning] = useState(null)
 
   const handleVerify = async () => {
     const id = localId.trim()
     if (!id) return
 
-    // ── Vérification doublon ────────────────────────────────────────────────
     const duplicate = projects.find(p => p.id !== project.id && p.streamableId === id)
     if (duplicate) {
       setDupWarning(duplicate.title || duplicate.id)
-      // On continue quand même — avertissement non bloquant
     } else {
       setDupWarning(null)
     }
@@ -48,7 +47,6 @@ export default function TabVideo({ project, projects = [], onChange, onToast }) 
     setLoading(false)
 
     if (result === null) {
-      // CORS total : on sauvegarde quand même l'iframe (elle chargera côté client)
       onChange({
         streamableId:     id,
         streamableUrl:    `https://streamable.com/${id}`,
@@ -86,14 +84,9 @@ export default function TabVideo({ project, projects = [], onChange, onToast }) 
 
   return (
     <div>
-      {/* ── Input + Vérifier ─────────────────────────────────────── */}
-      <div style={{ marginBottom: 24 }}>
-        <label style={{
-          display: 'block', fontSize: 11, letterSpacing: '0.08em',
-          textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 6, fontWeight: 500,
-        }}>
-          Identifiant Streamable
-        </label>
+      {/* ── Identifiant ──────────────────────────────────────────── */}
+      <SectionCard borderColor="var(--blue-dim)">
+        <SectionTitle accent="var(--blue)" accentDim="var(--blue-dim)">Identifiant Streamable</SectionTitle>
         <div style={{ display: 'flex', gap: 8 }}>
           <input
             type="text"
@@ -114,116 +107,116 @@ export default function TabVideo({ project, projects = [], onChange, onToast }) 
             Vérifier
           </Button>
         </div>
-      </div>
+      </SectionCard>
 
-      {/* ── Avertissement doublon ────────────────────────────────── */}
-      {dupWarning && (
-        <div style={{
-          background: 'var(--red-dim)', border: '1px solid var(--red)',
-          borderRadius: 'var(--radius)', padding: '10px 14px',
-          marginBottom: 16, fontSize: 12, color: 'var(--red)',
-          display: 'flex', alignItems: 'center', gap: 8,
-        }}>
-          <span>⚠️</span>
-          <span>
-            Cet ID Streamable est déjà utilisé par le projet <strong>"{dupWarning}"</strong>.
-            Vérifie que ce n'est pas une erreur.
-          </span>
-        </div>
-      )}
+      {/* ── Aperçu ───────────────────────────────────────────────── */}
+      <SectionCard borderColor="var(--amber-dim)">
+        <SectionTitle accent="var(--amber)" accentDim="var(--amber-dim)">Aperçu</SectionTitle>
 
-      {/* ── Badge statut + métadonnées ───────────────────────────── */}
-      <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        {project.streamableStatus === 'ok' && (
-          <Badge variant="custom" value="Vidéo liée ✓" bg="var(--green-dim)" color="var(--green)" />
-        )}
-        {project.streamableStatus === 'iframe-only' && (
-          <Badge variant="custom" value="Vidéo liée (aperçu)" bg="var(--yellow-dim)" color="var(--yellow)" />
-        )}
-        {project.streamableStatus === 'ko' && (
-          <Badge variant="custom" value="Vidéo introuvable" bg="var(--red-dim)" color="var(--red)" />
-        )}
-        {!project.streamableStatus && (
-          <Badge variant="custom" value="Aucune vidéo" bg="var(--gray-dim)" color="var(--muted)" />
-        )}
-
-        {/* Lien externe */}
-        {hasVideo && (
-          <a href={project.streamableUrl} target="_blank" rel="noreferrer"
-            style={{ fontSize: 12, color: 'var(--blue)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <IconLink /> streamable.com/{project.streamableId}
-          </a>
-        )}
-      </div>
-
-      {/* ── Métadonnées (titre, durée, résolution) ───────────────── */}
-      {hasVideo && (currentTitle || currentMeta?.duration) && (
-        <div style={{
-          background: 'var(--s3)', border: '1px solid var(--border)',
-          borderRadius: 'var(--radius)', padding: '10px 14px',
-          marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 4,
-        }}>
-          {currentTitle && (
-            <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>
-              {currentTitle}
+        {/* Avertissement doublon */}
+        {dupWarning && (
+          <div style={{
+            background: 'var(--red-dim)', border: '1px solid var(--red)',
+            borderRadius: 'var(--radius)', padding: '10px 14px',
+            marginBottom: 12, fontSize: 12, color: 'var(--red)',
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <span>⚠️</span>
+            <span>
+              Cet ID Streamable est déjà utilisé par le projet <strong>"{dupWarning}"</strong>.
+              Vérifie que ce n'est pas une erreur.
             </span>
-          )}
-          <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--muted)' }}>
-            {currentMeta?.duration && <span>⏱ {formatDuration(currentMeta.duration)}</span>}
-            {currentMeta?.width && currentMeta?.height && (
-              <span>📐 {currentMeta.width}×{currentMeta.height}</span>
-            )}
-            {currentMeta?.source === 'oembed' && (
-              <span style={{ color: 'var(--muted2)' }}>métadonnées partielles</span>
-            )}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ── Iframe / empty state ─────────────────────────────────── */}
-      {hasVideo ? (
-        <div style={{
-          aspectRatio: '16 / 9',
-          borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--border-md)',
-          overflow: 'hidden',
-          marginBottom: 12,
-          background: '#000',
-        }}>
-          <iframe
-            src={`https://streamable.com/e/${project.streamableId}`}
-            frameBorder="0"
-            allowFullScreen
-            allow="autoplay; fullscreen"
-            style={{ width: '100%', height: '100%', display: 'block' }}
-          />
+        {/* Badge statut + lien */}
+        <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {project.streamableStatus === 'ok' && (
+            <Badge variant="custom" value="Vidéo liée ✓" bg="var(--green-dim)" color="var(--green)" />
+          )}
+          {project.streamableStatus === 'iframe-only' && (
+            <Badge variant="custom" value="Vidéo liée (aperçu)" bg="var(--yellow-dim)" color="var(--yellow)" />
+          )}
+          {project.streamableStatus === 'ko' && (
+            <Badge variant="custom" value="Vidéo introuvable" bg="var(--red-dim)" color="var(--red)" />
+          )}
+          {!project.streamableStatus && (
+            <Badge variant="custom" value="Aucune vidéo" bg="var(--gray-dim)" color="var(--muted)" />
+          )}
+          {hasVideo && (
+            <a href={project.streamableUrl} target="_blank" rel="noreferrer"
+              style={{ fontSize: 12, color: 'var(--blue)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <IconLink /> streamable.com/{project.streamableId}
+            </a>
+          )}
         </div>
-      ) : (
-        <div style={{
-          aspectRatio: '16 / 9',
-          border: '2px dashed var(--border-md)',
-          borderRadius: 'var(--radius-lg)',
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          color: 'var(--muted2)', gap: 10, marginBottom: 12,
-        }}>
-          <IconUpload />
-          <span style={{ fontSize: 13 }}>Aucune vidéo associée</span>
-          <span style={{ fontSize: 11 }}>Renseignez l'identifiant Streamable ci-dessus</span>
-        </div>
-      )}
 
-      {/* ── Instructions ─────────────────────────────────────────── */}
-      <div style={{
-        background: 'var(--s3)', border: '1px solid var(--border)',
-        borderRadius: 'var(--radius)', padding: '12px 14px',
-        fontSize: 12, color: 'var(--muted)', lineHeight: 1.6,
-      }}>
-        <strong style={{ color: 'var(--text)', display: 'block', marginBottom: 4 }}>Workflow Streamable</strong>
-        Uploadez la vidéo sur <span style={{ color: 'var(--blue)' }}>streamable.com</span>, récupérez
-        l'identifiant depuis l'URL (ex: streamable.com/<strong>abc123</strong>), collez-le ci-dessus
-        et cliquez sur "Vérifier".
-      </div>
+        {/* Métadonnées */}
+        {hasVideo && (currentTitle || currentMeta?.duration) && (
+          <div style={{
+            background: 'var(--s3)', border: '1px solid var(--border)',
+            borderRadius: 'var(--radius)', padding: '10px 14px',
+            marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 4,
+          }}>
+            {currentTitle && (
+              <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>
+                {currentTitle}
+              </span>
+            )}
+            <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--muted)' }}>
+              {currentMeta?.duration && <span>⏱ {formatDuration(currentMeta.duration)}</span>}
+              {currentMeta?.width && currentMeta?.height && (
+                <span>📐 {currentMeta.width}×{currentMeta.height}</span>
+              )}
+              {currentMeta?.source === 'oembed' && (
+                <span style={{ color: 'var(--muted2)' }}>métadonnées partielles</span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Iframe / empty state */}
+        {hasVideo ? (
+          <div style={{
+            aspectRatio: '16 / 9',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border-md)',
+            overflow: 'hidden',
+            background: '#000',
+          }}>
+            <iframe
+              src={`https://streamable.com/e/${project.streamableId}`}
+              frameBorder="0"
+              allowFullScreen
+              allow="autoplay; fullscreen"
+              style={{ width: '100%', height: '100%', display: 'block' }}
+            />
+          </div>
+        ) : (
+          <div style={{
+            aspectRatio: '16 / 9',
+            border: '2px dashed var(--border-md)',
+            borderRadius: 'var(--radius-lg)',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            color: 'var(--muted2)', gap: 10,
+          }}>
+            <IconUpload />
+            <span style={{ fontSize: 13 }}>Aucune vidéo associée</span>
+            <span style={{ fontSize: 11 }}>Renseignez l'identifiant Streamable ci-dessus</span>
+          </div>
+        )}
+      </SectionCard>
+
+      {/* ── Workflow ─────────────────────────────────────────────── */}
+      <SectionCard>
+        <SectionTitle>Workflow Streamable</SectionTitle>
+        <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>
+          Uploadez la vidéo sur <span style={{ color: 'var(--blue)' }}>streamable.com</span>, récupérez
+          l'identifiant depuis l'URL (ex: streamable.com/<strong>abc123</strong>), collez-le ci-dessus
+          et cliquez sur "Vérifier".
+        </div>
+      </SectionCard>
     </div>
   )
 }
