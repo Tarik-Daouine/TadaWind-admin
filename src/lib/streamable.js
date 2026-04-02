@@ -1,68 +1,77 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers Streamable — utilisés par TabVideo et le bulk sync (Topbar)
-// ─────────────────────────────────────────────────────────────────────────────
-import { supabase } from './supabase.js'
+// Streamable: ce module ne gère que des actions unitaires autour d'une vidéo.
+// L'import multi-vidéo repose exclusivement sur le bookmarklet + ?streamable_ids=...
 
-// Liste toutes les vidéos du compte Streamable via l'Edge Function Supabase.
-// Les credentials sont stockés dans les secrets Supabase (côté serveur).
-// Retourne { videos: [...], error: string|null, corsBlocked: false }
-// Streamable n'expose pas d'endpoint public pour lister toutes les vidéos.
-// La fonction Edge retournera toujours videos: [] — l'import se fait manuellement.
-export async function fetchAllStreamableVideos() {
-  return { videos: [], error: null, corsBlocked: false }
+const STREAMABLE_ID_PATTERN = /^[a-zA-Z0-9]{4,8}$/
+
+export function normalizeStreamableId(value) {
+  const raw = String(value ?? '').trim()
+  if (!raw) return ''
+
+  const urlMatch = raw.match(/streamable\.com\/(?:e\/)?([a-zA-Z0-9]{4,8})(?:[/?#]|$)/i)
+  const candidate = (urlMatch?.[1] || raw)
+    .replace(/^\/+|\/+$/g, '')
+    .split(/[?#]/)[0]
+
+  return STREAMABLE_ID_PATTERN.test(candidate) ? candidate.toLowerCase() : ''
 }
 
-export function formatDuration(seconds) {
+export function formatStreamableDuration(seconds) {
   if (!seconds) return null
-  const m = Math.floor(seconds / 60)
-  const s = Math.round(seconds % 60)
-  return `${m}:${s.toString().padStart(2, '0')}`
+  const minutes = Math.floor(seconds / 60)
+  const secs = Math.round(seconds % 60)
+  return `${minutes}:${secs.toString().padStart(2, '0')}`
 }
 
-// Fetch métadonnées d'une vidéo Streamable par son shortcode.
-// Tente d'abord l'API principale (status + durée + résolution),
-// puis oEmbed en fallback si CORS bloque.
-// Retourne null si les deux échouent.
-export async function fetchStreamableMeta(id) {
-  // 1. API principale
+// Vérifie une seule vidéo Streamable à partir d'un ID ou d'une URL.
+// Tente d'abord l'API principale, puis oEmbed en fallback si nécessaire.
+export async function fetchStreamableVideoMeta(value) {
+  const streamableId = normalizeStreamableId(value)
+  if (!streamableId) return null
+
   try {
-    const res = await fetch(`https://api.streamable.com/videos/${id}`, {
+    const res = await fetch(`https://api.streamable.com/videos/${streamableId}`, {
       headers: { Accept: 'application/json' },
     })
+
     if (res.ok) {
-      const d = await res.json()
-      const mp4 = d.files?.mp4 || d.files?.['mp4-mobile'] || {}
+      const data = await res.json()
+      const mp4 = data.files?.mp4 || data.files?.['mp4-mobile'] || {}
+
       return {
-        title:     d.title         || '',
-        thumbnail: d.thumbnail_url || '',
-        duration:  mp4.duration    || null,
-        width:     mp4.width       || null,
-        height:    mp4.height      || null,
-        status:    d.status,
-        ready:     d.status === 2,
+        title:     data.title         || '',
+        thumbnail: data.thumbnail_url || '',
+        duration:  mp4.duration       || null,
+        width:     mp4.width          || null,
+        height:    mp4.height         || null,
+        status:    data.status,
+        ready:     data.status === 2,
         source:    'api',
       }
     }
-  } catch (_) { /* CORS → fallback */ }
+  } catch (_) { /* API bloquee → fallback */ }
 
-  // 2. oEmbed fallback
   try {
-    const url = encodeURIComponent(`https://streamable.com/${id}`)
+    const url = encodeURIComponent(`https://streamable.com/${streamableId}`)
     const res = await fetch(`https://api.streamable.com/oembed.json?url=${url}`)
+
     if (res.ok) {
-      const d = await res.json()
+      const data = await res.json()
       return {
-        title:     d.title         || '',
-        thumbnail: d.thumbnail_url || '',
+        title:     data.title         || '',
+        thumbnail: data.thumbnail_url || '',
         duration:  null,
-        width:     d.width         || null,
-        height:    d.height        || null,
+        width:     data.width         || null,
+        height:    data.height        || null,
         status:    null,
         ready:     true,
         source:    'oembed',
       }
     }
-  } catch (_) { /* CORS total */ }
+  } catch (_) { /* oEmbed bloque */ }
 
   return null
 }
+
+// Alias de compatibilite: a supprimer si tout le code interne est renomme.
+export const fetchStreamableMeta = fetchStreamableVideoMeta
+export const formatDuration = formatStreamableDuration

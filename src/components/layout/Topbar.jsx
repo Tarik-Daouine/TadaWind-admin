@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import Button from '../ui/Button.jsx'
 
 const IconSearch = () => (
@@ -14,11 +14,10 @@ const IconPlus = () => (
   </svg>
 )
 
-function SyncButton({ label, icon, onClick, loading, synced }) {
+function StreamableButton({ label, icon, onClick, pending }) {
   return (
     <button
       onClick={onClick}
-      disabled={loading}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -30,47 +29,26 @@ function SyncButton({ label, icon, onClick, loading, synced }) {
         color: 'var(--muted)',
         fontSize: 12,
         fontFamily: 'var(--sans)',
-        cursor: loading ? 'wait' : 'pointer',
+        cursor: 'pointer',
         transition: 'all 0.15s',
       }}
-      onMouseEnter={e => { if (!loading) { e.currentTarget.style.background = 'var(--s2)'; e.currentTarget.style.color = 'var(--text)' } }}
-      onMouseLeave={e => { if (!loading) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--muted)' } }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'var(--s2)'; e.currentTarget.style.color = 'var(--text)' }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--muted)' }}
     >
-      {loading ? (
-        <span style={{
-          display: 'inline-block',
-          width: 10,
-          height: 10,
-          border: '1.5px solid rgba(255,255,255,0.2)',
-          borderTopColor: 'var(--blue)',
-          borderRadius: '50%',
-          animation: 'spin 0.7s linear infinite',
-        }} />
-      ) : icon}
+      {icon}
       {label}
-      {!loading && (
-        <span style={{
-          width: 6,
-          height: 6,
-          borderRadius: '50%',
-          background: synced ? 'var(--green)' : 'var(--amber)',
-          animation: synced ? 'none' : 'pulse 2s ease infinite',
-        }} />
-      )}
+      <span style={{
+        width: 6,
+        height: 6,
+        borderRadius: '50%',
+        background: pending ? 'var(--amber)' : 'var(--blue)',
+        animation: pending ? 'pulse 2s ease infinite' : 'none',
+      }} />
     </button>
   )
 }
 
-export default function Topbar({ search, onSearch, onNewProject, mobile, onMenuToggle, onStreamableSync, streamableSynced = true }) {
-  const [streamableLoading, setStreamableLoading] = useState(false)
-
-  const handleStreamableSync = async () => {
-    if (!onStreamableSync) return
-    setStreamableLoading(true)
-    await onStreamableSync()
-    setStreamableLoading(false)
-  }
-
+export default function Topbar({ search, onSearch, onNewProject, mobile, onMenuToggle, onOpenStreamableImport, hasPendingStreamableImports = false }) {
   return (
     <div
       style={{
@@ -138,10 +116,10 @@ export default function Topbar({ search, onSearch, onNewProject, mobile, onMenuT
       {/* Spacer */}
       {!mobile && <div style={{ flex: 1 }} />}
 
-      {/* Sync buttons + New project — masqués sur mobile */}
+      {/* Streamable import + New project — masqués sur mobile */}
       {!mobile && <>
-        <SyncButton
-          label="Streamable"
+        <StreamableButton
+          label="Import Streamable"
           icon={
             <span style={{
               width: 16, height: 16, borderRadius: '50%', background: 'var(--blue-dim)',
@@ -149,9 +127,8 @@ export default function Topbar({ search, onSearch, onNewProject, mobile, onMenuT
               fontSize: 9, color: 'var(--blue)', flexShrink: 0,
             }}>▶</span>
           }
-          onClick={handleStreamableSync}
-          loading={streamableLoading}
-          synced={streamableSynced}
+          onClick={onOpenStreamableImport}
+          pending={hasPendingStreamableImports}
         />
         <Button variant="primary" size="sm" icon={<IconPlus />} onClick={onNewProject}>
           Nouveau projet

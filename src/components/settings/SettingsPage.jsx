@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase.js'
+import { STREAMABLE_IDS_QUERY_PARAM } from '../../lib/streamableImport.js'
 import Button from '../ui/Button.jsx'
 
 const SETTING_ID = 'main'
@@ -52,9 +53,9 @@ export default function SettingsPage({ onToast }) {
 
   const set = (key, val) => setForm(prev => ({ ...prev, [key]: val }))
 
-  // Injecte le bookmarklet dans un container div non géré par React
-  // (évite que React écrase le href javascript: lors des re-renders)
-  // Dépend de [loading] car le div n'est monté qu'après loading=false
+  // Source officielle d'import Streamable:
+  // le bookmarklet scrape "My Videos", puis ouvre l'admin avec
+  // ?streamable_ids=id1,id2,... pour que l'import soit fait localement.
   const bookmarkContainerRef = useRef(null)
   useEffect(() => {
     if (loading) return
@@ -62,10 +63,10 @@ export default function SettingsPage({ onToast }) {
     if (!container || container.hasChildNodes()) return
     const adminUrl = `${window.location.protocol}//${window.location.host}${import.meta.env.BASE_URL}`
     const EXCLUDE = ['my-videos','login','register','upload','about','pricing','help','contact','settings','embed']
-    const js = `(function(){var ids=[];var ex=${JSON.stringify(EXCLUDE)};document.querySelectorAll('a[href]').forEach(function(a){try{var u=new URL(a.href);if(u.hostname.indexOf('streamable.com')>-1){var p=u.pathname.split('/').filter(Boolean);if(p.length===1&&/^[a-zA-Z0-9]{4,8}$/.test(p[0])&&ex.indexOf(p[0])===-1)ids.push(p[0]);}}catch(e){}});ids=ids.filter(function(v,i,a){return a.indexOf(v)===i;});if(!ids.length){alert('Aucune vid\\u00e9o Streamable trouv\\u00e9e.');return;}window.open('${adminUrl}?streamable_ids='+ids.join(','),'_blank');})()`
+    const js = `(function(){var ids=[];var ex=${JSON.stringify(EXCLUDE)};document.querySelectorAll('a[href]').forEach(function(a){try{var u=new URL(a.href);if(u.hostname.indexOf('streamable.com')>-1){var p=u.pathname.split('/').filter(Boolean);if(p.length===1&&/^[a-zA-Z0-9]{4,8}$/.test(p[0])&&ex.indexOf(p[0])===-1)ids.push(p[0]);}}catch(e){}});ids=ids.filter(function(v,i,a){return a.indexOf(v)===i;});if(!ids.length){alert('Aucune vid\\u00e9o Streamable trouv\\u00e9e.');return;}window.open('${adminUrl}?${STREAMABLE_IDS_QUERY_PARAM}='+ids.join(','),'_blank');})()`
     const a = document.createElement('a')
     a.href = `javascript:${encodeURIComponent(js)}`
-    a.textContent = '▶ Sync Streamable → Admin'
+    a.textContent = '▶ Import Streamable → Admin'
     a.title = 'Glisse dans ta barre de favoris'
     Object.assign(a.style, {
       display: 'inline-flex', alignItems: 'center',
@@ -184,7 +185,7 @@ CREATE POLICY "admin_write_settings" ON settings
             Bookmarklet Streamable
           </h3>
           <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20, lineHeight: 1.6 }}>
-            Glisse ce bouton dans ta barre de favoris. Sur ta page Streamable, clique dessus pour envoyer automatiquement tes vidéos dans l'admin.
+            Glisse ce bouton dans ta barre de favoris. C'est le flux officiel d'import Streamable: il recupere les IDs sur "My Videos", puis ouvre l'admin avec ces IDs pour affichage dans la modale d'import.
           </p>
 
           {/* Bouton à glisser */}
@@ -198,7 +199,7 @@ CREATE POLICY "admin_write_settings" ON settings
               <strong style={{ color: 'var(--text)' }}>Comment utiliser :</strong><br />
               1. Glisse le bouton ci-contre dans ta barre de favoris<br />
               2. Va sur <strong>streamable.com/my-videos</strong><br />
-              3. Clique sur le favoris → l'admin s'ouvre avec les vidéos manquantes
+              3. Clique sur le favoris → l'admin s'ouvre avec les IDs a importer
             </div>
           </div>
         </div>

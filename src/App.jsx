@@ -9,8 +9,8 @@ function useIsMobile() {
   }, [])
   return mobile
 }
-import { fetchStreamableMeta, fetchAllStreamableVideos } from './lib/streamable.js'
-import StreamableSyncModal from './components/projects/StreamableSyncModal.jsx'
+import StreamableImportModal from './components/projects/StreamableImportModal.jsx'
+import { createStreamableImportSession, STREAMABLE_IDS_QUERY_PARAM } from './lib/streamableImport.js'
 import { useAuth } from './hooks/useAuth.js'
 import { useProjects } from './hooks/useProjects.js'
 import { useLeads } from './hooks/useLeads.js'
@@ -89,30 +89,29 @@ export default function App() {
   const [deletingLead, setDeletingLead]       = useState(false)
   const mobile                                = useIsMobile()
   const [sidebarOpen, setSidebarOpen]         = useState(false)
-  const [streamableSynced, setStreamableSynced] = useState(true)
-  const [syncModal, setSyncModal]               = useState(null) // null | results object
+  const [streamableImportSession, setStreamableImportSession] = useState(null)
+  const [streamableImportOpen, setStreamableImportOpen]       = useState(false)
 
-  // ── Bookmarklet : ?streamable_ids=abc,def,ghi ────────────────────────────
+  // Flux officiel Streamable:
+  // le bookmarklet ouvre l'admin avec ?streamable_ids=abc,def,ghi.
+  // On normalise ces IDs, on les compare aux projets existants, puis on ouvre
+  // la modale d'import. Aucun listing bulk via API n'est attendu ici.
   useEffect(() => {
     if (projectsLoading) return
-    const params = new URLSearchParams(window.location.search)
-    const idsParam = params.get('streamable_ids')
-    if (!idsParam) return
 
-    // Nettoie l'URL sans rechargement
+    const session = createStreamableImportSession({
+      search: window.location.search,
+      projects,
+    })
+    if (!session) return
+
     const clean = new URL(window.location.href)
-    clean.searchParams.delete('streamable_ids')
+    clean.searchParams.delete(STREAMABLE_IDS_QUERY_PARAM)
     window.history.replaceState({}, '', clean.toString())
 
-    const incoming = idsParam.split(',').map(s => s.trim()).filter(Boolean)
-    const existing = new Set(projects.map(p => p.streamableId).filter(Boolean))
-    const newVideos = incoming
-      .filter(id => !existing.has(id))
-      .map(id => ({ shortcode: id, title: '' }))
-
-    setSyncModal({ ok: [], broken: [], newVideos, corsBlocked: false })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectsLoading])
+    setStreamableImportSession(session)
+    setStreamableImportOpen(true)
+  }, [projects, projectsLoading])
 
   // ── Gardes auth ───────────────────────────────────────────────────────────
   if (authLoading) return <LoadingScreen message="Initialisation…" />
@@ -133,65 +132,35 @@ export default function App() {
     }
   }
 
-  // ── Streamable bulk sync ─────────────────────────────────────────────────────
-  const handleStreamableSync = async () => {
-    setStreamableSynced(false)
-    const existingIds = new Set(projects.map(p => p.streamableId).filter(Boolean))
-
-    // 1. Liste toutes les vidéos via Edge Function (server-side, pas de CORS)
-    const { videos: allVideos, corsBlocked } = await fetchAllStreamableVideos()
-
-    // 2. Vérification de cohérence des projets existants
-    const withVideo = projects.filter(p => p.streamableId)
-    const ok = [], broken = []
-    for (const p of withVideo) {
-      const result = await fetchStreamableMeta(p.streamableId)
-      if (result && result.ready) {
-        await updateProject(p.id, {
-          streamableMeta: { duration: result.duration, width: result.width, height: result.height, source: result.source },
-        })
-        ok.push(p)
-      } else {
-        broken.push(p)
-      }
-    }
-
-    // 3. Nouvelles vidéos Streamable non encore importées
-    const newVideos = allVideos
-      .filter(v => {
-        const sc = v.shortcode || v.id || ''
-        return sc && !existingIds.has(sc)
-      })
-      .map(v => ({ shortcode: v.shortcode || v.id, title: v.title || '' }))
-
-    setStreamableSynced(true)
-    setSyncModal({ ok, broken, newVideos, corsBlocked })
+  const handleOpenStreamableImport = () => {
+    setStreamableImportSession(prev => prev || {
+      source: 'manual-open',
+      receivedIds: [],
+      invalidEntries: [],
+      alreadyImported: [],
+      videosToImport: [],
+    })
+    setStreamableImportOpen(true)
   }
 
-  const handleSyncImport = async (shortcode, title, meta) => {
+  const handleStreamableImport = async (streamableId, title, meta) => {
     const p = await createProject({
-      title:          title || shortcode,
-      streamableId:   shortcode,
-      streamableUrl:  `https://streamable.com/${shortcode}`,
+      title:          title || streamableId,
+      streamableId:   streamableId,
+      streamableUrl:  `https://streamable.com/${streamableId}`,
       streamableMeta: meta ? { duration: meta.duration, width: meta.width, height: meta.height, source: meta.source } : null,
       cover:          meta?.thumbnail || null,
     })
     if (p) {
-      addToast(`"${title || shortcode}" importé`, 'success')
-      setSyncModal(prev => prev ? ({
+      addToast(`"${title || streamableId}" importé`, 'success')
+      setStreamableImportSession(prev => prev ? ({
         ...prev,
-        newVideos: prev.newVideos.filter(v => v.shortcode !== shortcode),
+        alreadyImported: [...prev.alreadyImported, { streamableId, project: p }],
+        videosToImport: prev.videosToImport.filter(video => video.streamableId !== streamableId),
       }) : null)
+    } else {
+      addToast('Erreur lors de l\'import Streamable', 'error')
     }
-  }
-
-  const handleSyncUnlink = async (projectId) => {
-    await updateProject(projectId, { streamableId: '', streamableUrl: '', streamableStatus: 'missing', streamableMeta: null })
-    addToast('Vidéo déliée du projet', 'success')
-    setSyncModal(prev => prev ? ({
-      ...prev,
-      broken: prev.broken.filter(p => p.id !== projectId),
-    }) : null)
   }
 
   const handleDelete = (id) => {
@@ -275,8 +244,8 @@ export default function App() {
           onNewProject={handleNewProject}
           mobile={mobile}
           onMenuToggle={() => setSidebarOpen(p => !p)}
-          onStreamableSync={handleStreamableSync}
-          streamableSynced={streamableSynced}
+          onOpenStreamableImport={handleOpenStreamableImport}
+          hasPendingStreamableImports={(streamableImportSession?.videosToImport?.length ?? 0) > 0}
         />
 
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
@@ -444,13 +413,12 @@ export default function App() {
         </div>
       </div>
 
-      {/* Streamable sync modal */}
-      {syncModal && (
-        <StreamableSyncModal
-          results={syncModal}
-          onClose={() => setSyncModal(null)}
-          onImport={handleSyncImport}
-          onUnlink={handleSyncUnlink}
+      {/* Streamable import modal */}
+      {streamableImportSession && streamableImportOpen && (
+        <StreamableImportModal
+          session={streamableImportSession}
+          onClose={() => setStreamableImportOpen(false)}
+          onImport={handleStreamableImport}
         />
       )}
 

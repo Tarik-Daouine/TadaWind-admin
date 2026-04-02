@@ -247,7 +247,7 @@ export default function ProjectList({
         {checkedIds.size > 0 && (
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '6px 0', marginBottom: 8,
+            marginBottom: 8,
             background: 'var(--red-dim)', borderRadius: 'var(--radius)',
             padding: '6px 10px', border: '1px solid rgba(191,24,24,0.2)',
           }}>

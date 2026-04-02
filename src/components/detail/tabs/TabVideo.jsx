@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import Button from '../../ui/Button.jsx'
 import Badge from '../../ui/Badge.jsx'
 import { SectionCard, SectionTitle } from '../../ui/SectionCard.jsx'
-import { fetchStreamableMeta, formatDuration } from '../../../lib/streamable.js'
+import { fetchStreamableVideoMeta, formatStreamableDuration, normalizeStreamableId } from '../../../lib/streamable.js'
 
 const IconUpload = () => (
   <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
@@ -29,8 +29,13 @@ export default function TabVideo({ project, projects = [], onChange, onToast }) 
   const [dupWarning, setDupWarning] = useState(null)
 
   const handleVerify = async () => {
-    const id = localId.trim()
-    if (!id) return
+    const id = normalizeStreamableId(localId)
+    if (!id) {
+      onToast?.('Identifiant Streamable invalide', 'error')
+      return
+    }
+
+    setLocalId(id)
 
     const duplicate = projects.find(p => p.id !== project.id && p.streamableId === id)
     if (duplicate) {
@@ -42,7 +47,7 @@ export default function TabVideo({ project, projects = [], onChange, onToast }) 
     setLoading(true)
     setMeta(null)
 
-    const result = await fetchStreamableMeta(id)
+    const result = await fetchStreamableVideoMeta(id)
 
     setLoading(false)
 
@@ -93,7 +98,7 @@ export default function TabVideo({ project, projects = [], onChange, onToast }) 
             value={localId}
             onChange={e => setLocalId(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleVerify()}
-            placeholder="ex: abc123"
+            placeholder="ex: abc123 ou streamable.com/abc123"
             style={{
               flex: 1, height: 38, padding: '0 12px',
               background: 'var(--s3)', border: '1px solid var(--border-md)',
@@ -164,7 +169,7 @@ export default function TabVideo({ project, projects = [], onChange, onToast }) 
               </span>
             )}
             <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--muted)' }}>
-              {currentMeta?.duration && <span>⏱ {formatDuration(currentMeta.duration)}</span>}
+              {currentMeta?.duration && <span>⏱ {formatStreamableDuration(currentMeta.duration)}</span>}
               {currentMeta?.width && currentMeta?.height && (
                 <span>📐 {currentMeta.width}×{currentMeta.height}</span>
               )}
@@ -212,9 +217,10 @@ export default function TabVideo({ project, projects = [], onChange, onToast }) 
       <SectionCard>
         <SectionTitle>Workflow Streamable</SectionTitle>
         <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>
-          Uploadez la vidéo sur <span style={{ color: 'var(--blue)' }}>streamable.com</span>, récupérez
-          l'identifiant depuis l'URL (ex: streamable.com/<strong>abc123</strong>), collez-le ci-dessus
-          et cliquez sur "Vérifier".
+          Ce champ sert à lier ou corriger la vidéo d'un projet existant.
+          <br />
+          Pour importer de nouveaux projets depuis Streamable, utilise le bookmarklet disponible
+          dans les réglages: c'est le seul flux d'import officiel.
         </div>
       </SectionCard>
     </div>
