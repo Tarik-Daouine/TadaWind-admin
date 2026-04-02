@@ -3,18 +3,19 @@ import { supabase } from '../lib/supabase.js'
 
 function mapRow(row) {
   return {
-    statut:       row['Statut']            ?? 'nouveau',
-    source:       row['Source']            ?? '',
-    typeClient:   row['Type de client']    ?? '',
-    priorite:     row['Priorite']          ?? 'Normale',
-    probabilite:  row['Probabilite']       ?? '',
-    timestamp:    row['Timestamp']         ?? '',
-    dateRelance:  row['Date de relance']   ?? null,
-    montantDevis: row['Montant devis estime'] ?? '',
-    montantReel:  row['montant_reel']      ?? null,
-    prenom:       row['Prenom']            ?? '',
-    nom:          row['Nom']              ?? '',
-    email:        row['Email']            ?? '',
+    statut:            row['Statut']               ?? 'nouveau',
+    source:            row['Source']               ?? '',
+    typeClient:        row['Type de client']       ?? '',
+    typeEtablissement: row['type_etablissement']   ?? '',
+    priorite:          row['Priorite']             ?? 'Normale',
+    probabilite:       row['Probabilite']          ?? '',
+    timestamp:         row['Timestamp']            ?? '',
+    dateRelance:       row['Date de relance']      ?? null,
+    montantDevis:      row['Montant devis estime'] ?? '',
+    montantReel:       row['montant_reel']         ?? null,
+    prenom:            row['Prenom']               ?? '',
+    nom:               row['Nom']                  ?? '',
+    email:             row['Email']                ?? '',
   }
 }
 
@@ -50,7 +51,7 @@ export function useDashboardLeads() {
 
       const { data, error } = await supabase
         .from('leads')
-        .select('Statut, Source, "Type de client", Priorite, Probabilite, Timestamp, "Date de relance", "Montant devis estime", montant_reel, Prenom, Nom, Email')
+        .select('Statut, Source, "Type de client", type_etablissement, Priorite, Probabilite, Timestamp, "Date de relance", "Montant devis estime", montant_reel, Prenom, Nom, Email')
         .order('Timestamp', { ascending: false })
 
       if (cancelled) return
@@ -119,7 +120,25 @@ export function useDashboardLeads() {
 
     const finance = { hasMontants, pipelinePondere, caReel }
 
-    return { total, nouveaux, convertis, perdus, tauxConversion, funnel, sources, types, relances, finance }
+    // ── Breakdown par type d'établissement ────────────────────────────────────
+    const ETAB_ENUM = ['camping', 'hotel', 'auberge', 'chateau', 'domaine', 'site_touristique', 'entreprise', 'particulier', 'autre']
+    const ETAB_LABELS_MAP = { camping: 'Camping', hotel: 'Hôtel', auberge: 'Auberge', chateau: 'Château', domaine: 'Domaine', site_touristique: 'Site touristique', entreprise: 'Entreprise', particulier: 'Particulier', autre: 'Autre' }
+
+    const parEtab = ETAB_ENUM
+      .map(key => {
+        const leadsEtab   = rows.filter(r => r.typeEtablissement === key)
+        const count       = leadsEtab.length
+        const convertis_  = leadsEtab.filter(r => r.statut === 'Converti').length
+        const taux        = count > 0 ? Math.round((convertis_ / count) * 100) : 0
+        return { key, label: ETAB_LABELS_MAP[key], count, convertis: convertis_, taux }
+      })
+      .filter(e => e.count > 0)  // ne montrer que les types présents
+      .sort((a, b) => b.count - a.count)
+
+    const maxEtabCount = Math.max(...parEtab.map(e => e.count), 1)
+    const parEtabWithPct = parEtab.map(e => ({ ...e, pct: (e.count / maxEtabCount) * 100 }))
+
+    return { total, nouveaux, convertis, perdus, tauxConversion, funnel, sources, types, relances, finance, parEtab: parEtabWithPct }
   }, [rows])
 
   return { loading, error, stats }

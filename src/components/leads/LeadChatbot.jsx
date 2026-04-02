@@ -7,7 +7,8 @@ const STATUT_OPTIONS    = ['nouveau', 'Prospect contacté', 'À relancer', 'Oppo
 const PRIORITE_OPTIONS  = ['Haute', 'Normale', 'Basse']
 const INTERET_OPTIONS   = ['', 'Fort', 'Moyen', 'Faible']
 const TYPE_CLIENT_OPT   = ['', 'Professionnel', 'Particulier']
-const ETAB_TYPE_OPTIONS = ['', 'camping', 'hôtel', 'château', 'gîte', 'restaurant', 'domaine viticole', 'église', 'mairie', 'auberge', 'site touristique', 'entreprise', 'commerce']
+const ETAB_TYPE_OPTIONS = ['', 'camping', 'hotel', 'auberge', 'chateau', 'domaine', 'site_touristique', 'entreprise', 'particulier', 'autre']
+const ETAB_LABELS = { camping: 'Camping', hotel: 'Hôtel', auberge: 'Auberge', chateau: 'Château', domaine: 'Domaine', site_touristique: 'Site touristique', entreprise: 'Entreprise', particulier: 'Particulier', autre: 'Autre' }
 
 // ── Sous-composants ────────────────────────────────────────────────────────────
 
@@ -48,7 +49,7 @@ function Input({ value, onChange, placeholder, type = 'text' }) {
   )
 }
 
-function Select({ value, onChange, options }) {
+function Select({ value, onChange, options, labelMap }) {
   return (
     <select
       value={value}
@@ -56,7 +57,7 @@ function Select({ value, onChange, options }) {
       style={{ ...inputStyle, cursor: 'pointer' }}
     >
       {options.map(o => (
-        <option key={o} value={o}>{o || '—'}</option>
+        <option key={o} value={o}>{(labelMap && o) ? (labelMap[o] || o) : (o || '—')}</option>
       ))}
     </select>
   )
@@ -112,7 +113,7 @@ export default function LeadChatbot({ onCreateLead, hasDetail = false }) {
 
   function handleAnalyser() {
     const { lead, etablissement: etab } = parseTranscription(text)
-    setForm({ ...lead, typeEtablissement: etab || '' })
+    setForm({ ...lead })
     setEtablissement(etab)
     setStep('preview')
   }
@@ -124,11 +125,7 @@ export default function LeadChatbot({ onCreateLead, hasDetail = false }) {
   async function handleCreate() {
     setSaving(true)
     setCreateError('')
-    const { typeEtablissement, commentaires, ...rest } = form
-    const finalCommentaires = typeEtablissement
-      ? `Établissement : ${typeEtablissement}${commentaires ? '\n' + commentaires : ''}`
-      : (commentaires || '')
-    const { error } = await onCreateLead({ ...rest, commentaires: finalCommentaires })
+    const { error } = await onCreateLead(form)
     setSaving(false)
     if (error) { setCreateError('Erreur lors de la création. Réessaie.'); return }
     handleClose()
@@ -308,7 +305,7 @@ export default function LeadChatbot({ onCreateLead, hasDetail = false }) {
 
                     {/* Type d'établissement */}
                     <Field label="Type d'établissement">
-                      <Select value={form.typeEtablissement || ''} onChange={v => setField('typeEtablissement', v)} options={ETAB_TYPE_OPTIONS} />
+                      <Select value={form.typeEtablissement || ''} onChange={v => setField('typeEtablissement', v)} options={ETAB_TYPE_OPTIONS} labelMap={ETAB_LABELS} />
                     </Field>
                   </div>
 

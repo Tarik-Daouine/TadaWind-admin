@@ -81,7 +81,7 @@ function FieldInput({ label, value, onChange, type = 'text', multiline }) {
   )
 }
 
-function FieldSelect({ label, value, onChange, options }) {
+function FieldSelect({ label, value, onChange, options, labelMap }) {
   return (
     <div style={{ marginBottom: 10 }}>
       <label style={{ display: 'block', fontSize: 10, color: 'var(--muted2)', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
@@ -99,7 +99,7 @@ function FieldSelect({ label, value, onChange, options }) {
         }}
       >
         <option value="">—</option>
-        {options.map(o => <option key={o} value={o}>{o}</option>)}
+        {options.map(o => <option key={o} value={o}>{labelMap ? labelMap[o] || o : o}</option>)}
       </select>
     </div>
   )
@@ -224,6 +224,13 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
             <FieldSelect label="Type de client"       value={crm.typeClient}  onChange={v => setCrmField('typeClient', v)}  options={['Particulier', 'Professionnel']} />
             <FieldSelect label="Prestataire existant" value={crm.prestataire ? 'Oui' : 'Non'} onChange={v => setCrmField('prestataire', v === 'Oui')} options={['Oui', 'Non']} />
           </div>
+          <FieldSelect
+            label="Type d'établissement"
+            value={crm.typeEtablissement || ''}
+            onChange={v => setCrmField('typeEtablissement', v)}
+            options={ETAB_OPTIONS}
+            labelMap={ETAB_LABELS}
+          />
         </SectionCard>
 
         {/* Section Mission */}

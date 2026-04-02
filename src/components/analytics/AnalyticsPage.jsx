@@ -174,7 +174,7 @@ export default function AnalyticsPage() {
   }
 
   const { total, nouveaux, convertis, perdus, tauxConversion,
-          funnel, sources, types, relances, finance } = stats
+          funnel, sources, types, relances, finance, parEtab } = stats
   const { hasMontants, pipelinePondere, caReel } = finance
 
   return (
@@ -324,6 +324,39 @@ export default function AnalyticsPage() {
             </table>
           )}
         </div>
+
+        {/* ── Performance par type d'établissement ── */}
+        {parEtab.length > 0 && (
+          <div style={{
+            background: 'var(--s2)', border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)', padding: '20px 22px', marginTop: 20,
+          }}>
+            <SectionHeading>Performance par type d'établissement</SectionHeading>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 24px' }}>
+              {parEtab.map(e => (
+                <div key={e.key} style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 6 }}>
+                  <div style={{ width: 120, fontSize: 12, color: 'var(--muted)', flexShrink: 0 }}>{e.label}</div>
+                  <div style={{ flex: 1, height: 7, background: 'var(--s3)', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%', width: `${e.pct}%`,
+                      background: 'var(--blue)', borderRadius: 4,
+                      transition: 'width 0.6s ease',
+                    }} />
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', width: 22, textAlign: 'right', flexShrink: 0 }}>{e.count}</div>
+                  {e.convertis > 0 && (
+                    <div style={{ fontSize: 10, color: 'var(--green)', width: 38, textAlign: 'right', flexShrink: 0 }}>
+                      {e.taux} %
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--muted2)', marginTop: 10 }}>
+              Barres = nombre de leads · % vert = taux de conversion
+            </div>
+          </div>
+        )}
 
         {/* ── Pipeline financier (affiché uniquement si des montants sont renseignés) ── */}
         {hasMontants && (

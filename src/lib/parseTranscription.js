@@ -109,6 +109,27 @@ const MOTS_PRESTATAIRE = [
 // Verbes qui indiquent la fin du nom d'établissement (début d'une proposition verbale)
 const STOP_VERBES = /\s+(?:souhaite[nt]?|veule?n?t?|veut|ont\b|a\b|ait\b|dit\b|cherche[nt]?|propose[nt]?|est\b|sont\b|fait\b|font\b|parle[nt]?|demande[nt]?|n[''](?:a|est|ont)|nous\b|car\b|donc\b|mais\b|qui\b|avec\b|pour\b|ne\b)\b/i
 
+// ── Mapping label détecté → valeur enum type_etablissement ────────────────────
+const ETAB_LABEL_TO_ENUM = {
+  'camping':          'camping',
+  'hôtel':            'hotel',
+  'auberge':          'auberge',
+  'château':          'chateau',
+  'domaine viticole': 'domaine',
+  'gîte':             'auberge',       // gîte ≈ auberge pour la segmentation
+  'église':           'site_touristique',
+  'site touristique': 'site_touristique',
+  'restaurant':       'entreprise',
+  'mairie':           'entreprise',
+  'commerce':         'entreprise',
+  'entreprise':       'entreprise',
+}
+
+function labelToEnum(label) {
+  if (!label) return null
+  return ETAB_LABEL_TO_ENUM[label] ?? 'autre'
+}
+
 // ── Détection établissement + nom complet ──────────────────────────────────────
 
 function detectEtablissementInfo(text) {
@@ -223,8 +244,9 @@ function detectNextStep(text) {
 export function parseTranscription(text) {
   if (!text || !text.trim()) return { lead: {}, etablissement: null }
 
-  // ── Établissement : label + nom complet ──────────────────────────────────────
+  // ── Établissement : label + nom complet + enum ───────────────────────────────
   const { label: etablissement, nom: nomEtablissement } = detectEtablissementInfo(text)
+  const typeEtablissement = labelToEnum(etablissement)
 
   // ── Négation explicite (à tester avant toute détection positive) ─────────────
   // Regex précise : "pas/non intéressé(e)(s)" NON suivi de "par" (sinon c'est un refus ciblé
@@ -281,11 +303,12 @@ export function parseTranscription(text) {
     statut,
     priorite,
     niveauInteret,
-    probabilite:   '',
-    nextStep:      detectNextStep(text),
-    dateRelance:   null,
-    dateDevis:     null,
-    montantDevis:  '',
+    probabilite:       '',
+    nextStep:          detectNextStep(text),
+    dateRelance:       null,
+    dateDevis:         null,
+    montantDevis:      '',
+    typeEtablissement: typeEtablissement || '',
     commentaires,
   }
 
