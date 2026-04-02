@@ -113,10 +113,96 @@ const IconClose = () => (
 
 const SOURCE_LABELS = { 'tadawind_site': 'Site web', 'Autre': 'Terrain', 'Réseau': 'Réseau' }
 
+function quickActionBtn(disabled, tone = 'default') {
+  const tones = {
+    default: {
+      background: 'var(--s3)',
+      border: '1px solid var(--border-md)',
+      color: 'var(--text)',
+    },
+    success: {
+      background: 'var(--green-dim)',
+      border: '1px solid rgba(34,197,94,0.25)',
+      color: 'var(--green)',
+    },
+    danger: {
+      background: 'var(--red-dim)',
+      border: '1px solid rgba(191,24,24,0.25)',
+      color: 'var(--red)',
+    },
+  }
+
+  return {
+    padding: '6px 12px',
+    borderRadius: 999,
+    fontSize: 11,
+    fontWeight: 600,
+    fontFamily: 'var(--sans)',
+    cursor: disabled ? 'default' : 'pointer',
+    opacity: disabled ? 0.45 : 1,
+    ...tones[tone],
+  }
+}
+
+function formatMoney(value) {
+  const amount = Number(value)
+  if (!Number.isFinite(amount) || amount <= 0) return '—'
+  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(amount)
+}
+
+function MetaPill({ label, value, tone = 'neutral' }) {
+  const tones = {
+    neutral: {
+      border: '1px solid var(--border)',
+      background: 'rgba(255,255,255,0.03)',
+      value: 'var(--text)',
+      label: 'var(--muted2)',
+    },
+    blue: {
+      border: '1px solid rgba(79,127,243,0.18)',
+      background: 'rgba(79,127,243,0.08)',
+      value: 'var(--blue)',
+      label: 'rgba(79,127,243,0.72)',
+    },
+    amber: {
+      border: '1px solid rgba(245,158,11,0.18)',
+      background: 'rgba(245,158,11,0.08)',
+      value: 'var(--amber)',
+      label: 'rgba(245,158,11,0.72)',
+    },
+    green: {
+      border: '1px solid rgba(34,197,94,0.18)',
+      background: 'rgba(34,197,94,0.08)',
+      value: 'var(--green)',
+      label: 'rgba(34,197,94,0.72)',
+    },
+  }
+
+  const palette = tones[tone] || tones.neutral
+
+  return (
+    <div style={{
+      minWidth: 120,
+      padding: '9px 11px',
+      borderRadius: 12,
+      border: palette.border,
+      background: palette.background,
+    }}>
+      <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: palette.label, marginBottom: 4 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 12, fontWeight: 600, color: palette.value }}>
+        {value || '—'}
+      </div>
+    </div>
+  )
+}
+
 export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
   const [crm, setCrm] = useState({})
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [actionLoading, setActionLoading] = useState('')
 
   useEffect(() => {
     setCrm({
@@ -166,36 +252,116 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
     setDirty(false)
   }
 
-  const displayName = [lead.prenom, lead.nom].filter(Boolean).join(' ') || lead.email || lead.nomEntreprise || 'Sans nom'
-  const statutColor = STATUT_COLORS[lead.statut] || 'var(--muted)'
+  const runQuickAction = async (key, patch) => {
+    setActionLoading(key)
+    const nextState = {
+      ...crm,
+      ...patch,
+      dateRelance: patch.dateRelance !== undefined ? (patch.dateRelance || null) : (crm.dateRelance || null),
+      dateDevis: patch.dateDevis !== undefined ? (patch.dateDevis || null) : (crm.dateDevis || null),
+      dateMission: crm.dateMission || null,
+    }
+    const { error } = await onUpdate(lead.id, nextState)
+    if (!error) {
+      setCrm(nextState)
+      setDirty(false)
+    }
+    setActionLoading('')
+  }
+
+  const today = new Date().toISOString().split('T')[0]
+  const plusSevenDays = (() => {
+    const date = new Date()
+    date.setDate(date.getDate() + 7)
+    return date.toISOString().split('T')[0]
+  })()
+
+  const currentStatut = crm.statut || lead.statut
+  const displayName = [crm.prenom || lead.prenom, crm.nom || lead.nom].filter(Boolean).join(' ') || crm.email || lead.email || crm.nomEntreprise || lead.nomEntreprise || 'Sans nom'
+  const statutColor = STATUT_COLORS[currentStatut] || 'var(--muted)'
+  const createdAtLabel = lead.timestamp
+    ? new Date(lead.timestamp).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
+    : '—'
+  const sourceLabel = SOURCE_LABELS[lead.source] || lead.source || '—'
+  const followUpLabel = crm.dateRelance || formatDateInput(lead.dateRelance) || '—'
+  const amountLabel = formatMoney(crm.montantDevis || lead.montantDevis)
+  const focusTone = currentStatut === 'Converti' ? 'green' : currentStatut === 'À relancer' ? 'amber' : 'blue'
+
+  const quickActions = [
+    {
+      key: 'follow-up',
+      label: 'À relancer',
+      onClick: () => runQuickAction('follow-up', { statut: 'À relancer', nextStep: crm.nextStep || 'Relancer le lead' }),
+    },
+    {
+      key: 'follow-up-7d',
+      label: 'Relance +7j',
+      onClick: () => runQuickAction('follow-up-7d', {
+        statut: 'À relancer',
+        dateRelance: plusSevenDays,
+        nextStep: crm.nextStep || 'Relancer le lead',
+      }),
+    },
+    {
+      key: 'converted',
+      label: 'Converti',
+      onClick: () => runQuickAction('converted', { statut: 'Converti' }),
+    },
+    {
+      key: 'lost',
+      label: 'Perdu',
+      onClick: () => runQuickAction('lost', { statut: 'Perdu' }),
+    },
+    {
+      key: 'quote-sent',
+      label: 'Devis envoyé',
+      onClick: () => runQuickAction('quote-sent', {
+        dateDevis: today,
+        nextStep: crm.nextStep || 'Relancer après envoi du devis',
+      }),
+    },
+  ]
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--bg)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'linear-gradient(180deg, rgba(79,127,243,0.04), rgba(13,17,17,0) 32%), var(--bg)' }}>
       {/* Header */}
       <div style={{
-        padding: '14px 20px 12px',
+        padding: '18px 20px 14px',
         borderBottom: '1px solid var(--border)',
         flexShrink: 0,
         display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12,
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
       }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--blue)', marginBottom: 8 }}>
+            Fiche lead
+          </div>
+          <div style={{ fontSize: 21, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
             {displayName}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: 5,
-              fontSize: 11, fontWeight: 500, color: statutColor,
-              padding: '2px 8px', borderRadius: 20,
+              fontSize: 11, fontWeight: 600, color: statutColor,
+              padding: '4px 10px', borderRadius: 20,
               background: `${statutColor}18`, border: `1px solid ${statutColor}33`,
             }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: statutColor }} />
-              {lead.statut}
+              {currentStatut}
             </span>
-            {lead.nomEntreprise && (
-              <span style={{ fontSize: 11, color: 'var(--muted)' }}>{lead.nomEntreprise}</span>
+            {(crm.nomEntreprise || lead.nomEntreprise) && (
+              <span style={{ fontSize: 12, color: 'var(--muted)' }}>{crm.nomEntreprise || lead.nomEntreprise}</span>
+            )}
+            {(crm.email || lead.email) && (
+              <span style={{ fontSize: 11, color: 'var(--muted2)' }}>{crm.email || lead.email}</span>
             )}
           </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', marginRight: 4 }}>
+          <MetaPill label="Source" value={sourceLabel} tone="blue" />
+          <MetaPill label="Créé" value={createdAtLabel} />
+          <MetaPill label="Relance" value={followUpLabel} tone={followUpLabel !== '—' ? 'amber' : 'neutral'} />
+          <MetaPill label="Montant" value={amountLabel} tone={amountLabel !== '—' ? 'green' : 'neutral'} />
         </div>
         <button
           onClick={onClose}
@@ -207,8 +373,64 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
         </button>
       </div>
 
+      {/* Action bar */}
+      <div style={{
+        padding: '12px 20px',
+        borderBottom: '1px solid var(--border)',
+        flexShrink: 0,
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005))',
+      }}>
+        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted2)', marginBottom: 10 }}>
+          Actions rapides
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        <button
+          onClick={() => crm.telephone && (window.location.href = `tel:${crm.telephone}`)}
+          disabled={!crm.telephone}
+          style={quickActionBtn(!crm.telephone)}
+        >
+          Appeler
+        </button>
+        <button
+          onClick={() => crm.email && (window.location.href = `mailto:${crm.email}`)}
+          disabled={!crm.email}
+          style={quickActionBtn(!crm.email)}
+        >
+          Email
+        </button>
+        {quickActions.map(action => (
+          <button
+            key={action.key}
+            onClick={action.onClick}
+            disabled={saving || !!actionLoading}
+            style={quickActionBtn(saving || !!actionLoading, action.key === 'converted' ? 'success' : action.key === 'lost' ? 'danger' : 'default')}
+          >
+            {actionLoading === action.key ? '…' : action.label}
+          </button>
+        ))}
+        </div>
+      </div>
+
       {/* Body */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '18px 20px 20px' }}>
+        <div style={{
+          marginBottom: 14,
+          padding: '14px 16px',
+          borderRadius: 16,
+          border: '1px solid var(--border)',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
+          boxShadow: 'var(--shadow-soft)',
+        }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted2)', marginBottom: 10 }}>
+            Focus CRM
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            <MetaPill label="Statut" value={currentStatut} tone={focusTone} />
+            <MetaPill label="Priorité" value={crm.priorite || '—'} tone={crm.priorite === 'Haute' ? 'amber' : 'neutral'} />
+            <MetaPill label="Probabilité" value={crm.probabilite ? `${crm.probabilite} %` : '—'} tone={crm.probabilite ? 'green' : 'neutral'} />
+            <MetaPill label="Next step" value={crm.nextStep || '—'} tone={crm.nextStep ? 'blue' : 'neutral'} />
+          </div>
+        </div>
 
         {/* Section Coordonnées */}
         <SectionCard borderColor="var(--blue-dim)">
@@ -304,11 +526,15 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
       {/* Footer */}
       <div style={{
         flexShrink: 0, borderTop: '1px solid var(--border)',
-        padding: '10px 20px', display: 'flex', flexDirection: 'column', gap: 8,
+        padding: '12px 20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005))',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 10, color: 'var(--muted2)' }}>
+            <span style={{ fontSize: 10, color: 'var(--muted2)', padding: '6px 8px', borderRadius: 999, border: '1px solid var(--border)', background: 'rgba(255,255,255,0.02)' }}>
               {SOURCE_LABELS[lead.source] || lead.source}
               {lead.timestamp && ` · ${new Date(lead.timestamp).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: '2-digit' })}`}
             </span>
@@ -325,11 +551,12 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
             onClick={handleSave}
             disabled={!dirty || saving}
             style={{
-              padding: '6px 16px', borderRadius: 6, fontSize: 12, fontWeight: 600,
+              padding: '10px 18px', borderRadius: 10, fontSize: 12, fontWeight: 700,
               fontFamily: 'var(--sans)', cursor: dirty && !saving ? 'pointer' : 'default',
-              background: dirty ? 'var(--red)' : 'var(--s3)',
+              background: dirty ? 'linear-gradient(180deg, #cf2424, #a81414)' : 'var(--s3)',
               color: dirty ? '#fff' : 'var(--muted2)',
-              border: 'none', transition: 'all 0.15s',
+              border: dirty ? '1px solid rgba(191,24,24,0.32)' : '1px solid var(--border)',
+              boxShadow: dirty ? '0 12px 28px rgba(191,24,24,0.22)' : 'none',
             }}
           >
             {saving ? 'Enregistrement…' : 'Enregistrer'}

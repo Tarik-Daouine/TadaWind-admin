@@ -69,6 +69,7 @@ export default function ProjectList({
   const [dragSrc, setDragSrc] = useState(null)
   const [dragOver, setDragOver] = useState(null)
   const [checkedIds, setCheckedIds] = useState(new Set())
+  const [organizeMode, setOrganizeMode] = useState(false)
 
   const toggleCheck = (id) => {
     setCheckedIds(prev => {
@@ -88,6 +89,10 @@ export default function ProjectList({
 
   // Filter + sort
   const filtered = useMemo(() => {
+    if (organizeMode) {
+      return [...projects].sort((a, b) => (a.order ?? 999) - (b.order ?? 999))
+    }
+
     let list = [...projects]
 
     // Search
@@ -96,7 +101,12 @@ export default function ProjectList({
       list = list.filter(p =>
         p.title.toLowerCase().includes(q) ||
         (p.lieu || '').toLowerCase().includes(q) ||
-        (p.category || '').toLowerCase().includes(q)
+        (p.category || '').toLowerCase().includes(q) ||
+        (p.slug || '').toLowerCase().includes(q) ||
+        (p.region || '').toLowerCase().includes(q) ||
+        (p.status || '').toLowerCase().includes(q) ||
+        (p.streamableId || '').toLowerCase().includes(q) ||
+        (p.tags || []).some(tag => tag.toLowerCase().includes(q))
       )
     }
 
@@ -129,12 +139,13 @@ export default function ProjectList({
     })
 
     return list
-  }, [projects, search, filters, sort])
+  }, [projects, search, filters, sort, organizeMode])
 
   // Pagination
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
   const safePage = Math.min(page, Math.max(1, totalPages))
   const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+  const visibleProjects = organizeMode ? filtered : paginated
 
   const toggleSortDir = () => {
     onSortChange({ ...sort, dir: sort.dir === 'asc' ? 'desc' : 'asc' })
@@ -144,8 +155,9 @@ export default function ProjectList({
   const handleDragOver  = (idx) => setDragOver(idx)
   const handleDragEnd   = () => { setDragSrc(null); setDragOver(null) }
   const handleDrop      = (idx) => {
+    if (!organizeMode) { handleDragEnd(); return }
     if (dragSrc === null || dragSrc === idx) { handleDragEnd(); return }
-    const reordered = [...paginated]
+    const reordered = [...visibleProjects]
     const [moved] = reordered.splice(dragSrc, 1)
     reordered.splice(idx, 0, moved)
     const orderedItems = reordered.map((p, i) => ({ id: p.id, order: i + 1 }))
@@ -178,7 +190,27 @@ export default function ProjectList({
 
           {/* Sort */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 11, color: 'var(--muted)' }}>Trier par</span>
+            <button
+              onClick={() => {
+                setOrganizeMode(prev => !prev)
+                setCheckedIds(new Set())
+                setPage(1)
+              }}
+              style={{
+                fontSize: 11,
+                padding: '3px 9px',
+                borderRadius: 999,
+                border: organizeMode ? '1px solid var(--red)' : '1px solid var(--border-md)',
+                background: organizeMode ? 'var(--red-dim)' : 'transparent',
+                color: organizeMode ? 'var(--red)' : 'var(--muted)',
+                cursor: 'pointer',
+                fontFamily: 'var(--sans)',
+              }}
+            >
+              {organizeMode ? 'Quitter organisation' : 'Mode organiser'}
+            </button>
+            {!organizeMode && <span style={{ fontSize: 11, color: 'var(--muted)' }}>Trier par</span>}
+            {!organizeMode && <>
             <button
               onClick={() => onSortChange({ ...sort, field: 'date' })}
               style={{
@@ -240,11 +272,12 @@ export default function ProjectList({
             >
               {sort.dir === 'asc' ? '↑' : '↓'}
             </button>
+            </>}
           </div>
         </div>
 
         {/* Barre de sélection */}
-        {checkedIds.size > 0 && (
+        {checkedIds.size > 0 && !organizeMode && (
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             marginBottom: 8,
@@ -291,21 +324,36 @@ export default function ProjectList({
           </div>
         )}
 
+        {organizeMode && (
+          <div style={{
+            marginBottom: 10,
+            padding: '8px 10px',
+            borderRadius: 'var(--radius)',
+            background: 'var(--blue-dim)',
+            border: '1px solid rgba(79,127,243,0.25)',
+            fontSize: 11,
+            color: 'var(--blue)',
+            lineHeight: 1.5,
+          }}>
+            Mode organisation actif: liste complete triee par ordre. Fais glisser les projets pour redefinir leur position globale.
+          </div>
+        )}
+
         {/* Filter bar */}
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 6, opacity: organizeMode ? 0.6 : 1 }}>
           <SelectFilter
             value={filters.status}
-            onChange={v => { onFilterChange({ ...filters, status: v }); setPage(1) }}
+            onChange={v => { if (organizeMode) return; onFilterChange({ ...filters, status: v }); setPage(1) }}
             options={STATUSES.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
             label="Statut"
           />
           <SelectFilter
             value={filters.category}
-            onChange={v => { onFilterChange({ ...filters, category: v }); setPage(1) }}
+            onChange={v => { if (organizeMode) return; onFilterChange({ ...filters, category: v }); setPage(1) }}
             options={CATEGORIES}
             label="Catégorie"
           />
-          {(filters.status !== 'all' || filters.category !== 'all') && (
+          {(filters.status !== 'all' || filters.category !== 'all') && !organizeMode && (
             <button
               onClick={() => { onFilterChange({ status: 'all', category: 'all' }); setPage(1) }}
               style={{
@@ -327,7 +375,7 @@ export default function ProjectList({
 
       {/* List */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        {paginated.length === 0 ? (
+        {visibleProjects.length === 0 ? (
           <div style={{
             display: 'flex',
             flexDirection: 'column',
@@ -341,7 +389,7 @@ export default function ProjectList({
             <span style={{ fontSize: 13 }}>Aucun projet trouvé</span>
           </div>
         ) : (
-          paginated.map((project, idx) => (
+          visibleProjects.map((project, idx) => (
             <ProjectRow
               key={project.id}
               project={project}
@@ -352,21 +400,23 @@ export default function ProjectList({
               onDelete={onDelete}
               isDragging={dragSrc === idx}
               isDragOver={dragOver === idx && dragSrc !== idx}
-              onDragStart={() => handleDragStart(idx)}
-              onDragOver={() => handleDragOver(idx)}
-              onDragEnd={handleDragEnd}
-              onDrop={() => handleDrop(idx)}
+              onDragStart={organizeMode ? () => handleDragStart(idx) : undefined}
+              onDragOver={organizeMode ? () => handleDragOver(idx) : undefined}
+              onDragEnd={organizeMode ? handleDragEnd : undefined}
+              onDrop={organizeMode ? () => handleDrop(idx) : undefined}
               onStatusChange={onStatusChange}
               isChecked={checkedIds.has(project.id)}
               onCheck={toggleCheck}
-              selectionActive={checkedIds.size > 0}
+              selectionActive={!organizeMode && checkedIds.size > 0}
+              draggableEnabled={organizeMode}
+              showDragHandle={organizeMode}
             />
           ))
         )}
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {!organizeMode && totalPages > 1 && (
         <div style={{
           padding: '10px 16px',
           borderTop: '1px solid var(--border)',

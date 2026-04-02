@@ -38,6 +38,7 @@ export default function TabGallery({ project, onChange }) {
 
   const gallery = project.gallery || []
   const cover = project.cover || ''
+  const isPersistedProject = !!project.id && !String(project.id).startsWith('local_')
 
   const addImage = () => {
     const url = urlInput.trim()
@@ -59,8 +60,7 @@ export default function TabGallery({ project, onChange }) {
   const handleFileUpload = async (e, type) => {
     const file = e.target.files?.[0]
     if (!file) return
-    if (!project.id || String(project.id).startsWith('local_')) {
-      console.warn('[upload] Sauvegardez le projet avant d\'uploader des fichiers.')
+    if (!isPersistedProject) {
       return
     }
     setUploading(true)
@@ -113,6 +113,20 @@ export default function TabGallery({ project, onChange }) {
       {/* ── Couverture ───────────────────────────────────────────── */}
       <SectionCard borderColor="var(--amber-dim)">
         <SectionTitle accent="var(--amber)" accentDim="var(--amber-dim)">Couverture</SectionTitle>
+        {!isPersistedProject && (
+          <div style={{
+            marginBottom: 12,
+            padding: '10px 12px',
+            borderRadius: 'var(--radius)',
+            background: 'var(--amber-dim)',
+            border: '1px solid rgba(245,158,11,0.25)',
+            fontSize: 12,
+            color: 'var(--amber)',
+            lineHeight: 1.5,
+          }}>
+            Sauvegarde d'abord le projet pour activer l'upload des images.
+          </div>
+        )}
         {cover ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <img src={cover} alt="cover" style={{ width: 48, height: 36, objectFit: 'cover', borderRadius: 4 }} />
@@ -125,7 +139,7 @@ export default function TabGallery({ project, onChange }) {
               variant="ghost"
               size="sm"
               loading={uploading}
-              disabled={uploading}
+              disabled={uploading || !isPersistedProject}
               onClick={() => coverInputRef.current?.click()}
             >
               Changer
@@ -145,7 +159,7 @@ export default function TabGallery({ project, onChange }) {
               variant="ghost"
               size="sm"
               loading={uploading}
-              disabled={uploading}
+              disabled={uploading || !isPersistedProject}
               onClick={() => coverInputRef.current?.click()}
             >
               Uploader
@@ -184,7 +198,7 @@ export default function TabGallery({ project, onChange }) {
             variant="ghost"
             size="sm"
             loading={uploading}
-            disabled={uploading}
+            disabled={uploading || !isPersistedProject}
             onClick={() => galleryInputRef.current?.click()}
           >
             + Fichier
@@ -236,7 +250,7 @@ export default function TabGallery({ project, onChange }) {
         {/* Image grid */}
         {gallery.length === 0 ? (
           <div
-            onClick={() => galleryInputRef.current?.click()}
+            onClick={() => isPersistedProject && galleryInputRef.current?.click()}
             style={{
               border: '2px dashed var(--border-md)',
               borderRadius: 'var(--radius-lg)',
@@ -247,12 +261,17 @@ export default function TabGallery({ project, onChange }) {
               padding: 40,
               color: 'var(--muted2)',
               gap: 10,
-              cursor: 'pointer',
+              cursor: isPersistedProject ? 'pointer' : 'not-allowed',
               marginTop: 10,
+              opacity: isPersistedProject ? 1 : 0.7,
             }}>
             <IconImage />
             <span style={{ fontSize: 13 }}>Aucune image</span>
-            <span style={{ fontSize: 11 }}>Cliquez pour uploader ou utilisez les boutons ci-dessus</span>
+            <span style={{ fontSize: 11 }}>
+              {isPersistedProject
+                ? 'Cliquez pour uploader ou utilisez les boutons ci-dessus'
+                : 'Enregistre le projet avant de pouvoir uploader des images'}
+            </span>
           </div>
         ) : (
           <div style={{

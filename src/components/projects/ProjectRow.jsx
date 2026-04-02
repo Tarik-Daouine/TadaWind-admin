@@ -155,18 +155,20 @@ export default function ProjectRow({
   onDragStart, onDragOver, onDragEnd, onDrop,
   onStatusChange,
   isChecked, onCheck, selectionActive,
+  draggableEnabled = true,
+  showDragHandle = false,
 }) {
   const [hovered, setHovered] = useState(false)
   const [imgError, setImgError] = useState(false)
-  const showCheckbox = hovered || isChecked || selectionActive
+  const showCheckbox = !showDragHandle && (hovered || isChecked || selectionActive)
 
   return (
     <div
-      draggable
-      onDragStart={onDragStart}
-      onDragOver={e => { e.preventDefault(); onDragOver && onDragOver(e) }}
-      onDragEnd={onDragEnd}
-      onDrop={e => { e.preventDefault(); onDrop && onDrop(e) }}
+      draggable={draggableEnabled}
+      onDragStart={draggableEnabled ? onDragStart : undefined}
+      onDragOver={draggableEnabled ? (e => { e.preventDefault(); onDragOver && onDragOver(e) }) : undefined}
+      onDragEnd={draggableEnabled ? onDragEnd : undefined}
+      onDrop={draggableEnabled ? (e => { e.preventDefault(); onDrop && onDrop(e) }) : undefined}
       style={{
         position: 'relative',
         borderBottom: '1px solid var(--border)',
@@ -175,7 +177,7 @@ export default function ProjectRow({
         background: isDragging ? 'var(--s3)' : isSelected ? 'var(--red-dim)' : hovered ? 'var(--s2)' : 'transparent',
         opacity: isDragging ? 0.5 : 1,
         transition: 'background 0.12s',
-        cursor: 'grab',
+        cursor: draggableEnabled ? 'grab' : 'pointer',
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -190,7 +192,11 @@ export default function ProjectRow({
         alignItems: 'center',
         zIndex: 1,
       }}>
-        {showCheckbox ? (
+        {showDragHandle ? (
+          <div style={{ color: 'var(--muted2)', opacity: 1 }}>
+            <IconGrip />
+          </div>
+        ) : showCheckbox ? (
           <input
             type="checkbox"
             checked={!!isChecked}
@@ -305,9 +311,9 @@ export default function ProjectRow({
           transform: 'translateY(-50%)',
           display: 'flex',
           gap: 4,
-          opacity: hovered ? 1 : 0,
+          opacity: hovered && !showDragHandle ? 1 : 0,
           transition: 'opacity 0.15s',
-          pointerEvents: hovered ? 'auto' : 'none',
+          pointerEvents: hovered && !showDragHandle ? 'auto' : 'none',
         }}
       >
         <ActionBtn onClick={() => onEdit && onEdit(project.id)} title="Modifier">

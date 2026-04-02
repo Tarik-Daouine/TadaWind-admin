@@ -1,17 +1,18 @@
 import React, { useState, useMemo } from 'react'
 import LeadRow from './LeadRow.jsx'
+import { LEAD_QUICK_VIEWS, countLeadsForQuickView, matchesLeadQuickView } from '../../lib/leadViews.js'
 
 const PAGE_SIZE = 15
 
 const STATUT_OPTIONS = ['nouveau', 'Prospect contacté', 'À relancer', 'Opportunité', 'Relancé', 'Converti', 'Perdu']
-const SOURCE_OPTIONS  = ['tadawind_site', 'Autre', 'Réseau']
+const SOURCE_OPTIONS = ['tadawind_site', 'Autre', 'Réseau']
 const PRIORITE_OPTIONS = ['Haute', 'Normale', 'Basse']
-const CLIENT_OPTIONS  = ['Particulier', 'Professionnel']
+const CLIENT_OPTIONS = ['Particulier', 'Professionnel']
 
 const SOURCE_LABELS = {
   'tadawind_site': 'Site',
-  'Autre':         'Terrain',
-  'Réseau':        'Réseau',
+  'Autre': 'Terrain',
+  'Réseau': 'Réseau',
 }
 
 function FilterDropdown({ label, value, options, onChange, labelMap }) {
@@ -21,11 +22,18 @@ function FilterDropdown({ label, value, options, onChange, labelMap }) {
       <button
         onClick={() => setOpen(p => !p)}
         style={{
-          padding: '4px 10px', borderRadius: 6, fontSize: 11,
+          padding: '7px 12px',
+          borderRadius: 999,
+          fontSize: 11,
+          fontWeight: 500,
           border: value ? '1px solid var(--red)' : '1px solid var(--border-md)',
-          background: value ? 'var(--red-dim)' : 'var(--s2)',
+          background: value ? 'linear-gradient(180deg, rgba(191,24,24,0.18), rgba(191,24,24,0.08))' : 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
           color: value ? 'var(--red)' : 'var(--muted)',
-          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)',
         }}
       >
         {value ? (labelMap ? labelMap[value] || value : value) : label}
@@ -34,17 +42,25 @@ function FilterDropdown({ label, value, options, onChange, labelMap }) {
       {open && (
         <div
           style={{
-            position: 'absolute', top: 'calc(100% + 4px)', left: 0,
-            background: 'var(--s2)', border: '1px solid var(--border-md)',
-            borderRadius: 8, zIndex: 100, boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
-            minWidth: 140, overflow: 'hidden',
+            position: 'absolute',
+            top: 'calc(100% + 6px)',
+            left: 0,
+            background: 'var(--s2)',
+            border: '1px solid var(--border-md)',
+            borderRadius: 10,
+            zIndex: 100,
+            boxShadow: 'var(--shadow-soft)',
+            minWidth: 150,
+            overflow: 'hidden',
           }}
           onMouseLeave={() => setOpen(false)}
         >
           <div
             onClick={() => { onChange(''); setOpen(false) }}
             style={{
-              padding: '7px 12px', fontSize: 11, cursor: 'pointer',
+              padding: '8px 12px',
+              fontSize: 11,
+              cursor: 'pointer',
               color: !value ? 'var(--text)' : 'var(--muted)',
               background: !value ? 'var(--s3)' : 'transparent',
             }}
@@ -58,7 +74,9 @@ function FilterDropdown({ label, value, options, onChange, labelMap }) {
               key={opt}
               onClick={() => { onChange(opt); setOpen(false) }}
               style={{
-                padding: '7px 12px', fontSize: 11, cursor: 'pointer',
+                padding: '8px 12px',
+                fontSize: 11,
+                cursor: 'pointer',
                 color: value === opt ? 'var(--text)' : 'var(--muted)',
                 background: value === opt ? 'var(--s3)' : 'transparent',
               }}
@@ -74,6 +92,43 @@ function FilterDropdown({ label, value, options, onChange, labelMap }) {
   )
 }
 
+function SummaryBadge({ label, value, tone = 'neutral' }) {
+  const tones = {
+    neutral: {
+      background: 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
+      border: '1px solid var(--border)',
+      color: 'var(--text)',
+      sub: 'var(--muted2)',
+    },
+    blue: {
+      background: 'linear-gradient(180deg, rgba(79,127,243,0.18), rgba(79,127,243,0.06))',
+      border: '1px solid rgba(79,127,243,0.24)',
+      color: 'var(--blue)',
+      sub: 'rgba(79,127,243,0.72)',
+    },
+  }
+
+  const palette = tones[tone] || tones.neutral
+
+  return (
+    <div style={{
+      minWidth: 98,
+      padding: '10px 12px',
+      borderRadius: 12,
+      background: palette.background,
+      border: palette.border,
+      boxShadow: 'var(--shadow-soft)',
+    }}>
+      <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: palette.sub, marginBottom: 5 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 18, fontWeight: 700, color: palette.color, lineHeight: 1 }}>
+        {value}
+      </div>
+    </div>
+  )
+}
+
 const IconChevron = ({ dir }) => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     {dir === 'left'
@@ -82,38 +137,57 @@ const IconChevron = ({ dir }) => (
   </svg>
 )
 
-export default function LeadsList({ leads, selectedId, onSelect, onStatutChange, onDelete, search }) {
-  const [filters, setFilters] = useState({ statut: '', source: '', typeClient: '', priorite: '' })
-  const [sort, setSort]       = useState({ field: 'date', dir: 'desc' })
-  const [page, setPage]       = useState(1)
+const DEFAULT_FILTERS = { statut: '', source: '', typeClient: '', priorite: '' }
+const DEFAULT_SORT = { field: 'date', dir: 'desc' }
 
-  const setFilter = (key, val) => { setFilters(prev => ({ ...prev, [key]: val })); setPage(1) }
+export default function LeadsList({
+  leads,
+  selectedId,
+  onSelect,
+  onStatutChange,
+  onDelete,
+  search,
+  filters = DEFAULT_FILTERS,
+  onFilterChange,
+  sort = DEFAULT_SORT,
+  onSortChange,
+  quickView = 'all',
+  onQuickViewChange,
+}) {
+  const [page, setPage] = useState(1)
+
+  const setFilter = (key, val) => {
+    onFilterChange?.({ ...filters, [key]: val })
+    setPage(1)
+  }
 
   const processed = useMemo(() => {
     let list = [...leads]
 
-    // Search
+    if (quickView && quickView !== 'all') {
+      list = list.filter(lead => matchesLeadQuickView(lead, quickView))
+    }
+
     if (search) {
       const q = search.toLowerCase()
       list = list.filter(l =>
-        [l.prenom, l.nom, l.email, l.nomEntreprise, l.ville].some(v => v?.toLowerCase().includes(q))
+        [l.prenom, l.nom, l.email, l.nomEntreprise, l.ville, l.typeBesoin, l.nextStep].some(v => v?.toLowerCase().includes(q))
       )
     }
 
-    // Filters
-    if (filters.statut)     list = list.filter(l => l.statut === filters.statut)
-    if (filters.source)     list = list.filter(l => l.source === filters.source)
+    if (filters.statut) list = list.filter(l => l.statut === filters.statut)
+    if (filters.source) list = list.filter(l => l.source === filters.source)
     if (filters.typeClient) list = list.filter(l => l.typeClient === filters.typeClient)
-    if (filters.priorite)   list = list.filter(l => l.priorite === filters.priorite)
+    if (filters.priorite) list = list.filter(l => l.priorite === filters.priorite)
 
-    // Sort
     list.sort((a, b) => {
       let av, bv
       if (sort.field === 'date') { av = a.timestamp; bv = b.timestamp }
       else if (sort.field === 'nom') { av = (a.nom || a.prenom || '').toLowerCase(); bv = (b.nom || b.prenom || '').toLowerCase() }
       else if (sort.field === 'priorite') {
         const order = { 'Haute': 0, 'Normale': 1, 'Basse': 2 }
-        av = order[a.priorite] ?? 3; bv = order[b.priorite] ?? 3
+        av = order[a.priorite] ?? 3
+        bv = order[b.priorite] ?? 3
       }
       if (av < bv) return sort.dir === 'asc' ? -1 : 1
       if (av > bv) return sort.dir === 'asc' ? 1 : -1
@@ -121,29 +195,44 @@ export default function LeadsList({ leads, selectedId, onSelect, onStatutChange,
     })
 
     return list
-  }, [leads, search, filters, sort])
+  }, [leads, search, filters, sort, quickView])
 
   const totalPages = Math.max(1, Math.ceil(processed.length / PAGE_SIZE))
-  const paginated  = processed.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const safePage = Math.min(page, totalPages)
+  const paginated = processed.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
-  const hasFilters = Object.values(filters).some(Boolean)
-  const newCount   = leads.filter(l => l.statut === 'nouveau').length
+  const hasFilters = Object.values(filters).some(Boolean) || quickView !== 'all'
+  const newCount = leads.filter(l => l.statut === 'nouveau').length
+  const quickViewCounts = LEAD_QUICK_VIEWS.map(view => ({
+    ...view,
+    count: countLeadsForQuickView(leads, view.key),
+  }))
+  const activeVisibleQuickView = LEAD_QUICK_VIEWS.find(view => view.key === quickView)
+  const hasHiddenQuickView = quickView !== 'all' && !activeVisibleQuickView
+  const activeQuickViewLabel = activeVisibleQuickView?.label || (hasHiddenQuickView ? 'Vue analytics' : 'Tous les leads')
+  const helperText = processed.length === leads.length
+    ? `${processed.length} lead${processed.length > 1 ? 's' : ''} visibles`
+    : `${processed.length} / ${leads.length} lead${leads.length > 1 ? 's' : ''}`
 
   const SortBtn = ({ field, label }) => {
     const active = sort.field === field
     return (
       <button
-        onClick={() => setSort(prev =>
-          prev.field === field
-            ? { ...prev, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+        onClick={() => onSortChange?.(
+          sort.field === field
+            ? { ...sort, dir: sort.dir === 'asc' ? 'desc' : 'asc' }
             : { field, dir: 'desc' }
         )}
         style={{
-          padding: '3px 8px', borderRadius: 5, fontSize: 11,
+          padding: '7px 10px',
+          borderRadius: 999,
+          fontSize: 11,
           border: active ? '1px solid var(--border-strong)' : '1px solid transparent',
-          background: active ? 'var(--s3)' : 'transparent',
+          background: active ? 'linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))' : 'transparent',
           color: active ? 'var(--text)' : 'var(--muted)',
           cursor: 'pointer',
+          minWidth: 68,
+          fontWeight: active ? 600 : 500,
         }}
       >
         {label}{active && (sort.dir === 'asc' ? ' ↑' : ' ↓')}
@@ -153,44 +242,119 @@ export default function LeadsList({ leads, selectedId, onSelect, onStatutChange,
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      {/* Header */}
-      <div style={{ padding: '12px 14px 8px', flexShrink: 0, borderBottom: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>Leads</span>
-            <span style={{
-              fontSize: 11, fontWeight: 600, padding: '1px 7px',
-              borderRadius: 20, background: 'var(--s3)', color: 'var(--muted)',
-            }}>
-              {processed.length}
-            </span>
-            {newCount > 0 && (
+      <div style={{
+        padding: '18px 16px 14px',
+        flexShrink: 0,
+        borderBottom: '1px solid var(--border)',
+        background: 'linear-gradient(180deg, rgba(79,127,243,0.08), rgba(13,17,17,0) 58%), radial-gradient(circle at top left, rgba(255,255,255,0.05), transparent 42%)',
+      }}>
+        <div style={{
+          padding: '16px',
+          borderRadius: 18,
+          border: '1px solid var(--border)',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01))',
+          boxShadow: 'var(--shadow-soft)',
+          marginBottom: 12,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--blue)', marginBottom: 8 }}>
+                CRM Workspace
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>
+                Leads
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
+                {activeQuickViewLabel} · {helperText}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <SummaryBadge label="Affichés" value={processed.length} />
+              <SummaryBadge label="Nouveaux" value={newCount} tone="blue" />
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {quickViewCounts.map(view => (
+              <button
+                key={view.key}
+                onClick={() => { onQuickViewChange?.(view.key); setPage(1) }}
+                style={{
+                  fontSize: 11,
+                  padding: '7px 12px',
+                  borderRadius: 999,
+                  border: quickView === view.key ? '1px solid var(--red)' : '1px solid var(--border-md)',
+                  background: quickView === view.key ? 'linear-gradient(180deg, rgba(191,24,24,0.18), rgba(191,24,24,0.08))' : 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
+                  color: quickView === view.key ? 'var(--red)' : 'var(--muted)',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--sans)',
+                  fontWeight: quickView === view.key ? 600 : 500,
+                }}
+              >
+                {view.label} ({view.count})
+              </button>
+            ))}
+            {hasHiddenQuickView && (
               <span style={{
-                fontSize: 10, fontWeight: 700, padding: '1px 6px',
-                borderRadius: 20, background: '#4f7ff322', color: '#4f7ff3',
-                border: '1px solid #4f7ff344',
+                fontSize: 11,
+                padding: '7px 12px',
+                borderRadius: 999,
+                border: '1px solid var(--blue)',
+                background: 'linear-gradient(180deg, rgba(79,127,243,0.18), rgba(79,127,243,0.08))',
+                color: 'var(--blue)',
+                fontWeight: 600,
               }}>
-                {newCount} nouveau{newCount > 1 ? 'x' : ''}
+                Vue ciblée analytics
               </span>
             )}
           </div>
-          <div style={{ display: 'flex', gap: 2 }}>
-            <SortBtn field="date"     label="Date" />
-            <SortBtn field="nom"      label="Nom" />
+
+          <div style={{
+            display: 'inline-flex',
+            gap: 4,
+            padding: 4,
+            borderRadius: 999,
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid var(--border)',
+          }}>
+            <SortBtn field="date" label="Date" />
+            <SortBtn field="nom" label="Nom" />
             <SortBtn field="priorite" label="Priorité" />
           </div>
         </div>
 
-        {/* Filters */}
-        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' }}>
-          <FilterDropdown label="Statut"   value={filters.statut}     options={STATUT_OPTIONS}  onChange={v => setFilter('statut', v)} />
-          <FilterDropdown label="Source"   value={filters.source}     options={SOURCE_OPTIONS}  onChange={v => setFilter('source', v)} labelMap={SOURCE_LABELS} />
-          <FilterDropdown label="Client"   value={filters.typeClient} options={CLIENT_OPTIONS}  onChange={v => setFilter('typeClient', v)} />
-          <FilterDropdown label="Priorité" value={filters.priorite}   options={PRIORITE_OPTIONS} onChange={v => setFilter('priorite', v)} />
+        <div style={{
+          display: 'flex',
+          gap: 6,
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          padding: '12px',
+          borderRadius: 14,
+          border: '1px solid var(--border)',
+          background: 'rgba(255,255,255,0.025)',
+        }}>
+          <FilterDropdown label="Statut" value={filters.statut} options={STATUT_OPTIONS} onChange={v => setFilter('statut', v)} />
+          <FilterDropdown label="Source" value={filters.source} options={SOURCE_OPTIONS} onChange={v => setFilter('source', v)} labelMap={SOURCE_LABELS} />
+          <FilterDropdown label="Client" value={filters.typeClient} options={CLIENT_OPTIONS} onChange={v => setFilter('typeClient', v)} />
+          <FilterDropdown label="Priorité" value={filters.priorite} options={PRIORITE_OPTIONS} onChange={v => setFilter('priorite', v)} />
           {hasFilters && (
             <button
-              onClick={() => { setFilters({ statut: '', source: '', typeClient: '', priorite: '' }); setPage(1) }}
-              style={{ fontSize: 10, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 4px' }}
+              onClick={() => {
+                onFilterChange?.({ ...DEFAULT_FILTERS })
+                onQuickViewChange?.('all')
+                setPage(1)
+              }}
+              style={{
+                fontSize: 11,
+                color: 'var(--muted)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '6px 8px',
+                marginLeft: 'auto',
+              }}
             >
               ✕ Effacer
             </button>
@@ -198,12 +362,37 @@ export default function LeadsList({ leads, selectedId, onSelect, onStatutChange,
         </div>
       </div>
 
-      {/* List */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '10px 10px 16px' }}>
         {paginated.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 200, color: 'var(--muted2)', fontSize: 12, gap: 6 }}>
-            <span style={{ fontSize: 24 }}>📋</span>
-            Aucun lead trouvé
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: 240,
+            color: 'var(--muted2)',
+            fontSize: 12,
+            gap: 10,
+            border: '1px dashed var(--border-md)',
+            borderRadius: 18,
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
+          }}>
+            <span style={{
+              width: 52,
+              height: 52,
+              borderRadius: '50%',
+              display: 'grid',
+              placeItems: 'center',
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid var(--border)',
+              fontSize: 20,
+            }}>
+              📋
+            </span>
+            <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 600 }}>Aucun lead trouvé</div>
+            <div style={{ maxWidth: 240, textAlign: 'center', lineHeight: 1.5 }}>
+              Essaie une autre combinaison de filtres ou reviens sur la vue complète.
+            </div>
           </div>
         ) : (
           paginated.map(lead => (
@@ -219,25 +408,48 @@ export default function LeadsList({ leads, selectedId, onSelect, onStatutChange,
         )}
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div style={{
-          flexShrink: 0, borderTop: '1px solid var(--border)',
-          padding: '8px 14px', display: 'flex', alignItems: 'center',
+          flexShrink: 0,
+          borderTop: '1px solid var(--border)',
+          padding: '10px 14px',
+          display: 'flex',
+          alignItems: 'center',
           justifyContent: 'space-between',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
         }}>
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
-            disabled={page === 1}
-            style={{ background: 'none', border: 'none', cursor: page === 1 ? 'default' : 'pointer', color: page === 1 ? 'var(--muted2)' : 'var(--muted)', padding: 4 }}
+            disabled={safePage === 1}
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: '50%',
+              background: safePage === 1 ? 'transparent' : 'rgba(255,255,255,0.04)',
+              border: safePage === 1 ? '1px solid transparent' : '1px solid var(--border)',
+              cursor: safePage === 1 ? 'default' : 'pointer',
+              color: safePage === 1 ? 'var(--muted2)' : 'var(--muted)',
+              display: 'grid',
+              placeItems: 'center',
+            }}
           >
             <IconChevron dir="left" />
           </button>
-          <span style={{ fontSize: 11, color: 'var(--muted)' }}>Page {page} / {totalPages}</span>
+          <span style={{ fontSize: 11, color: 'var(--muted)' }}>Page {safePage} / {totalPages}</span>
           <button
             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-            style={{ background: 'none', border: 'none', cursor: page === totalPages ? 'default' : 'pointer', color: page === totalPages ? 'var(--muted2)' : 'var(--muted)', padding: 4 }}
+            disabled={safePage === totalPages}
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: '50%',
+              background: safePage === totalPages ? 'transparent' : 'rgba(255,255,255,0.04)',
+              border: safePage === totalPages ? '1px solid transparent' : '1px solid var(--border)',
+              cursor: safePage === totalPages ? 'default' : 'pointer',
+              color: safePage === totalPages ? 'var(--muted2)' : 'var(--muted)',
+              display: 'grid',
+              placeItems: 'center',
+            }}
           >
             <IconChevron dir="right" />
           </button>

@@ -149,10 +149,13 @@ function MediaCard({ file, onDelete, onCopy, copied, isActiveCover }) {
 export default function MediaLibrary() {
   const [files, setFiles]           = useState([])
   const [coverUrls, setCoverUrls]   = useState(new Set())
+  const [usedUrls, setUsedUrls]     = useState(new Set())
   const [projectNames, setProjectNames] = useState({})
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState(null)
   const [filter, setFilter]         = useState('all')
+  const [search, setSearch]         = useState('')
+  const [sortBy, setSortBy]         = useState('project')
   const [copied, setCopied]         = useState(null)
   const [deleting, setDeleting]     = useState(null)
   const [confirmFile, setConfirmFile] = useState(null)
@@ -212,10 +215,14 @@ export default function MediaLibrary() {
     }
 
     // Fetch project info (covers + titles)
-    const { data: projects } = await supabase.from('projects').select('id, title, cover')
+    const { data: projects } = await supabase.from('projects').select('id, title, cover, gallery')
     const covers = new Set((projects || []).map(p => p.cover).filter(Boolean))
+    const used = new Set(
+      (projects || []).flatMap(project => [project.cover, ...(project.gallery || [])]).filter(Boolean)
+    )
     const names = Object.fromEntries((projects || []).map(p => [p.id, p.title]))
     setCoverUrls(covers)
+    setUsedUrls(used)
     setProjectNames(names)
 
     setFiles(collected)
@@ -246,12 +253,31 @@ export default function MediaLibrary() {
   }
 
   const isActiveCover = (f) => coverUrls.has(f.url)
-  const filtered = filter === 'all'    ? files
-                 : filter === 'covers' ? files.filter(isActiveCover)
-                 :                       files.filter(f => !isActiveCover(f))
+  const isUsed = (f) => usedUrls.has(f.url)
+  const filtered = files
+    .filter(file => {
+      if (filter === 'covers') return isActiveCover(file)
+      if (filter === 'gallery') return !isActiveCover(file)
+      if (filter === 'unused') return !isUsed(file)
+      return true
+    })
+    .filter(file => {
+      if (!search.trim()) return true
+      const q = search.toLowerCase()
+      const projectLabel = projectNames[file.projectId] || file.projectId || ''
+      return [file.name, file.path, projectLabel].some(value => value.toLowerCase().includes(q))
+    })
+    .sort((a, b) => {
+      if (sortBy === 'size') return (b.size || 0) - (a.size || 0)
+      if (sortBy === 'name') return a.name.localeCompare(b.name, 'fr')
+      const aProject = projectNames[a.projectId] || a.projectId || ''
+      const bProject = projectNames[b.projectId] || b.projectId || ''
+      return aProject.localeCompare(bProject, 'fr')
+    })
 
   const covers  = files.filter(isActiveCover).length
   const gallery = files.filter(f => !isActiveCover(f)).length
+  const unused  = files.filter(f => !isUsed(f)).length
   const totalSize = files.reduce((acc, f) => acc + (f.size || 0), 0)
 
   return (
@@ -262,30 +288,51 @@ export default function MediaLibrary() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 15, fontWeight: 600 }}>Médiathèque</span>
             <span style={{ fontSize: 11, padding: '1px 7px', borderRadius: 20, background: 'var(--s3)', color: 'var(--muted)' }}>
-              {files.length} fichiers · {formatBytes(totalSize)}
+              {filtered.length}/{files.length} fichiers · {formatBytes(totalSize)}
             </span>
           </div>
-          <button
-            onClick={loadFiles}
-            disabled={loading}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '5px 10px', borderRadius: 6,
-              border: '1px solid var(--border-md)',
-              background: 'transparent', color: 'var(--muted)',
-              fontSize: 12, cursor: 'pointer', fontFamily: 'var(--sans)',
-            }}
-          >
-            <IconRefresh /> Actualiser
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <select
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value)}
+              style={{
+                height: 30,
+                padding: '0 10px',
+                borderRadius: 6,
+                border: '1px solid var(--border-md)',
+                background: 'var(--s3)',
+                color: 'var(--text)',
+                fontSize: 12,
+                fontFamily: 'var(--sans)',
+              }}
+            >
+              <option value="project">Trier: projet</option>
+              <option value="name">Trier: nom</option>
+              <option value="size">Trier: taille</option>
+            </select>
+            <button
+              onClick={loadFiles}
+              disabled={loading}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '5px 10px', borderRadius: 6,
+                border: '1px solid var(--border-md)',
+                background: 'transparent', color: 'var(--muted)',
+                fontSize: 12, cursor: 'pointer', fontFamily: 'var(--sans)',
+              }}
+            >
+              <IconRefresh /> Actualiser
+            </button>
+          </div>
         </div>
 
         {/* Filters */}
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
           {[
             { value: 'all',     label: `Tout (${files.length})` },
             { value: 'covers',  label: `⭐ Covers actives (${covers})` },
             { value: 'gallery', label: `Galerie (${gallery})` },
+            { value: 'unused',  label: `Non utilisés (${unused})` },
           ].map(opt => (
             <button
               key={opt.value}
@@ -302,6 +349,25 @@ export default function MediaLibrary() {
             </button>
           ))}
         </div>
+
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Rechercher un fichier, un projet ou un chemin…"
+          style={{
+            width: '100%',
+            height: 34,
+            padding: '0 12px',
+            borderRadius: 8,
+            border: '1px solid var(--border-md)',
+            background: 'var(--s3)',
+            color: 'var(--text)',
+            fontSize: 12,
+            fontFamily: 'var(--sans)',
+            outline: 'none',
+          }}
+        />
       </div>
 
       {/* Grid */}

@@ -25,6 +25,8 @@
   --blue-dim:      rgba(79,127,243,0.12);
   --gray:          rgba(232,232,232,0.35);
   --gray-dim:      rgba(232,232,232,0.08);
+  --shadow-soft:   0 18px 40px rgba(0,0,0,0.22);
+  --shadow-raise:  0 24px 56px rgba(0,0,0,0.3);
   --serif:         'DM Serif Display', Georgia, serif;
   --sans:          'Inter', system-ui, sans-serif;
   --sidebar-w:     220px;
@@ -187,6 +189,7 @@ button {
   font-family: inherit;
   font-size: inherit;
   color: inherit;
+  transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
 }
 
 img {

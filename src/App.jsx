@@ -57,6 +57,9 @@ function LoadingScreen({ message = 'Chargement…' }) {
 }
 
 export default function App() {
+  const defaultLeadFilters = { statut: '', source: '', typeClient: '', priorite: '' }
+  const defaultLeadSort = { field: 'date', dir: 'desc' }
+
   // ── Auth ──────────────────────────────────────────────────────────────────
   const { session, signIn, signOut, loading: authLoading } = useAuth()
 
@@ -87,6 +90,9 @@ export default function App() {
   const [selectedLeadId, setSelectedLeadId]   = useState(null)
   const [deleteLeadModal, setDeleteLeadModal] = useState({ open: false, id: null, name: '' })
   const [deletingLead, setDeletingLead]       = useState(false)
+  const [leadFilters, setLeadFilters]         = useState(defaultLeadFilters)
+  const [leadSort, setLeadSort]               = useState(defaultLeadSort)
+  const [leadQuickView, setLeadQuickView]     = useState('all')
   const mobile                                = useIsMobile()
   const [sidebarOpen, setSidebarOpen]         = useState(false)
   const [streamableImportSession, setStreamableImportSession] = useState(null)
@@ -141,6 +147,22 @@ export default function App() {
       videosToImport: [],
     })
     setStreamableImportOpen(true)
+  }
+
+  const openProjectFromStreamableImport = (projectId) => {
+    setView('projects')
+    setSelectedId(projectId)
+    setStreamableImportOpen(false)
+  }
+
+  const openLeadsWorkspace = ({ filters = defaultLeadFilters, sort = defaultLeadSort, quickView = 'all', search: nextSearch = '' } = {}) => {
+    setView('leads')
+    setSelectedLeadId(null)
+    setLeadFilters({ ...defaultLeadFilters, ...filters })
+    setLeadSort(sort)
+    setLeadQuickView(quickView)
+    setSearch(nextSearch)
+    if (mobile) setSidebarOpen(false)
   }
 
   const handleStreamableImport = async (streamableId, title, meta) => {
@@ -366,6 +388,12 @@ export default function App() {
                         else addToast('Statut mis à jour', 'success')
                       }}
                       search={search}
+                      filters={leadFilters}
+                      onFilterChange={setLeadFilters}
+                      sort={leadSort}
+                      onSortChange={setLeadSort}
+                      quickView={leadQuickView}
+                      onQuickViewChange={setLeadQuickView}
                     />
                   </div>
                 )}
@@ -409,7 +437,7 @@ export default function App() {
           {view === 'settings' && <SettingsPage onToast={addToast} />}
 
           {/* Analytics view */}
-          {view === 'analytics' && <AnalyticsPage />}
+          {view === 'analytics' && <AnalyticsPage onOpenLeads={openLeadsWorkspace} />}
         </div>
       </div>
 
@@ -419,6 +447,7 @@ export default function App() {
           session={streamableImportSession}
           onClose={() => setStreamableImportOpen(false)}
           onImport={handleStreamableImport}
+          onOpenProject={openProjectFromStreamableImport}
         />
       )}
 

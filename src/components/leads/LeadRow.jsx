@@ -159,84 +159,167 @@ function ActionBtn({ onClick, title, children, danger }) {
 export default function LeadRow({ lead, isSelected, onClick, onStatutChange, onDelete }) {
   const [hovered, setHovered] = useState(false)
   const displayName = [lead.prenom, lead.nom].filter(Boolean).join(' ') || lead.email || lead.nomEntreprise || 'Sans nom'
+  const nextStep = lead.nextStep || ''
+  const relanceDate = formatDate(lead.dateRelance)
 
   return (
-    <div
-      style={{
-        position: 'relative',
-        borderBottom: '1px solid var(--border)',
-        borderLeft: isSelected ? '2px solid var(--red)' : '2px solid transparent',
-        background: isSelected ? 'var(--red-dim)' : hovered ? 'var(--s2)' : 'transparent',
-        transition: 'background 0.12s',
-        cursor: 'pointer',
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
+    <div style={{ padding: '0 0 8px' }}>
       <div
-        onClick={onClick}
         style={{
-          padding: '10px 14px',
-          display: 'grid',
-          gridTemplateColumns: 'auto 1fr auto',
-          gap: 10,
-          alignItems: 'center',
-          paddingRight: hovered ? 80 : 14,
-          transition: 'padding-right 0.15s',
+          position: 'relative',
+          border: isSelected ? '1px solid rgba(191,24,24,0.28)' : '1px solid var(--border)',
+          borderLeft: isSelected ? '3px solid var(--red)' : '3px solid transparent',
+          borderRadius: 14,
+          background: isSelected
+            ? 'linear-gradient(180deg, rgba(191,24,24,0.14), rgba(191,24,24,0.04))'
+            : hovered
+              ? 'linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))'
+              : 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
+          boxShadow: isSelected ? 'var(--shadow-soft)' : hovered ? '0 16px 30px rgba(0,0,0,0.18)' : 'none',
+          transition: 'background 0.12s, transform 0.12s, box-shadow 0.12s',
+          cursor: 'pointer',
+          transform: hovered ? 'translateY(-1px)' : 'translateY(0)',
         }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
       >
-        {/* Statut dropdown */}
-        <div onClick={e => e.stopPropagation()}>
-          <StatutDropdown
-            value={lead.statut}
-            onChange={newStatut => onStatutChange && onStatutChange(lead.id, newStatut)}
-          />
-        </div>
+        <div
+          onClick={onClick}
+          style={{
+            padding: '12px 14px',
+            display: 'grid',
+            gridTemplateColumns: 'auto 1fr auto',
+            gap: 12,
+            alignItems: 'center',
+            paddingRight: hovered ? 90 : 14,
+            transition: 'padding-right 0.15s',
+          }}
+        >
+          <div onClick={e => e.stopPropagation()}>
+            <StatutDropdown
+              value={lead.statut}
+              onChange={newStatut => onStatutChange && onStatutChange(lead.id, newStatut)}
+            />
+          </div>
 
-        {/* Info */}
-        <div style={{ minWidth: 0 }}>
-          <div style={{
-            fontSize: 13, fontWeight: 500, color: 'var(--text)',
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-            marginBottom: 3,
-          }}>
-            {displayName}
-            {lead.nomEntreprise && lead.nom && (
-              <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 400, marginLeft: 6 }}>
-                {lead.nomEntreprise}
+          <div style={{ minWidth: 0 }}>
+            <div style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: 'var(--text)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              marginBottom: 5,
+            }}>
+              {displayName}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: nextStep || relanceDate ? 6 : 0 }}>
+              {lead.nomEntreprise && (
+                <span style={{
+                  maxWidth: 180,
+                  fontSize: 11,
+                  color: 'var(--muted)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}>
+                  {lead.nomEntreprise}
+                </span>
+              )}
+              {lead.ville && (
+                <span style={{
+                  fontSize: 11,
+                  color: 'var(--muted)',
+                  padding: '2px 7px',
+                  borderRadius: 999,
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid var(--border)',
+                }}>
+                  {lead.ville}
+                </span>
+              )}
+              <SourceBadge value={lead.source} />
+              <PrioriteBadge value={lead.priorite} />
+            </div>
+
+            {(nextStep || relanceDate) && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                {nextStep && (
+                  <span style={{
+                    fontSize: 11,
+                    color: 'var(--muted)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    maxWidth: 220,
+                  }}>
+                    Prochaine action: <span style={{ color: 'var(--text)' }}>{nextStep}</span>
+                  </span>
+                )}
+                {relanceDate && (
+                  <span style={{
+                    fontSize: 10,
+                    color: 'var(--amber)',
+                    padding: '3px 7px',
+                    borderRadius: 999,
+                    background: 'rgba(245,158,11,0.12)',
+                    border: '1px solid rgba(245,158,11,0.18)',
+                  }}>
+                    Relance {relanceDate}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+            <span style={{
+              fontSize: 10,
+              color: 'var(--muted2)',
+              flexShrink: 0,
+              textAlign: 'right',
+              padding: '4px 8px',
+              borderRadius: 999,
+              border: '1px solid var(--border)',
+              background: 'rgba(255,255,255,0.02)',
+            }}>
+              {formatDate(lead.timestamp)}
+            </span>
+            {lead.typeClient && (
+              <span style={{
+                fontSize: 10,
+                color: 'var(--blue)',
+                padding: '3px 7px',
+                borderRadius: 999,
+                border: '1px solid rgba(79,127,243,0.16)',
+                background: 'rgba(79,127,243,0.08)',
+              }}>
+                {lead.typeClient}
               </span>
             )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'nowrap' }}>
-            {lead.ville && (
-              <span style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 100 }}>
-                {lead.ville}
-              </span>
-            )}
-            <SourceBadge value={lead.source} />
-            <PrioriteBadge value={lead.priorite} />
-          </div>
         </div>
 
-        {/* Date */}
-        <span style={{ fontSize: 10, color: 'var(--muted2)', flexShrink: 0, textAlign: 'right' }}>
-          {formatDate(lead.timestamp)}
-        </span>
-      </div>
-
-      {/* Hover actions */}
-      <div style={{
-        position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-        display: 'flex', gap: 4,
-        opacity: hovered ? 1 : 0, transition: 'opacity 0.15s',
-        pointerEvents: hovered ? 'auto' : 'none',
-      }}>
-        <ActionBtn onClick={() => onClick && onClick()} title="Modifier">
-          <IconEdit />
-        </ActionBtn>
-        <ActionBtn onClick={() => onDelete && onDelete(lead.id)} title="Supprimer" danger>
-          <IconTrash />
-        </ActionBtn>
+        <div style={{
+          position: 'absolute',
+          right: 12,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          display: 'grid',
+          gap: 4,
+          opacity: hovered ? 1 : 0,
+          transition: 'opacity 0.15s',
+          pointerEvents: hovered ? 'auto' : 'none',
+        }}>
+          <ActionBtn onClick={() => onClick && onClick()} title="Modifier">
+            <IconEdit />
+          </ActionBtn>
+          <ActionBtn onClick={() => onDelete && onDelete(lead.id)} title="Supprimer" danger>
+            <IconTrash />
+          </ActionBtn>
+        </div>
       </div>
     </div>
   )

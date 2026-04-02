@@ -54,8 +54,9 @@ function VideoRow({ title, subtitle, action }) {
   )
 }
 
-export default function StreamableImportModal({ session, onClose, onImport }) {
+export default function StreamableImportModal({ session, onClose, onImport, onOpenProject }) {
   const [importing, setImporting] = useState({})
+  const [importAllLoading, setImportAllLoading] = useState(false)
 
   const {
     receivedIds = [],
@@ -71,6 +72,17 @@ export default function StreamableImportModal({ session, onClose, onImport }) {
     const meta = await fetchStreamableVideoMeta(streamableId)
     await onImport(streamableId, meta?.title || streamableId, meta)
     setImporting(prev => ({ ...prev, [streamableId]: false }))
+  }
+
+  const handleImportAll = async () => {
+    setImportAllLoading(true)
+    for (const video of videosToImport) {
+      // sequential import keeps the UI/session state easy to follow
+      // and avoids hammering Streamable with parallel metadata fetches.
+      // eslint-disable-next-line no-await-in-loop
+      await handleImport(video.streamableId)
+    }
+    setImportAllLoading(false)
   }
 
   return (
@@ -182,6 +194,11 @@ export default function StreamableImportModal({ session, onClose, onImport }) {
 
           {videosToImport.length > 0 && (
             <Section title="A importer" count={videosToImport.length} color="var(--blue)">
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+                <Button variant="ghost" size="sm" loading={importAllLoading} onClick={handleImportAll}>
+                  Importer tout
+                </Button>
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {videosToImport.map(video => (
                   <VideoRow
@@ -221,6 +238,23 @@ export default function StreamableImportModal({ session, onClose, onImport }) {
                     key={entry.streamableId}
                     title={entry.project?.title || entry.streamableId}
                     subtitle={`streamable.com/${entry.streamableId}`}
+                    action={entry.project ? (
+                      <button
+                        onClick={() => onOpenProject?.(entry.project.id)}
+                        style={{
+                          background: 'var(--green-dim)',
+                          border: '1px solid rgba(34,197,94,0.25)',
+                          borderRadius: 'var(--radius)',
+                          padding: '4px 10px',
+                          fontSize: 11,
+                          color: 'var(--green)',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        Ouvrir
+                      </button>
+                    ) : null}
                   />
                 ))}
               </div>
@@ -257,12 +291,17 @@ export default function StreamableImportModal({ session, onClose, onImport }) {
           padding: '14px 20px',
           borderTop: '1px solid var(--border)',
           display: 'flex',
-          justifyContent: 'flex-end',
+          justifyContent: 'space-between',
+          gap: 8,
         }}>
-          <Button variant="ghost" size="sm" onClick={onClose}>Fermer</Button>
+          <span style={{ fontSize: 11, color: 'var(--muted2)' }}>
+            {videosToImport.length > 0 ? 'Tu peux fermer maintenant et reprendre plus tard.' : 'Import termine.'}
+          </span>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            {videosToImport.length > 0 ? 'Fermer et reprendre plus tard' : 'Fermer'}
+          </Button>
         </div>
       </div>
     </div>
   )
 }
-
