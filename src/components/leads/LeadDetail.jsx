@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { SectionCard, SectionTitle } from '../ui/SectionCard.jsx'
+import ThemedDateInput from '../ui/ThemedDateInput.jsx'
 
 const STATUT_OPTIONS    = ['nouveau', 'Prospect contacté', 'À relancer', 'Opportunité', 'Relancé', 'Converti', 'Perdu']
 const PRIORITE_OPTIONS  = ['Haute', 'Normale', 'Basse']
@@ -24,21 +25,23 @@ function formatDateInput(isoStr) {
   try { return new Date(isoStr).toISOString().split('T')[0] } catch { return '' }
 }
 
-function formatDateDisplay(isoStr) {
-  if (!isoStr) return '—'
-  try {
-    return new Date(isoStr).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
-  } catch { return isoStr }
+const fieldControlStyle = {
+  width: '100%',
+  boxSizing: 'border-box',
+  background: 'var(--s3)',
+  border: '1px solid var(--border-md)',
+  borderRadius: 6,
+  padding: '6px 10px',
+  fontSize: 12,
+  color: 'var(--text)',
+  fontFamily: 'var(--sans)',
+  outline: 'none',
 }
 
-
-function InfoRow({ label, children }) {
-  return (
-    <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'flex-start' }}>
-      <span style={{ fontSize: 11, color: 'var(--muted2)', width: 130, flexShrink: 0, paddingTop: 1 }}>{label}</span>
-      <span style={{ fontSize: 12, color: 'var(--text)', flex: 1 }}>{children || '—'}</span>
-    </div>
-  )
+const fieldGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+  gap: '0 12px',
 }
 
 function FieldInput({ label, value, onChange, type = 'text', multiline }) {
@@ -52,27 +55,22 @@ function FieldInput({ label, value, onChange, type = 'text', multiline }) {
           value={value || ''}
           onChange={e => onChange(e.target.value)}
           rows={4}
-          style={{
-            width: '100%', boxSizing: 'border-box',
-            background: 'var(--s3)', border: '1px solid var(--border-md)',
-            borderRadius: 6, padding: '7px 10px',
-            fontSize: 12, color: 'var(--text)', fontFamily: 'var(--sans)',
-            resize: 'vertical', outline: 'none',
-          }}
+          style={{ ...fieldControlStyle, padding: '7px 10px', resize: 'vertical' }}
           onFocus={e => e.target.style.borderColor = 'var(--border-strong)'}
           onBlur={e => e.target.style.borderColor = 'var(--border-md)'}
+        />
+      ) : type === 'date' ? (
+        <ThemedDateInput
+          value={value || ''}
+          onChange={onChange}
+          style={{ minHeight: 32 }}
         />
       ) : (
         <input
           type={type}
           value={value || ''}
           onChange={e => onChange(e.target.value)}
-          style={{
-            width: '100%', boxSizing: 'border-box',
-            background: 'var(--s3)', border: '1px solid var(--border-md)',
-            borderRadius: 6, padding: '6px 10px',
-            fontSize: 12, color: 'var(--text)', fontFamily: 'var(--sans)', outline: 'none',
-          }}
+          style={fieldControlStyle}
           onFocus={e => e.target.style.borderColor = 'var(--border-strong)'}
           onBlur={e => e.target.style.borderColor = 'var(--border-md)'}
         />
@@ -150,7 +148,7 @@ function formatMoney(value) {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(amount)
 }
 
-function MetaPill({ label, value, tone = 'neutral' }) {
+function CompactMetaPill({ label, value, tone = 'neutral' }) {
   const tones = {
     neutral: {
       border: '1px solid var(--border)',
@@ -182,16 +180,18 @@ function MetaPill({ label, value, tone = 'neutral' }) {
 
   return (
     <div style={{
-      minWidth: 120,
-      padding: '9px 11px',
-      borderRadius: 12,
+      padding: '7px 10px',
+      borderRadius: 999,
       border: palette.border,
       background: palette.background,
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 6,
     }}>
-      <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: palette.label, marginBottom: 4 }}>
+      <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: palette.label }}>
         {label}
       </div>
-      <div style={{ fontSize: 12, fontWeight: 600, color: palette.value }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: palette.value, whiteSpace: 'nowrap' }}>
         {value || '—'}
       </div>
     </div>
@@ -242,14 +242,14 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
 
   const handleSave = async () => {
     setSaving(true)
-    await onUpdate(lead.id, {
+    const { error } = await onUpdate(lead.id, {
       ...crm,
       dateRelance:  crm.dateRelance  || null,
       dateDevis:    crm.dateDevis    || null,
       dateMission:  crm.dateMission  || null,
     })
     setSaving(false)
-    setDirty(false)
+    if (!error) setDirty(false)
   }
 
   const runQuickAction = async (key, patch) => {
@@ -285,7 +285,12 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
   const sourceLabel = SOURCE_LABELS[lead.source] || lead.source || '—'
   const followUpLabel = crm.dateRelance || formatDateInput(lead.dateRelance) || '—'
   const amountLabel = formatMoney(crm.montantDevis || lead.montantDevis)
-  const focusTone = currentStatut === 'Converti' ? 'green' : currentStatut === 'À relancer' ? 'amber' : 'blue'
+  const metaItems = [
+    { key: 'source', label: 'Source', value: sourceLabel, tone: 'blue' },
+    { key: 'created', label: 'Créé', value: createdAtLabel, tone: 'neutral' },
+    { key: 'follow-up', label: 'Relance', value: followUpLabel, tone: followUpLabel !== '—' ? 'amber' : 'neutral' },
+    { key: 'amount', label: 'Montant', value: amountLabel, tone: amountLabel !== '—' ? 'green' : 'neutral' },
+  ]
 
   const quickActions = [
     {
@@ -326,20 +331,22 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'linear-gradient(180deg, rgba(79,127,243,0.04), rgba(13,17,17,0) 32%), var(--bg)' }}>
       {/* Header */}
       <div style={{
-        padding: '18px 20px 14px',
+        padding: '16px 20px 12px',
         borderBottom: '1px solid var(--border)',
         flexShrink: 0,
-        display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12,
-        background: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 12,
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005))',
       }}>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--blue)', marginBottom: 8 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--blue)', marginBottom: 6 }}>
             Fiche lead
           </div>
-          <div style={{ fontSize: 21, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', marginBottom: 6, lineHeight: 1.15 }}>
             {displayName}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: 5,
               fontSize: 11, fontWeight: 600, color: statutColor,
@@ -356,12 +363,11 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
               <span style={{ fontSize: 11, color: 'var(--muted2)' }}>{crm.email || lead.email}</span>
             )}
           </div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', marginRight: 4 }}>
-          <MetaPill label="Source" value={sourceLabel} tone="blue" />
-          <MetaPill label="Créé" value={createdAtLabel} />
-          <MetaPill label="Relance" value={followUpLabel} tone={followUpLabel !== '—' ? 'amber' : 'neutral'} />
-          <MetaPill label="Montant" value={amountLabel} tone={amountLabel !== '—' ? 'green' : 'neutral'} />
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {metaItems.map(item => (
+              <CompactMetaPill key={item.key} label={item.label} value={item.value} tone={item.tone} />
+            ))}
+          </div>
         </div>
         <button
           onClick={onClose}
@@ -375,12 +381,12 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
 
       {/* Action bar */}
       <div style={{
-        padding: '12px 20px',
+        padding: '10px 20px',
         borderBottom: '1px solid var(--border)',
         flexShrink: 0,
-        background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005))',
+        background: 'rgba(255,255,255,0.015)',
       }}>
-        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted2)', marginBottom: 10 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted2)', marginBottom: 8 }}>
           Actions rapides
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -412,37 +418,18 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
       </div>
 
       {/* Body */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '18px 20px 20px' }}>
-        <div style={{
-          marginBottom: 14,
-          padding: '14px 16px',
-          borderRadius: 16,
-          border: '1px solid var(--border)',
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
-          boxShadow: 'var(--shadow-soft)',
-        }}>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted2)', marginBottom: 10 }}>
-            Focus CRM
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            <MetaPill label="Statut" value={currentStatut} tone={focusTone} />
-            <MetaPill label="Priorité" value={crm.priorite || '—'} tone={crm.priorite === 'Haute' ? 'amber' : 'neutral'} />
-            <MetaPill label="Probabilité" value={crm.probabilite ? `${crm.probabilite} %` : '—'} tone={crm.probabilite ? 'green' : 'neutral'} />
-            <MetaPill label="Next step" value={crm.nextStep || '—'} tone={crm.nextStep ? 'blue' : 'neutral'} />
-          </div>
-        </div>
-
+      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 20px 18px' }}>
         {/* Section Coordonnées */}
         <SectionCard borderColor="var(--blue-dim)">
           <SectionTitle accent="var(--blue)" accentDim="var(--blue-dim)">Coordonnées</SectionTitle>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
+          <div style={fieldGridStyle}>
             <FieldInput label="Prénom"    value={crm.prenom} onChange={v => setCrmField('prenom', v)} />
             <FieldInput label="Nom"       value={crm.nom}    onChange={v => setCrmField('nom', v)} />
           </div>
           <FieldInput  label="Email"           value={crm.email}         onChange={v => setCrmField('email', v)}         type="email" />
           <FieldInput  label="Téléphone"        value={crm.telephone}     onChange={v => setCrmField('telephone', v)} />
           <FieldInput  label="Nom entreprise"   value={crm.nomEntreprise} onChange={v => setCrmField('nomEntreprise', v)} />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
+          <div style={fieldGridStyle}>
             <FieldSelect label="Type de client"       value={crm.typeClient}  onChange={v => setCrmField('typeClient', v)}  options={['Particulier', 'Professionnel']} />
             <FieldSelect label="Prestataire existant" value={crm.prestataire ? 'Oui' : 'Non'} onChange={v => setCrmField('prestataire', v === 'Oui')} options={['Oui', 'Non']} />
           </div>
@@ -458,7 +445,7 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
         {/* Section Mission */}
         <SectionCard borderColor="var(--amber-dim)">
           <SectionTitle accent="var(--amber)" accentDim="var(--amber-dim)">Mission</SectionTitle>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
+          <div style={fieldGridStyle}>
             <FieldInput label="Ville / Lieu"   value={crm.ville}       onChange={v => setCrmField('ville', v)} />
             <FieldInput label="Date souhaitée" value={crm.dateMission} onChange={v => setCrmField('dateMission', v)} type="date" />
           </div>
@@ -469,19 +456,19 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
         {/* Section Suivi CRM */}
         <SectionCard borderColor="var(--red-dim)">
           <SectionTitle accent="var(--red)" accentDim="var(--red-dim)">Suivi CRM</SectionTitle>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
+          <div style={fieldGridStyle}>
             <FieldSelect label="Statut"           value={crm.statut}       onChange={v => setCrmField('statut', v)}       options={STATUT_OPTIONS} />
             <FieldSelect label="Priorité"         value={crm.priorite}     onChange={v => setCrmField('priorite', v)}     options={PRIORITE_OPTIONS} />
             <FieldSelect label="Niveau d'intérêt" value={crm.niveauInteret} onChange={v => setCrmField('niveauInteret', v)} options={INTERET_OPTIONS} />
             <FieldSelect label="Probabilité (%)" value={crm.probabilite} onChange={v => setCrmField('probabilite', v)} options={PROBA_OPTIONS} />
           </div>
           <FieldSelect label="Next step" value={crm.nextStep} onChange={v => setCrmField('nextStep', v)} options={NEXT_STEP_OPTIONS} />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
+          <div style={fieldGridStyle}>
             <FieldInput label="Date de relance"    value={crm.dateRelance} onChange={v => setCrmField('dateRelance', v)} type="date" />
             <FieldInput label="Date d'envoi devis" value={crm.dateDevis}   onChange={v => setCrmField('dateDevis', v)}   type="date" />
           </div>
           {/* ── Financier ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
+          <div style={fieldGridStyle}>
             <FieldInput label="Montant estimé (€)" value={crm.montantDevis} onChange={v => setCrmField('montantDevis', v)} type="number" />
             <FieldInput label="Montant réel (€)"   value={crm.montantReel  ?? ''} onChange={v => setCrmField('montantReel', v)}  type="number" />
           </div>

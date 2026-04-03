@@ -3,7 +3,7 @@ const CLOSED_STATUSES = new Set(['Converti', 'Perdu'])
 export const LEAD_QUICK_VIEWS = [
   { key: 'all',          label: 'Tous' },
   { key: 'new',          label: 'Nouveaux' },
-  { key: 'follow_up',    label: 'À relancer' },
+  { key: 'follow_up',    label: 'Relance due' },
   { key: 'high_priority', label: 'Haute priorité' },
   { key: 'converted',    label: 'Convertis' },
   { key: 'no_next_step', label: 'Sans prochaine action' },

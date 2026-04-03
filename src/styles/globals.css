@@ -23,8 +23,12 @@
   --amber-dim:     rgba(245,158,11,0.12);
   --blue:          #4f7ff3;
   --blue-dim:      rgba(79,127,243,0.12);
+  --blue-glow:     rgba(79,127,243,0.28);
   --gray:          rgba(232,232,232,0.35);
   --gray-dim:      rgba(232,232,232,0.08);
+  --select-accent: #4f7ff3;
+  --select-bg:     rgba(79,127,243,0.12);
+  --select-border: rgba(79,127,243,0.24);
   --shadow-soft:   0 18px 40px rgba(0,0,0,0.22);
   --shadow-raise:  0 24px 56px rgba(0,0,0,0.3);
   --serif:         'DM Serif Display', Georgia, serif;
@@ -55,7 +59,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
   height: 100vh;
-  user-select: none;
 }
 
 #root {
@@ -189,6 +192,7 @@ button {
   font-family: inherit;
   font-size: inherit;
   color: inherit;
+  user-select: none;
   transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
 }
 

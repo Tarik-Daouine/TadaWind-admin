@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import LeadRow from './LeadRow.jsx'
 import { LEAD_QUICK_VIEWS, countLeadsForQuickView, matchesLeadQuickView } from '../../lib/leadViews.js'
 
@@ -17,18 +17,29 @@ const SOURCE_LABELS = {
 
 function FilterDropdown({ label, value, options, onChange, labelMap }) {
   const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handlePointerDown = (event) => {
+      if (!ref.current?.contains(event.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handlePointerDown)
+    return () => document.removeEventListener('mousedown', handlePointerDown)
+  }, [open])
+
   return (
-    <div style={{ position: 'relative' }}>
+    <div ref={ref} style={{ position: 'relative' }}>
       <button
         onClick={() => setOpen(p => !p)}
         style={{
-          padding: '7px 12px',
+          padding: '6px 11px',
           borderRadius: 999,
           fontSize: 11,
           fontWeight: 500,
-          border: value ? '1px solid var(--red)' : '1px solid var(--border-md)',
-          background: value ? 'linear-gradient(180deg, rgba(191,24,24,0.18), rgba(191,24,24,0.08))' : 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-          color: value ? 'var(--red)' : 'var(--muted)',
+          border: value ? '1px solid var(--select-accent)' : '1px solid var(--border-md)',
+          background: value ? 'linear-gradient(180deg, rgba(79,127,243,0.18), rgba(79,127,243,0.08))' : 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
+          color: value ? 'var(--select-accent)' : 'var(--muted)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -53,7 +64,6 @@ function FilterDropdown({ label, value, options, onChange, labelMap }) {
             minWidth: 150,
             overflow: 'hidden',
           }}
-          onMouseLeave={() => setOpen(false)}
         >
           <div
             onClick={() => { onChange(''); setOpen(false) }}
@@ -113,16 +123,15 @@ function SummaryBadge({ label, value, tone = 'neutral' }) {
   return (
     <div style={{
       minWidth: 98,
-      padding: '10px 12px',
-      borderRadius: 12,
+      padding: '8px 10px',
+      borderRadius: 999,
       background: palette.background,
       border: palette.border,
-      boxShadow: 'var(--shadow-soft)',
     }}>
       <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: palette.sub, marginBottom: 5 }}>
         {label}
       </div>
-      <div style={{ fontSize: 18, fontWeight: 700, color: palette.color, lineHeight: 1 }}>
+      <div style={{ fontSize: 16, fontWeight: 700, color: palette.color, lineHeight: 1 }}>
         {value}
       </div>
     </div>
@@ -171,7 +180,20 @@ export default function LeadsList({
     if (search) {
       const q = search.toLowerCase()
       list = list.filter(l =>
-        [l.prenom, l.nom, l.email, l.nomEntreprise, l.ville, l.typeBesoin, l.nextStep].some(v => v?.toLowerCase().includes(q))
+        [
+          l.prenom,
+          l.nom,
+          l.email,
+          l.telephone,
+          l.nomEntreprise,
+          l.ville,
+          l.typeBesoin,
+          l.nextStep,
+          l.typeClient,
+          l.priorite,
+          l.statut,
+          SOURCE_LABELS[l.source] || l.source,
+        ].some(v => v?.toLowerCase().includes(q))
       )
     }
 
@@ -224,7 +246,7 @@ export default function LeadsList({
             : { field, dir: 'desc' }
         )}
         style={{
-          padding: '7px 10px',
+          padding: '6px 10px',
           borderRadius: 999,
           fontSize: 11,
           border: active ? '1px solid var(--border-strong)' : '1px solid transparent',
@@ -243,39 +265,37 @@ export default function LeadsList({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <div style={{
-        padding: '18px 16px 14px',
+        padding: '14px 16px 12px',
         flexShrink: 0,
         borderBottom: '1px solid var(--border)',
-        background: 'linear-gradient(180deg, rgba(79,127,243,0.08), rgba(13,17,17,0) 58%), radial-gradient(circle at top left, rgba(255,255,255,0.05), transparent 42%)',
+        background: 'linear-gradient(180deg, rgba(79,127,243,0.06), rgba(13,17,17,0) 58%)',
       }}>
         <div style={{
-          padding: '16px',
-          borderRadius: 18,
-          border: '1px solid var(--border)',
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01))',
-          boxShadow: 'var(--shadow-soft)',
-          marginBottom: 12,
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 12,
+          flexWrap: 'wrap',
+          marginBottom: 10,
         }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--blue)', marginBottom: 8 }}>
-                CRM Workspace
-              </div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>
-                Leads
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
-                {activeQuickViewLabel} · {helperText}
-              </div>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--blue)', marginBottom: 6 }}>
+              CRM Workspace
             </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <SummaryBadge label="Affichés" value={processed.length} />
-              <SummaryBadge label="Nouveaux" value={newCount} tone="blue" />
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>
+              Leads
             </div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
+              {activeQuickViewLabel} · {helperText}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <SummaryBadge label="Affichés" value={processed.length} />
+            <SummaryBadge label="Nouveaux" value={newCount} tone="blue" />
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {quickViewCounts.map(view => (
               <button
@@ -283,11 +303,11 @@ export default function LeadsList({
                 onClick={() => { onQuickViewChange?.(view.key); setPage(1) }}
                 style={{
                   fontSize: 11,
-                  padding: '7px 12px',
+                  padding: '6px 11px',
                   borderRadius: 999,
-                  border: quickView === view.key ? '1px solid var(--red)' : '1px solid var(--border-md)',
-                  background: quickView === view.key ? 'linear-gradient(180deg, rgba(191,24,24,0.18), rgba(191,24,24,0.08))' : 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
-                  color: quickView === view.key ? 'var(--red)' : 'var(--muted)',
+                  border: quickView === view.key ? '1px solid var(--select-accent)' : '1px solid var(--border-md)',
+                  background: quickView === view.key ? 'linear-gradient(180deg, rgba(79,127,243,0.18), rgba(79,127,243,0.08))' : 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
+                  color: quickView === view.key ? 'var(--select-accent)' : 'var(--muted)',
                   cursor: 'pointer',
                   fontFamily: 'var(--sans)',
                   fontWeight: quickView === view.key ? 600 : 500,
@@ -299,7 +319,7 @@ export default function LeadsList({
             {hasHiddenQuickView && (
               <span style={{
                 fontSize: 11,
-                padding: '7px 12px',
+                padding: '6px 11px',
                 borderRadius: 999,
                 border: '1px solid var(--blue)',
                 background: 'linear-gradient(180deg, rgba(79,127,243,0.18), rgba(79,127,243,0.08))',
@@ -314,7 +334,7 @@ export default function LeadsList({
           <div style={{
             display: 'inline-flex',
             gap: 4,
-            padding: 4,
+            padding: 3,
             borderRadius: 999,
             background: 'rgba(255,255,255,0.03)',
             border: '1px solid var(--border)',
@@ -330,8 +350,8 @@ export default function LeadsList({
           gap: 6,
           flexWrap: 'wrap',
           alignItems: 'center',
-          padding: '12px',
-          borderRadius: 14,
+          padding: '10px',
+          borderRadius: 12,
           border: '1px solid var(--border)',
           background: 'rgba(255,255,255,0.025)',
         }}>
@@ -362,7 +382,7 @@ export default function LeadsList({
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '10px 10px 16px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '10px 12px 16px' }}>
         {paginated.length === 0 ? (
           <div style={{
             display: 'flex',

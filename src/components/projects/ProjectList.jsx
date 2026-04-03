@@ -65,11 +65,20 @@ export default function ProjectList({
   onReorder,
   onStatusChange,
 }) {
+  const isArchivedProject = (project) => project.status === 'archived'
+  const organizeSort = (list) => [...list].sort((a, b) => {
+    const bucketA = isArchivedProject(a) ? 1 : 0
+    const bucketB = isArchivedProject(b) ? 1 : 0
+    if (bucketA !== bucketB) return bucketA - bucketB
+    return (a.order ?? 999) - (b.order ?? 999)
+  })
+
   const [page, setPage] = useState(1)
   const [dragSrc, setDragSrc] = useState(null)
   const [dragOver, setDragOver] = useState(null)
   const [checkedIds, setCheckedIds] = useState(new Set())
   const [organizeMode, setOrganizeMode] = useState(false)
+  const detailOpen = !!selectedId
 
   const toggleCheck = (id) => {
     setCheckedIds(prev => {
@@ -90,7 +99,7 @@ export default function ProjectList({
   // Filter + sort
   const filtered = useMemo(() => {
     if (organizeMode) {
-      return [...projects].sort((a, b) => (a.order ?? 999) - (b.order ?? 999))
+      return organizeSort(projects)
     }
 
     let list = [...projects]
@@ -160,7 +169,9 @@ export default function ProjectList({
     const reordered = [...visibleProjects]
     const [moved] = reordered.splice(dragSrc, 1)
     reordered.splice(idx, 0, moved)
-    const orderedItems = reordered.map((p, i) => ({ id: p.id, order: i + 1 }))
+    const activeProjects = reordered.filter(project => !isArchivedProject(project))
+    const archivedProjects = reordered.filter(project => isArchivedProject(project))
+    const orderedItems = [...activeProjects, ...archivedProjects].map((p, i) => ({ id: p.id, order: i + 1 }))
     onReorder && onReorder(orderedItems)
     handleDragEnd()
   }
@@ -169,12 +180,12 @@ export default function ProjectList({
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {/* Header */}
       <div style={{
-        padding: '14px 16px 10px',
+        padding: detailOpen ? '12px 14px 10px' : '14px 16px 10px',
         borderBottom: '1px solid var(--border)',
         flexShrink: 0,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 14, fontWeight: 600 }}>Projets</span>
             <span style={{
               fontSize: 11,
@@ -189,7 +200,7 @@ export default function ProjectList({
           </div>
 
           {/* Sort */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, flexWrap: 'wrap' }}>
             <button
               onClick={() => {
                 setOrganizeMode(prev => !prev)
@@ -200,9 +211,9 @@ export default function ProjectList({
                 fontSize: 11,
                 padding: '3px 9px',
                 borderRadius: 999,
-                border: organizeMode ? '1px solid var(--red)' : '1px solid var(--border-md)',
-                background: organizeMode ? 'var(--red-dim)' : 'transparent',
-                color: organizeMode ? 'var(--red)' : 'var(--muted)',
+                border: organizeMode ? '1px solid var(--select-accent)' : '1px solid var(--border-md)',
+                background: organizeMode ? 'var(--select-bg)' : 'transparent',
+                color: organizeMode ? 'var(--select-accent)' : 'var(--muted)',
                 cursor: 'pointer',
                 fontFamily: 'var(--sans)',
               }}
@@ -281,15 +292,17 @@ export default function ProjectList({
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             marginBottom: 8,
-            background: 'var(--red-dim)', borderRadius: 'var(--radius)',
-            padding: '6px 10px', border: '1px solid rgba(191,24,24,0.2)',
+            background: 'var(--select-bg)', borderRadius: 'var(--radius)',
+            padding: '6px 10px', border: '1px solid var(--select-border)',
+            gap: 10,
+            flexWrap: 'wrap',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <input
                 type="checkbox"
                 checked={checkedIds.size === paginated.length}
                 onChange={toggleAll}
-                style={{ width: 14, height: 14, accentColor: 'var(--red)', cursor: 'pointer' }}
+                style={{ width: 14, height: 14, accentColor: 'var(--select-accent)', cursor: 'pointer' }}
               />
               <span style={{ fontSize: 12, color: 'var(--text)', fontWeight: 600 }}>
                 {checkedIds.size} sélectionné{checkedIds.size > 1 ? 's' : ''}
@@ -329,31 +342,32 @@ export default function ProjectList({
             marginBottom: 10,
             padding: '8px 10px',
             borderRadius: 'var(--radius)',
-            background: 'var(--blue-dim)',
-            border: '1px solid rgba(79,127,243,0.25)',
+            background: 'var(--select-bg)',
+            border: '1px solid var(--select-border)',
             fontSize: 11,
-            color: 'var(--blue)',
+            color: 'var(--select-accent)',
             lineHeight: 1.5,
           }}>
-            Mode organisation actif: liste complete triee par ordre. Fais glisser les projets pour redefinir leur position globale.
+            Mode organisation actif: la liste est globale et triee par ordre. Les projets archives restent automatiquement en fin de liste pour conserver l'ordre 1, 2, 3... des projets actifs.
           </div>
         )}
 
         {/* Filter bar */}
-        <div style={{ display: 'flex', gap: 6, opacity: organizeMode ? 0.6 : 1 }}>
+        {!organizeMode && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           <SelectFilter
             value={filters.status}
-            onChange={v => { if (organizeMode) return; onFilterChange({ ...filters, status: v }); setPage(1) }}
+            onChange={v => { onFilterChange({ ...filters, status: v }); setPage(1) }}
             options={STATUSES.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
             label="Statut"
           />
           <SelectFilter
             value={filters.category}
-            onChange={v => { if (organizeMode) return; onFilterChange({ ...filters, category: v }); setPage(1) }}
+            onChange={v => { onFilterChange({ ...filters, category: v }); setPage(1) }}
             options={CATEGORIES}
             label="Catégorie"
           />
-          {(filters.status !== 'all' || filters.category !== 'all') && !organizeMode && (
+          {(filters.status !== 'all' || filters.category !== 'all') && (
             <button
               onClick={() => { onFilterChange({ status: 'all', category: 'all' }); setPage(1) }}
               style={{
@@ -371,19 +385,23 @@ export default function ProjectList({
             </button>
           )}
         </div>
+        )}
       </div>
 
       {/* List */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '10px 12px 16px' }}>
         {visibleProjects.length === 0 ? (
           <div style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            height: '100%',
+            height: 240,
             gap: 12,
             color: 'var(--muted2)',
+            border: '1px dashed var(--border-md)',
+            borderRadius: 18,
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
           }}>
             <IconEmpty />
             <span style={{ fontSize: 13 }}>Aucun projet trouvé</span>
@@ -394,6 +412,7 @@ export default function ProjectList({
               key={project.id}
               project={project}
               isSelected={project.id === selectedId}
+              displayOrder={organizeMode ? idx + 1 : project.order}
               onClick={() => checkedIds.size > 0 ? toggleCheck(project.id) : onSelect(project.id === selectedId ? null : project.id)}
               onEdit={() => onSelect(project.id)}
               onDuplicate={onDuplicate}

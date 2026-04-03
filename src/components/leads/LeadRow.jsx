@@ -167,11 +167,11 @@ export default function LeadRow({ lead, isSelected, onClick, onStatutChange, onD
       <div
         style={{
           position: 'relative',
-          border: isSelected ? '1px solid rgba(191,24,24,0.28)' : '1px solid var(--border)',
-          borderLeft: isSelected ? '3px solid var(--red)' : '3px solid transparent',
+          border: isSelected ? '1px solid var(--select-border)' : '1px solid var(--border)',
+          borderLeft: isSelected ? '3px solid var(--select-accent)' : '3px solid transparent',
           borderRadius: 14,
           background: isSelected
-            ? 'linear-gradient(180deg, rgba(191,24,24,0.14), rgba(191,24,24,0.04))'
+            ? 'linear-gradient(180deg, rgba(79,127,243,0.16), rgba(79,127,243,0.05))'
             : hovered
               ? 'linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))'
               : 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
@@ -191,8 +191,7 @@ export default function LeadRow({ lead, isSelected, onClick, onStatutChange, onD
             gridTemplateColumns: 'auto 1fr auto',
             gap: 12,
             alignItems: 'center',
-            paddingRight: hovered ? 90 : 14,
-            transition: 'padding-right 0.15s',
+            paddingRight: 84,
           }}
         >
           <div onClick={e => e.stopPropagation()}>
@@ -309,9 +308,9 @@ export default function LeadRow({ lead, isSelected, onClick, onStatutChange, onD
           transform: 'translateY(-50%)',
           display: 'grid',
           gap: 4,
-          opacity: hovered ? 1 : 0,
+          opacity: hovered || isSelected ? 1 : 0,
           transition: 'opacity 0.15s',
-          pointerEvents: hovered ? 'auto' : 'none',
+          pointerEvents: hovered || isSelected ? 'auto' : 'none',
         }}>
           <ActionBtn onClick={() => onClick && onClick()} title="Modifier">
             <IconEdit />

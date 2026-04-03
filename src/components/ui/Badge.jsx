@@ -7,10 +7,14 @@ const STATUS_STYLES = {
 }
 
 const CAT_COLORS = {
-  Nature:     { bg: 'rgba(34,197,94,0.1)',  color: '#4ade80' },
-  Immobilier: { bg: 'rgba(79,127,243,0.1)', color: '#818cf8' },
-  Corporate:  { bg: 'rgba(245,158,11,0.1)', color: '#fbbf24' },
-  Tourisme:   { bg: 'rgba(236,72,153,0.1)', color: '#f472b6' },
+  nature:         { bg: 'rgba(34,197,94,0.1)',  color: '#4ade80' },
+  immobilier:     { bg: 'rgba(79,127,243,0.1)', color: '#818cf8' },
+  corporate:      { bg: 'rgba(245,158,11,0.1)', color: '#fbbf24' },
+  tourisme:       { bg: 'rgba(236,72,153,0.1)', color: '#f472b6' },
+  'événement':    { bg: 'rgba(245,158,11,0.1)', color: '#fbbf24' },
+  patrimoine:     { bg: 'rgba(148,163,184,0.14)', color: '#94a3b8' },
+  entreprise:     { bg: 'rgba(79,127,243,0.12)', color: '#93c5fd' },
+  institutionnel: { bg: 'rgba(168,85,247,0.12)', color: '#c4b5fd' },
 }
 
 export default function Badge({ variant = 'status', value, small = false, label: customLabel, bg: customBg, color: customColor }) {
@@ -22,7 +26,7 @@ export default function Badge({ variant = 'status', value, small = false, label:
     color = s.color
     label = s.label
   } else if (variant === 'category') {
-    const c = CAT_COLORS[value] || { bg: 'var(--gray-dim)', color: 'var(--gray)' }
+    const c = CAT_COLORS[String(value || '').toLowerCase()] || { bg: 'var(--gray-dim)', color: 'var(--gray)' }
     bg = c.bg
     color = c.color
     label = value

@@ -48,7 +48,18 @@ function StreamableButton({ label, icon, onClick, pending }) {
   )
 }
 
-export default function Topbar({ search, onSearch, onNewProject, mobile, onMenuToggle, onOpenStreamableImport, hasPendingStreamableImports = false }) {
+export default function Topbar({
+  search,
+  onSearch,
+  onNewProject,
+  mobile,
+  onMenuToggle,
+  onOpenStreamableImport,
+  hasPendingStreamableImports = false,
+  searchPlaceholder = 'Rechercher…',
+  searchDisabled = false,
+  showProjectActions = false,
+}) {
   return (
     <div
       style={{
@@ -94,21 +105,23 @@ export default function Topbar({ search, onSearch, onNewProject, mobile, onMenuT
           type="text"
           value={search}
           onChange={e => onSearch(e.target.value)}
-          placeholder="Rechercher un projet…"
+          placeholder={searchPlaceholder}
+          disabled={searchDisabled}
           style={{
             width: '100%',
             height: 34,
-            background: 'var(--s3)',
+            background: searchDisabled ? 'rgba(255,255,255,0.02)' : 'var(--s3)',
             border: '1px solid var(--border-md)',
             borderRadius: 'var(--radius)',
-            color: 'var(--text)',
+            color: searchDisabled ? 'var(--muted2)' : 'var(--text)',
             fontSize: 13,
             paddingLeft: 32,
             paddingRight: 12,
             fontFamily: 'var(--sans)',
             outline: 'none',
+            cursor: searchDisabled ? 'default' : 'text',
           }}
-          onFocus={e => { e.target.style.borderColor = 'var(--red)'; e.target.style.boxShadow = '0 0 0 3px var(--red-dim)' }}
+          onFocus={e => { e.target.style.borderColor = 'var(--blue)'; e.target.style.boxShadow = '0 0 0 3px var(--blue-dim)' }}
           onBlur={e => { e.target.style.borderColor = 'var(--border-md)'; e.target.style.boxShadow = 'none' }}
         />
       </div>
@@ -117,7 +130,7 @@ export default function Topbar({ search, onSearch, onNewProject, mobile, onMenuT
       {!mobile && <div style={{ flex: 1 }} />}
 
       {/* Streamable import + New project — masqués sur mobile */}
-      {!mobile && <>
+      {!mobile && showProjectActions && <>
         <StreamableButton
           label="Import Streamable"
           icon={

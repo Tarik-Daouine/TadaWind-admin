@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import Badge from '../ui/Badge.jsx'
 
 const STATUS_OPTIONS = [
@@ -7,7 +7,7 @@ const STATUS_OPTIONS = [
   { value: 'archived',  label: 'Archivé'   },
 ]
 
-function StatusDropdown({ value, onChange }) {
+function StatusDropdown({ value, onChange, fullWidth = false }) {
   const [open, setOpen] = useState(false)
   const ref = useRef()
 
@@ -19,10 +19,17 @@ function StatusDropdown({ value, onChange }) {
   }, [open])
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
+    <div ref={ref} style={{ position: 'relative', width: fullWidth ? '100%' : 'auto' }}>
       <div
         onClick={e => { e.stopPropagation(); setOpen(p => !p) }}
-        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}
+        style={{
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: fullWidth ? 'space-between' : 'flex-start',
+          gap: 4,
+          width: fullWidth ? '100%' : 'auto',
+        }}
         title="Changer le statut"
       >
         <Badge variant="status" value={value} />
@@ -30,7 +37,7 @@ function StatusDropdown({ value, onChange }) {
       </div>
       {open && (
         <div style={{
-          position: 'absolute', right: 0, top: 'calc(100% + 4px)',
+          position: 'absolute', left: 0, top: 'calc(100% + 4px)',
           background: 'var(--s2)', border: '1px solid var(--border-md)',
           borderRadius: 8, overflow: 'hidden', zIndex: 100,
           boxShadow: '0 4px 16px rgba(0,0,0,0.4)', minWidth: 110,
@@ -95,6 +102,17 @@ const IconCamera = () => (
   </svg>
 )
 
+const IconGrip = () => (
+  <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
+    <circle cx="2.5" cy="2.5" r="1.5"/>
+    <circle cx="7.5" cy="2.5" r="1.5"/>
+    <circle cx="2.5" cy="7" r="1.5"/>
+    <circle cx="7.5" cy="7" r="1.5"/>
+    <circle cx="2.5" cy="11.5" r="1.5"/>
+    <circle cx="7.5" cy="11.5" r="1.5"/>
+  </svg>
+)
+
 function formatDate(dateStr) {
   if (!dateStr) return ''
   try {
@@ -102,6 +120,36 @@ function formatDate(dateStr) {
   } catch {
     return dateStr
   }
+}
+
+function MetaChip({ children, tone = 'neutral' }) {
+  const tones = {
+    neutral: {
+      border: '1px solid var(--border)',
+      background: 'rgba(255,255,255,0.03)',
+      color: 'var(--muted)',
+    },
+    blue: {
+      border: '1px solid rgba(79,127,243,0.18)',
+      background: 'rgba(79,127,243,0.08)',
+      color: 'var(--blue)',
+    },
+  }
+  const palette = tones[tone] || tones.neutral
+
+  return (
+    <span style={{
+      fontSize: 10,
+      padding: '2px 8px',
+      borderRadius: 999,
+      border: palette.border,
+      background: palette.background,
+      color: palette.color,
+      whiteSpace: 'nowrap',
+    }}>
+      {children}
+    </span>
+  )
 }
 
 function ActionBtn({ onClick, title, children, danger }) {
@@ -138,22 +186,12 @@ function ActionBtn({ onClick, title, children, danger }) {
   )
 }
 
-const IconGrip = () => (
-  <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
-    <circle cx="2.5" cy="2.5" r="1.5"/>
-    <circle cx="7.5" cy="2.5" r="1.5"/>
-    <circle cx="2.5" cy="7" r="1.5"/>
-    <circle cx="7.5" cy="7" r="1.5"/>
-    <circle cx="2.5" cy="11.5" r="1.5"/>
-    <circle cx="7.5" cy="11.5" r="1.5"/>
-  </svg>
-)
-
 export default function ProjectRow({
   project, isSelected, onClick, onEdit, onDuplicate, onDelete,
   isDragOver, isDragging,
   onDragStart, onDragOver, onDragEnd, onDrop,
   onStatusChange,
+  displayOrder,
   isChecked, onCheck, selectionActive,
   draggableEnabled = true,
   showDragHandle = false,
@@ -163,168 +201,165 @@ export default function ProjectRow({
   const showCheckbox = !showDragHandle && (hovered || isChecked || selectionActive)
 
   return (
-    <div
-      draggable={draggableEnabled}
-      onDragStart={draggableEnabled ? onDragStart : undefined}
-      onDragOver={draggableEnabled ? (e => { e.preventDefault(); onDragOver && onDragOver(e) }) : undefined}
-      onDragEnd={draggableEnabled ? onDragEnd : undefined}
-      onDrop={draggableEnabled ? (e => { e.preventDefault(); onDrop && onDrop(e) }) : undefined}
-      style={{
-        position: 'relative',
-        borderBottom: '1px solid var(--border)',
-        borderLeft: isSelected ? '2px solid var(--red)' : '2px solid transparent',
-        borderTop: isDragOver ? '2px solid var(--red)' : '2px solid transparent',
-        background: isDragging ? 'var(--s3)' : isSelected ? 'var(--red-dim)' : hovered ? 'var(--s2)' : 'transparent',
-        opacity: isDragging ? 0.5 : 1,
-        transition: 'background 0.12s',
-        cursor: draggableEnabled ? 'grab' : 'pointer',
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      {/* Checkbox ou drag handle */}
-      <div style={{
-        position: 'absolute',
-        left: 4,
-        top: '50%',
-        transform: 'translateY(-50%)',
-        display: 'flex',
-        alignItems: 'center',
-        zIndex: 1,
-      }}>
-        {showDragHandle ? (
-          <div style={{ color: 'var(--muted2)', opacity: 1 }}>
-            <IconGrip />
-          </div>
-        ) : showCheckbox ? (
-          <input
-            type="checkbox"
-            checked={!!isChecked}
-            onChange={e => { e.stopPropagation(); onCheck && onCheck(project.id) }}
-            onClick={e => e.stopPropagation()}
-            style={{ width: 14, height: 14, cursor: 'pointer', accentColor: 'var(--red)' }}
-          />
-        ) : (
-          <div style={{ color: 'var(--muted2)', opacity: hovered ? 1 : 0, transition: 'opacity 0.15s', pointerEvents: 'none' }}>
-            <IconGrip />
-          </div>
-        )}
-      </div>
-
-      {/* Main row */}
+    <div style={{ padding: '0 0 8px' }}>
       <div
-        onClick={onClick}
+        draggable={draggableEnabled}
+        onDragStart={draggableEnabled ? onDragStart : undefined}
+        onDragOver={draggableEnabled ? (e => { e.preventDefault(); onDragOver && onDragOver(e) }) : undefined}
+        onDragEnd={draggableEnabled ? onDragEnd : undefined}
+        onDrop={draggableEnabled ? (e => { e.preventDefault(); onDrop && onDrop(e) }) : undefined}
         style={{
-          padding: '10px 14px 10px 20px',
-          display: 'grid',
-          gridTemplateColumns: 'auto 20px 48px 1fr auto',
-          gap: 10,
-          alignItems: 'center',
-          paddingRight: hovered ? 100 : 14,
-          transition: 'padding-right 0.15s',
+          position: 'relative',
+          border: isSelected ? '1px solid var(--select-border)' : '1px solid var(--border)',
+          borderLeft: isSelected ? '3px solid var(--select-accent)' : '3px solid transparent',
+          borderTopColor: isDragOver ? 'var(--select-accent)' : (isSelected ? 'var(--select-border)' : 'var(--border)'),
+          borderRadius: 14,
+          background: isSelected
+            ? 'linear-gradient(180deg, rgba(79,127,243,0.16), rgba(79,127,243,0.05))'
+            : hovered
+              ? 'linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))'
+              : 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
+          boxShadow: isSelected ? 'var(--shadow-soft)' : hovered ? '0 16px 30px rgba(0,0,0,0.18)' : 'none',
+          transition: 'background 0.12s, transform 0.12s, box-shadow 0.12s, border-color 0.12s',
+          cursor: draggableEnabled ? 'grab' : 'pointer',
+          transform: hovered ? 'translateY(-1px)' : 'translateY(0)',
+          opacity: isDragging ? 0.55 : 1,
         }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
       >
-        {/* Status dropdown */}
-        <StatusDropdown
-          value={project.status}
-          onChange={newStatus => onStatusChange && onStatusChange(project.id, newStatus)}
-        />
-
-        {/* Order number */}
-        <span style={{
-          fontSize: 10,
-          color: 'var(--muted2)',
-          fontVariantNumeric: 'tabular-nums',
-          textAlign: 'right',
-          userSelect: 'none',
-        }}>
-          {project.order ?? '–'}
-        </span>
-
-        {/* Thumbnail */}
-        {project.cover && !imgError ? (
-          <img
-            src={project.cover}
-            alt={project.title}
-            onError={() => setImgError(true)}
-            style={{
-              width: 48,
-              height: 36,
-              objectFit: 'cover',
-              borderRadius: 4,
-              border: '1px solid var(--border)',
-              flexShrink: 0,
-            }}
-          />
-        ) : (
-          <div style={{
-            width: 48,
-            height: 36,
-            borderRadius: 4,
-            border: '1px solid var(--border)',
-            background: 'var(--s3)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--muted2)',
-            flexShrink: 0,
-          }}>
-            <IconCamera />
+        <div
+          onClick={onClick}
+          style={{
+            padding: '12px 14px',
+            paddingRight: showDragHandle ? 14 : 84,
+            display: 'grid',
+            gridTemplateColumns: '80px minmax(0, 1fr) auto',
+            gap: 12,
+            alignItems: 'flex-start',
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {showDragHandle ? (
+                <div style={{ width: 12, color: 'var(--muted2)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                  <IconGrip />
+                </div>
+              ) : showCheckbox ? (
+                <input
+                  type="checkbox"
+                  checked={!!isChecked}
+                  onChange={e => { e.stopPropagation(); onCheck && onCheck(project.id) }}
+                  onClick={e => e.stopPropagation()}
+                  style={{ width: 14, height: 14, cursor: 'pointer', accentColor: 'var(--select-accent)', flexShrink: 0 }}
+                />
+              ) : (
+                <div style={{ width: 14, flexShrink: 0 }} />
+              )}
+              <StatusDropdown
+                value={project.status}
+                onChange={newStatus => onStatusChange && onStatusChange(project.id, newStatus)}
+                fullWidth
+              />
+            </div>
+            <div style={{ paddingLeft: 22 }}>
+              <MetaChip>Ordre {displayOrder ?? project.order ?? '—'}</MetaChip>
+            </div>
           </div>
-        )}
 
-        {/* Info */}
-        <div style={{ minWidth: 0 }}>
-          <div style={{
-            fontSize: 13,
-            fontWeight: 500,
-            color: 'var(--text)',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            marginBottom: 3,
-          }}>
-            {project.title}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {project.lieu && (
-              <span style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 80 }}>
-                {project.lieu}
-              </span>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0 }}>
+            {project.cover && !imgError ? (
+              <img
+                src={project.cover}
+                alt={project.title}
+                onError={() => setImgError(true)}
+                style={{
+                  width: 54,
+                  height: 40,
+                  objectFit: 'cover',
+                  borderRadius: 8,
+                  border: '1px solid var(--border)',
+                  flexShrink: 0,
+                }}
+              />
+            ) : (
+              <div style={{
+                width: 54,
+                height: 40,
+                borderRadius: 8,
+                border: '1px solid var(--border)',
+                background: 'var(--s3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--muted2)',
+                flexShrink: 0,
+              }}>
+                <IconCamera />
+              </div>
             )}
-            <Badge variant="category" value={project.category} small />
+
+            <div style={{ minWidth: 0 }}>
+              <div style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: 'var(--text)',
+                lineHeight: 1.3,
+                marginBottom: 6,
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+              }}>
+                {project.title}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                {project.lieu && (
+                  <span style={{
+                    fontSize: 11,
+                    color: 'var(--muted)',
+                    lineHeight: 1.35,
+                  }}>
+                    {project.lieu}
+                  </span>
+                )}
+                {project.region && <MetaChip>{project.region}</MetaChip>}
+                {project.category && <Badge variant="category" value={project.category} small />}
+                <MetaChip tone="blue">{formatDate(project.date) || 'Sans date'}</MetaChip>
+                {project.streamableId && <MetaChip>Streamable</MetaChip>}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, minWidth: 26 }}>
+            {!showDragHandle && isSelected && (
+              <span style={{ width: 26, height: 2, borderRadius: 999, background: 'var(--select-accent)', opacity: 0.6 }} />
+            )}
           </div>
         </div>
 
-        {/* Date */}
-        <span style={{ fontSize: 10, color: 'var(--muted2)', flexShrink: 0, textAlign: 'right' }}>
-          {formatDate(project.date)}
-        </span>
-      </div>
-
-      {/* Hover actions */}
-      <div
-        style={{
+        <div style={{
           position: 'absolute',
-          right: 10,
+          right: 12,
           top: '50%',
           transform: 'translateY(-50%)',
-          display: 'flex',
+          display: 'grid',
           gap: 4,
-          opacity: hovered && !showDragHandle ? 1 : 0,
+          opacity: (hovered || isSelected) && !showDragHandle ? 1 : 0,
           transition: 'opacity 0.15s',
-          pointerEvents: hovered && !showDragHandle ? 'auto' : 'none',
-        }}
-      >
-        <ActionBtn onClick={() => onEdit && onEdit(project.id)} title="Modifier">
-          <IconEdit />
-        </ActionBtn>
-        <ActionBtn onClick={() => onDuplicate(project.id)} title="Dupliquer">
-          <IconCopy />
-        </ActionBtn>
-        <ActionBtn onClick={() => onDelete(project.id)} title="Supprimer" danger>
-          <IconTrash />
-        </ActionBtn>
+          pointerEvents: (hovered || isSelected) && !showDragHandle ? 'auto' : 'none',
+        }}>
+          <ActionBtn onClick={() => onEdit && onEdit(project.id)} title="Modifier">
+            <IconEdit />
+          </ActionBtn>
+          <ActionBtn onClick={() => onDuplicate(project.id)} title="Dupliquer">
+            <IconCopy />
+          </ActionBtn>
+          <ActionBtn onClick={() => onDelete(project.id)} title="Supprimer" danger>
+            <IconTrash />
+          </ActionBtn>
+        </div>
       </div>
     </div>
   )

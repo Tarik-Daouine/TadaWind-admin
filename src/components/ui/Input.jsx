@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import ThemedDateInput from './ThemedDateInput.jsx'
 
 export default function Input({
   label,
@@ -58,6 +59,14 @@ export default function Input({
           style={inputStyle}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
+          {...rest}
+        />
+      ) : type === 'date' ? (
+        <ThemedDateInput
+          value={value}
+          onChange={(nextValue) => onChange?.({ target: { value: nextValue } })}
+          placeholder={placeholder}
+          style={extraStyle}
           {...rest}
         />
       ) : (

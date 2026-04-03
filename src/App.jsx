@@ -97,6 +97,14 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen]         = useState(false)
   const [streamableImportSession, setStreamableImportSession] = useState(null)
   const [streamableImportOpen, setStreamableImportOpen]       = useState(false)
+  const searchEnabled = view === 'projects' || view === 'leads'
+  const searchPlaceholderByView = {
+    projects: 'Rechercher un projet…',
+    leads: 'Rechercher un lead…',
+    analytics: 'Recherche inactive',
+    medias: 'Recherche inactive',
+    settings: 'Recherche inactive',
+  }
 
   // Flux officiel Streamable:
   // le bookmarklet ouvre l'admin avec ?streamable_ids=abc,def,ghi.
@@ -268,6 +276,9 @@ export default function App() {
           onMenuToggle={() => setSidebarOpen(p => !p)}
           onOpenStreamableImport={handleOpenStreamableImport}
           hasPendingStreamableImports={(streamableImportSession?.videosToImport?.length ?? 0) > 0}
+          searchPlaceholder={searchPlaceholderByView[view] || 'Rechercher…'}
+          searchDisabled={!searchEnabled}
+          showProjectActions={view === 'projects'}
         />
 
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
@@ -306,7 +317,7 @@ export default function App() {
               ) : (
                 <>
                   <div style={{
-                    width: selectedId ? 380 : '100%',
+                    width: selectedId ? 'min(440px, 38vw)' : '100%',
                     flexShrink: 0,
                     borderRight: selectedId ? '1px solid var(--border)' : 'none',
                     overflow: 'hidden',
@@ -369,7 +380,7 @@ export default function App() {
                 {/* Liste — masquée sur mobile si un lead est sélectionné */}
                 {(!mobile || !selectedLeadId) && (
                   <div style={{
-                    width: (!mobile && selectedLeadId) ? 420 : '100%',
+                    width: (!mobile && selectedLeadId) ? 'min(470px, 40vw)' : '100%',
                     flexShrink: 0,
                     borderRight: (!mobile && selectedLeadId) ? '1px solid var(--border)' : 'none',
                     overflow: 'hidden',
