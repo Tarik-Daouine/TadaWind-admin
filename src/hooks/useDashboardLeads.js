@@ -75,6 +75,13 @@ function startOfToday(referenceDate = new Date()) {
   return date
 }
 
+function startOfDate(value) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  date.setHours(0, 0, 0, 0)
+  return date
+}
+
 function diffDays(from, to = new Date()) {
   if (!from) return null
   const start = new Date(from)
@@ -199,7 +206,9 @@ export function useDashboardLeads(periodKey = '30d') {
     const relances = rows.filter(row => {
       if (CLOSED.includes(row.statut)) return false
       if (!row.dateRelance) return false
-      return new Date(row.dateRelance) < today
+      const followUpDate = startOfDate(row.dateRelance)
+      if (!followUpDate) return false
+      return followUpDate <= today
     })
 
     const activeRows = rows.filter(row => !CLOSED.includes(row.statut))

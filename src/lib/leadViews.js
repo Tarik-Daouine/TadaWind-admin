@@ -15,10 +15,19 @@ function startOfToday(referenceDate = new Date()) {
   return date
 }
 
+function startOfDate(value) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  date.setHours(0, 0, 0, 0)
+  return date
+}
+
 function hasOverdueFollowUp(lead, referenceDate = new Date()) {
   if (CLOSED_STATUSES.has(lead.statut)) return false
   if (!lead.dateRelance) return lead.statut === 'À relancer'
-  return new Date(lead.dateRelance) < startOfToday(referenceDate)
+  const followUpDate = startOfDate(lead.dateRelance)
+  if (!followUpDate) return false
+  return followUpDate <= startOfToday(referenceDate)
 }
 
 export function matchesLeadQuickView(lead, quickView, referenceDate = new Date()) {
