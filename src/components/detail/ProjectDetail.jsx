@@ -33,7 +33,7 @@ function formatDateTime(iso) {
   }
 }
 
-export default function ProjectDetail({ project, projects = [], onUpdate, onClose, onToast }) {
+export default function ProjectDetail({ project, projects = [], onUpdate, onClose, onToast, mobile = false }) {
   const [tab, setTab] = useState('infos')
   const [editedProject, setEditedProject] = useState({ ...project })
   const [isDirty, setIsDirty] = useState(false)
@@ -72,27 +72,30 @@ export default function ProjectDetail({ project, projects = [], onUpdate, onClos
     }}>
       {/* Header */}
       <div style={{
-        padding: '0 24px',
+        padding: mobile ? '0 14px' : '0 24px',
         borderBottom: '1px solid var(--border)',
         background: 'var(--s1)',
         flexShrink: 0,
       }}>
         {/* Top row */}
         <div style={{
-          height: 'var(--topbar-h)',
+          minHeight: 'var(--topbar-h)',
+          padding: mobile ? '10px 0' : 0,
           display: 'flex',
           alignItems: 'center',
           gap: 12,
+          flexWrap: mobile ? 'wrap' : 'nowrap',
         }}>
           {/* Title */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ flex: 1, minWidth: 0, width: mobile ? '100%' : 'auto' }}>
             <div style={{
               fontFamily: 'var(--serif)',
-              fontSize: 18,
+              fontSize: mobile ? 16 : 18,
               color: 'var(--text)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
+              whiteSpace: mobile ? 'normal' : 'nowrap',
+              lineHeight: 1.2,
             }}>
               {editedProject.title}
             </div>
@@ -142,13 +145,13 @@ export default function ProjectDetail({ project, projects = [], onUpdate, onClos
         </div>
 
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: 0 }}>
+        <div style={{ display: 'flex', gap: 0, overflowX: mobile ? 'auto' : 'visible', paddingBottom: mobile ? 2 : 0 }}>
           {TABS.map(t => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
               style={{
-                padding: '10px 16px',
+                padding: mobile ? '10px 14px' : '10px 16px',
                 fontSize: 13,
                 fontWeight: 500,
                 cursor: 'pointer',
@@ -159,6 +162,7 @@ export default function ProjectDetail({ project, projects = [], onUpdate, onClos
                 fontFamily: 'var(--sans)',
                 transition: 'color 0.15s',
                 marginBottom: -1,
+                flexShrink: 0,
               }}
               onMouseEnter={e => { if (tab !== t.id) e.currentTarget.style.color = 'var(--text)' }}
               onMouseLeave={e => { if (tab !== t.id) e.currentTarget.style.color = 'var(--muted)' }}
@@ -170,7 +174,7 @@ export default function ProjectDetail({ project, projects = [], onUpdate, onClos
       </div>
 
       {/* Tab content — scrollable */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: mobile ? 14 : 24 }}>
         {tab === 'infos' && (
           <TabInfos project={editedProject} onChange={handleChange} />
         )}
@@ -187,11 +191,13 @@ export default function ProjectDetail({ project, projects = [], onUpdate, onClos
 
       {/* Footer */}
       <div style={{
-        padding: '8px 24px',
+        padding: mobile ? '10px 14px' : '8px 24px',
         borderTop: '1px solid var(--border)',
         display: 'flex',
-        alignItems: 'center',
+        alignItems: mobile ? 'flex-start' : 'center',
         justifyContent: 'space-between',
+        flexDirection: mobile ? 'column' : 'row',
+        gap: mobile ? 4 : 12,
         background: 'var(--s1)',
         flexShrink: 0,
       }}>

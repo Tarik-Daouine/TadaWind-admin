@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { useIsMobile } from '../../hooks/useIsMobile.js'
 
 const STATUT_OPTIONS = [
   { value: 'nouveau',           label: 'Nouveau',           color: '#4f7ff3' },
@@ -156,7 +157,9 @@ function ActionBtn({ onClick, title, children, danger }) {
   )
 }
 
-export default function LeadRow({ lead, isSelected, onClick, onStatutChange, onDelete }) {
+export default function LeadRow({ lead, isSelected, onClick, onStatutChange, onDelete, mobile: mobileProp = false }) {
+  const hookMobile = useIsMobile()
+  const mobile = mobileProp || hookMobile
   const [hovered, setHovered] = useState(false)
   const displayName = [lead.prenom, lead.nom].filter(Boolean).join(' ') || lead.email || lead.nomEntreprise || 'Sans nom'
   const nextStep = lead.nextStep || ''
@@ -186,119 +189,228 @@ export default function LeadRow({ lead, isSelected, onClick, onStatutChange, onD
         <div
           onClick={onClick}
           style={{
-            padding: '12px 14px',
-            display: 'grid',
-            gridTemplateColumns: 'auto 1fr auto',
-            gap: 12,
-            alignItems: 'center',
-            paddingRight: 84,
+            padding: mobile ? '12px' : '12px 14px',
+            display: mobile ? 'block' : 'grid',
+            gridTemplateColumns: mobile ? undefined : 'auto 1fr auto',
+            gap: mobile ? 10 : 12,
+            alignItems: mobile ? undefined : 'center',
+            paddingRight: mobile ? 12 : 84,
           }}
         >
-          <div onClick={e => e.stopPropagation()}>
-            <StatutDropdown
-              value={lead.statut}
-              onChange={newStatut => onStatutChange && onStatutChange(lead.id, newStatut)}
-            />
-          </div>
+          {mobile ? (
+            <>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
+                <div onClick={e => e.stopPropagation()}>
+                  <StatutDropdown
+                    value={lead.statut}
+                    onChange={newStatut => onStatutChange && onStatutChange(lead.id, newStatut)}
+                  />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  {lead.typeClient && (
+                    <span style={{
+                      fontSize: 10,
+                      color: 'var(--blue)',
+                      padding: '3px 7px',
+                      borderRadius: 999,
+                      border: '1px solid rgba(79,127,243,0.16)',
+                      background: 'rgba(79,127,243,0.08)',
+                    }}>
+                      {lead.typeClient}
+                    </span>
+                  )}
+                  <span style={{
+                    fontSize: 10,
+                    color: 'var(--muted2)',
+                    padding: '4px 8px',
+                    borderRadius: 999,
+                    border: '1px solid var(--border)',
+                    background: 'rgba(255,255,255,0.02)',
+                    flexShrink: 0,
+                  }}>
+                    {formatDate(lead.timestamp)}
+                  </span>
+                </div>
+              </div>
 
-          <div style={{ minWidth: 0 }}>
-            <div style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: 'var(--text)',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              marginBottom: 5,
-            }}>
-              {displayName}
-            </div>
+              <div style={{
+                fontSize: 15,
+                fontWeight: 700,
+                color: 'var(--text)',
+                lineHeight: 1.28,
+                marginBottom: 6,
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+              }}>
+                {displayName}
+              </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: nextStep || relanceDate ? 6 : 0 }}>
               {lead.nomEntreprise && (
-                <span style={{
-                  maxWidth: 180,
-                  fontSize: 11,
+                <div style={{
+                  fontSize: 12,
                   color: 'var(--muted)',
-                  whiteSpace: 'nowrap',
+                  lineHeight: 1.4,
+                  marginBottom: 8,
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
                   overflow: 'hidden',
-                  textOverflow: 'ellipsis',
                 }}>
                   {lead.nomEntreprise}
-                </span>
+                </div>
               )}
-              {lead.ville && (
-                <span style={{
-                  fontSize: 11,
-                  color: 'var(--muted)',
-                  padding: '2px 7px',
-                  borderRadius: 999,
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid var(--border)',
-                }}>
-                  {lead.ville}
-                </span>
-              )}
-              <SourceBadge value={lead.source} />
-              <PrioriteBadge value={lead.priorite} />
-            </div>
 
-            {(nextStep || relanceDate) && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                {nextStep && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: nextStep || relanceDate ? 8 : 0 }}>
+                {lead.ville && (
                   <span style={{
                     fontSize: 11,
                     color: 'var(--muted)',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    maxWidth: 220,
+                    padding: '2px 7px',
+                    borderRadius: 999,
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid var(--border)',
                   }}>
-                    Prochaine action: <span style={{ color: 'var(--text)' }}>{nextStep}</span>
+                    {lead.ville}
                   </span>
                 )}
-                {relanceDate && (
+                <SourceBadge value={lead.source} />
+                <PrioriteBadge value={lead.priorite} />
+              </div>
+
+              {(nextStep || relanceDate) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {nextStep && (
+                    <span style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.45 }}>
+                      Prochaine action: <span style={{ color: 'var(--text)' }}>{nextStep}</span>
+                    </span>
+                  )}
+                  {relanceDate && (
+                    <span style={{
+                      alignSelf: 'flex-start',
+                      fontSize: 10,
+                      color: 'var(--amber)',
+                      padding: '3px 7px',
+                      borderRadius: 999,
+                      background: 'rgba(245,158,11,0.12)',
+                      border: '1px solid rgba(245,158,11,0.18)',
+                    }}>
+                      Relance {relanceDate}
+                    </span>
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div onClick={e => e.stopPropagation()}>
+                <StatutDropdown
+                  value={lead.statut}
+                  onChange={newStatut => onStatutChange && onStatutChange(lead.id, newStatut)}
+                />
+              </div>
+
+              <div style={{ minWidth: 0 }}>
+                <div style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: 'var(--text)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  marginBottom: 5,
+                }}>
+                  {displayName}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: nextStep || relanceDate ? 6 : 0 }}>
+                  {lead.nomEntreprise && (
+                    <span style={{
+                      maxWidth: 180,
+                      fontSize: 11,
+                      color: 'var(--muted)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}>
+                      {lead.nomEntreprise}
+                    </span>
+                  )}
+                  {lead.ville && (
+                    <span style={{
+                      fontSize: 11,
+                      color: 'var(--muted)',
+                      padding: '2px 7px',
+                      borderRadius: 999,
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid var(--border)',
+                    }}>
+                      {lead.ville}
+                    </span>
+                  )}
+                  <SourceBadge value={lead.source} />
+                  <PrioriteBadge value={lead.priorite} />
+                </div>
+
+                {(nextStep || relanceDate) && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    {nextStep && (
+                      <span style={{
+                        fontSize: 11,
+                        color: 'var(--muted)',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        maxWidth: 220,
+                      }}>
+                        Prochaine action: <span style={{ color: 'var(--text)' }}>{nextStep}</span>
+                      </span>
+                    )}
+                    {relanceDate && (
+                      <span style={{
+                        fontSize: 10,
+                        color: 'var(--amber)',
+                        padding: '3px 7px',
+                        borderRadius: 999,
+                        background: 'rgba(245,158,11,0.12)',
+                        border: '1px solid rgba(245,158,11,0.18)',
+                      }}>
+                        Relance {relanceDate}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                <span style={{
+                  fontSize: 10,
+                  color: 'var(--muted2)',
+                  flexShrink: 0,
+                  textAlign: 'right',
+                  padding: '4px 8px',
+                  borderRadius: 999,
+                  border: '1px solid var(--border)',
+                  background: 'rgba(255,255,255,0.02)',
+                }}>
+                  {formatDate(lead.timestamp)}
+                </span>
+                {lead.typeClient && (
                   <span style={{
                     fontSize: 10,
-                    color: 'var(--amber)',
+                    color: 'var(--blue)',
                     padding: '3px 7px',
                     borderRadius: 999,
-                    background: 'rgba(245,158,11,0.12)',
-                    border: '1px solid rgba(245,158,11,0.18)',
+                    border: '1px solid rgba(79,127,243,0.16)',
+                    background: 'rgba(79,127,243,0.08)',
                   }}>
-                    Relance {relanceDate}
+                    {lead.typeClient}
                   </span>
                 )}
               </div>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-            <span style={{
-              fontSize: 10,
-              color: 'var(--muted2)',
-              flexShrink: 0,
-              textAlign: 'right',
-              padding: '4px 8px',
-              borderRadius: 999,
-              border: '1px solid var(--border)',
-              background: 'rgba(255,255,255,0.02)',
-            }}>
-              {formatDate(lead.timestamp)}
-            </span>
-            {lead.typeClient && (
-              <span style={{
-                fontSize: 10,
-                color: 'var(--blue)',
-                padding: '3px 7px',
-                borderRadius: 999,
-                border: '1px solid rgba(79,127,243,0.16)',
-                background: 'rgba(79,127,243,0.08)',
-              }}>
-                {lead.typeClient}
-              </span>
-            )}
-          </div>
+            </>
+          )}
         </div>
 
         <div style={{
@@ -308,9 +420,9 @@ export default function LeadRow({ lead, isSelected, onClick, onStatutChange, onD
           transform: 'translateY(-50%)',
           display: 'grid',
           gap: 4,
-          opacity: hovered || isSelected ? 1 : 0,
+          opacity: !mobile && (hovered || isSelected) ? 1 : 0,
           transition: 'opacity 0.15s',
-          pointerEvents: hovered || isSelected ? 'auto' : 'none',
+          pointerEvents: !mobile && (hovered || isSelected) ? 'auto' : 'none',
         }}>
           <ActionBtn onClick={() => onClick && onClick()} title="Modifier">
             <IconEdit />

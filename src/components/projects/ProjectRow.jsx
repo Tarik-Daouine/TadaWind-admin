@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import Badge from '../ui/Badge.jsx'
+import { useIsMobile } from '../../hooks/useIsMobile.js'
 
 const STATUS_OPTIONS = [
   { value: 'draft',     label: 'Brouillon' },
@@ -195,10 +196,15 @@ export default function ProjectRow({
   isChecked, onCheck, selectionActive,
   draggableEnabled = true,
   showDragHandle = false,
+  mobile: mobileProp = false,
 }) {
+  const hookMobile = useIsMobile()
+  const mobile = mobileProp || hookMobile
   const [hovered, setHovered] = useState(false)
   const [imgError, setImgError] = useState(false)
-  const showCheckbox = !showDragHandle && (hovered || isChecked || selectionActive)
+  const showCheckbox = mobile
+    ? !showDragHandle
+    : !showDragHandle && (hovered || isChecked || selectionActive)
 
   return (
     <div style={{ padding: '0 0 8px' }}>
@@ -231,112 +237,218 @@ export default function ProjectRow({
         <div
           onClick={onClick}
           style={{
-            padding: '12px 14px',
-            paddingRight: showDragHandle ? 14 : 84,
-            display: 'grid',
-            gridTemplateColumns: '80px minmax(0, 1fr) auto',
-            gap: 12,
+            padding: mobile ? '12px' : '12px 14px',
+            paddingRight: showDragHandle ? 14 : (mobile ? 12 : 84),
+            display: mobile ? 'block' : 'grid',
+            gridTemplateColumns: mobile ? undefined : '80px minmax(0, 1fr) auto',
+            gap: mobile ? 10 : 12,
             alignItems: 'flex-start',
           }}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {showDragHandle ? (
-                <div style={{ width: 12, color: 'var(--muted2)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                  <IconGrip />
+          {mobile ? (
+            <>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                  {showDragHandle ? (
+                    <div style={{ width: 12, color: 'var(--muted2)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                      <IconGrip />
+                    </div>
+                  ) : showCheckbox ? (
+                    <input
+                      type="checkbox"
+                      checked={!!isChecked}
+                      onChange={e => { e.stopPropagation(); onCheck && onCheck(project.id) }}
+                      onClick={e => e.stopPropagation()}
+                      style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--select-accent)', flexShrink: 0 }}
+                    />
+                  ) : (
+                    <div style={{ width: 14, flexShrink: 0 }} />
+                  )}
+                  <StatusDropdown
+                    value={project.status}
+                    onChange={newStatus => onStatusChange && onStatusChange(project.id, newStatus)}
+                    fullWidth={false}
+                  />
+                  <MetaChip>Ordre {displayOrder ?? project.order ?? '—'}</MetaChip>
                 </div>
-              ) : showCheckbox ? (
-                <input
-                  type="checkbox"
-                  checked={!!isChecked}
-                  onChange={e => { e.stopPropagation(); onCheck && onCheck(project.id) }}
-                  onClick={e => e.stopPropagation()}
-                  style={{ width: 14, height: 14, cursor: 'pointer', accentColor: 'var(--select-accent)', flexShrink: 0 }}
-                />
-              ) : (
-                <div style={{ width: 14, flexShrink: 0 }} />
-              )}
-              <StatusDropdown
-                value={project.status}
-                onChange={newStatus => onStatusChange && onStatusChange(project.id, newStatus)}
-                fullWidth
-              />
-            </div>
-            <div style={{ paddingLeft: 22 }}>
-              <MetaChip>Ordre {displayOrder ?? project.order ?? '—'}</MetaChip>
-            </div>
-          </div>
 
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0 }}>
-            {project.cover && !imgError ? (
-              <img
-                src={project.cover}
-                alt={project.title}
-                onError={() => setImgError(true)}
-                style={{
-                  width: 54,
-                  height: 40,
-                  objectFit: 'cover',
-                  borderRadius: 8,
-                  border: '1px solid var(--border)',
-                  flexShrink: 0,
-                }}
-              />
-            ) : (
-              <div style={{
-                width: 54,
-                height: 40,
-                borderRadius: 8,
-                border: '1px solid var(--border)',
-                background: 'var(--s3)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--muted2)',
-                flexShrink: 0,
-              }}>
-                <IconCamera />
-              </div>
-            )}
-
-            <div style={{ minWidth: 0 }}>
-              <div style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: 'var(--text)',
-                lineHeight: 1.3,
-                marginBottom: 6,
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
-              }}>
-                {project.title}
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  <MetaChip tone="blue">{formatDate(project.date) || 'Sans date'}</MetaChip>
+                </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                {project.lieu && (
-                  <span style={{
-                    fontSize: 11,
-                    color: 'var(--muted)',
-                    lineHeight: 1.35,
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, minWidth: 0 }}>
+                {project.cover && !imgError ? (
+                  <img
+                    src={project.cover}
+                    alt={project.title}
+                    onError={() => setImgError(true)}
+                    style={{
+                      width: 62,
+                      height: 46,
+                      objectFit: 'cover',
+                      borderRadius: 8,
+                      border: '1px solid var(--border)',
+                      flexShrink: 0,
+                    }}
+                  />
+                ) : (
+                  <div style={{
+                    width: 62,
+                    height: 46,
+                    borderRadius: 8,
+                    border: '1px solid var(--border)',
+                    background: 'var(--s3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--muted2)',
+                    flexShrink: 0,
                   }}>
-                    {project.lieu}
-                  </span>
+                    <IconCamera />
+                  </div>
                 )}
-                {project.region && <MetaChip>{project.region}</MetaChip>}
-                {project.category && <Badge variant="category" value={project.category} small />}
-                <MetaChip tone="blue">{formatDate(project.date) || 'Sans date'}</MetaChip>
-                {project.streamableId && <MetaChip>Streamable</MetaChip>}
-              </div>
-            </div>
-          </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, minWidth: 26 }}>
-            {!showDragHandle && isSelected && (
-              <span style={{ width: 26, height: 2, borderRadius: 999, background: 'var(--select-accent)', opacity: 0.6 }} />
-            )}
-          </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{
+                    fontSize: 15,
+                    fontWeight: 700,
+                    color: 'var(--text)',
+                    lineHeight: 1.28,
+                    marginBottom: 6,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                  }}>
+                    {project.title}
+                  </div>
+
+                  {project.lieu && (
+                    <div style={{
+                      fontSize: 12,
+                      color: 'var(--muted)',
+                      lineHeight: 1.4,
+                      marginBottom: 8,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}>
+                      {project.lieu}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    {project.region && <MetaChip>{project.region}</MetaChip>}
+                    {project.category && <Badge variant="category" value={project.category} small />}
+                    {project.streamableId && <MetaChip>Streamable</MetaChip>}
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {showDragHandle ? (
+                    <div style={{ width: 12, color: 'var(--muted2)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                      <IconGrip />
+                    </div>
+                  ) : showCheckbox ? (
+                    <input
+                      type="checkbox"
+                      checked={!!isChecked}
+                      onChange={e => { e.stopPropagation(); onCheck && onCheck(project.id) }}
+                      onClick={e => e.stopPropagation()}
+                      style={{ width: 14, height: 14, cursor: 'pointer', accentColor: 'var(--select-accent)', flexShrink: 0 }}
+                    />
+                  ) : (
+                    <div style={{ width: 14, flexShrink: 0 }} />
+                  )}
+                  <StatusDropdown
+                    value={project.status}
+                    onChange={newStatus => onStatusChange && onStatusChange(project.id, newStatus)}
+                    fullWidth
+                  />
+                </div>
+                <div style={{ paddingLeft: 22 }}>
+                  <MetaChip>Ordre {displayOrder ?? project.order ?? '—'}</MetaChip>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0 }}>
+                {project.cover && !imgError ? (
+                  <img
+                    src={project.cover}
+                    alt={project.title}
+                    onError={() => setImgError(true)}
+                    style={{
+                      width: 54,
+                      height: 40,
+                      objectFit: 'cover',
+                      borderRadius: 8,
+                      border: '1px solid var(--border)',
+                      flexShrink: 0,
+                    }}
+                  />
+                ) : (
+                  <div style={{
+                    width: 54,
+                    height: 40,
+                    borderRadius: 8,
+                    border: '1px solid var(--border)',
+                    background: 'var(--s3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--muted2)',
+                    flexShrink: 0,
+                  }}>
+                    <IconCamera />
+                  </div>
+                )}
+
+                <div style={{ minWidth: 0 }}>
+                  <div style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: 'var(--text)',
+                    lineHeight: 1.3,
+                    marginBottom: 6,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                  }}>
+                    {project.title}
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    {project.lieu && (
+                      <span style={{
+                        fontSize: 11,
+                        color: 'var(--muted)',
+                        lineHeight: 1.35,
+                      }}>
+                        {project.lieu}
+                      </span>
+                    )}
+                    {project.region && <MetaChip>{project.region}</MetaChip>}
+                    {project.category && <Badge variant="category" value={project.category} small />}
+                    <MetaChip tone="blue">{formatDate(project.date) || 'Sans date'}</MetaChip>
+                    {project.streamableId && <MetaChip>Streamable</MetaChip>}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, minWidth: 26 }}>
+                {!showDragHandle && isSelected && (
+                  <span style={{ width: 26, height: 2, borderRadius: 999, background: 'var(--select-accent)', opacity: 0.6 }} />
+                )}
+              </div>
+            </>
+          )}
         </div>
 
         <div style={{
@@ -346,9 +458,9 @@ export default function ProjectRow({
           transform: 'translateY(-50%)',
           display: 'grid',
           gap: 4,
-          opacity: (hovered || isSelected) && !showDragHandle ? 1 : 0,
+          opacity: !mobile && (hovered || isSelected) && !showDragHandle ? 1 : 0,
           transition: 'opacity 0.15s',
-          pointerEvents: (hovered || isSelected) && !showDragHandle ? 'auto' : 'none',
+          pointerEvents: !mobile && (hovered || isSelected) && !showDragHandle ? 'auto' : 'none',
         }}>
           <ActionBtn onClick={() => onEdit && onEdit(project.id)} title="Modifier">
             <IconEdit />

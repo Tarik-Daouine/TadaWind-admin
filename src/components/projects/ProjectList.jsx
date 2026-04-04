@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import ProjectRow from './ProjectRow.jsx'
 import { CATEGORIES, STATUSES } from '../../data/mockProjects.js'
+import { useIsMobile } from '../../hooks/useIsMobile.js'
 
 const PAGE_SIZE = 12
 
@@ -23,14 +24,14 @@ const IconChevronRight = () => (
   </svg>
 )
 
-function SelectFilter({ value, onChange, options, label }) {
+function SelectFilter({ value, onChange, options, label, mobile = false }) {
   return (
     <select
       value={value}
       onChange={e => onChange(e.target.value)}
       style={{
-        height: 28,
-        padding: '0 8px',
+        height: mobile ? 38 : 28,
+        padding: mobile ? '0 10px' : '0 8px',
         fontSize: 12,
         border: '1px solid var(--border-md)',
         borderRadius: 6,
@@ -64,7 +65,10 @@ export default function ProjectList({
   onSortChange,
   onReorder,
   onStatusChange,
+  mobile: mobileProp = false,
 }) {
+  const hookMobile = useIsMobile()
+  const mobile = mobileProp || hookMobile
   const isArchivedProject = (project) => project.status === 'archived'
   const organizeSort = (list) => [...list].sort((a, b) => {
     const bucketA = isArchivedProject(a) ? 1 : 0
@@ -180,11 +184,11 @@ export default function ProjectList({
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {/* Header */}
       <div style={{
-        padding: detailOpen ? '12px 14px 10px' : '14px 16px 10px',
+        padding: mobile ? '12px 12px 10px' : (detailOpen ? '12px 14px 10px' : '14px 16px 10px'),
         borderBottom: '1px solid var(--border)',
         flexShrink: 0,
       }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 14, fontWeight: 600 }}>Projets</span>
             <span style={{
@@ -200,7 +204,16 @@ export default function ProjectList({
           </div>
 
           {/* Sort */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, flexWrap: 'wrap' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            gap: 6,
+            flexWrap: mobile ? 'nowrap' : 'wrap',
+            overflowX: mobile ? 'auto' : 'visible',
+            width: mobile ? '100%' : 'auto',
+            paddingBottom: mobile ? 2 : 0,
+          }}>
             <button
               onClick={() => {
                 setOrganizeMode(prev => !prev)
@@ -216,11 +229,12 @@ export default function ProjectList({
                 color: organizeMode ? 'var(--select-accent)' : 'var(--muted)',
                 cursor: 'pointer',
                 fontFamily: 'var(--sans)',
+                flexShrink: 0,
               }}
             >
-              {organizeMode ? 'Quitter organisation' : 'Mode organiser'}
+              {organizeMode ? (mobile ? 'Quitter' : 'Quitter organisation') : (mobile ? 'Organiser' : 'Mode organiser')}
             </button>
-            {!organizeMode && <span style={{ fontSize: 11, color: 'var(--muted)' }}>Trier par</span>}
+            {!organizeMode && !mobile && <span style={{ fontSize: 11, color: 'var(--muted)' }}>Trier par</span>}
             {!organizeMode && <>
             <button
               onClick={() => onSortChange({ ...sort, field: 'date' })}
@@ -233,6 +247,7 @@ export default function ProjectList({
                 color: sort.field === 'date' ? 'var(--text)' : 'var(--muted)',
                 cursor: 'pointer',
                 fontFamily: 'var(--sans)',
+                flexShrink: 0,
               }}
             >
               Date
@@ -248,6 +263,7 @@ export default function ProjectList({
                 color: sort.field === 'title' ? 'var(--text)' : 'var(--muted)',
                 cursor: 'pointer',
                 fontFamily: 'var(--sans)',
+                flexShrink: 0,
               }}
             >
               Titre
@@ -263,6 +279,7 @@ export default function ProjectList({
                 color: sort.field === 'order' ? 'var(--text)' : 'var(--muted)',
                 cursor: 'pointer',
                 fontFamily: 'var(--sans)',
+                flexShrink: 0,
               }}
             >
               Ordre
@@ -278,6 +295,7 @@ export default function ProjectList({
                 color: 'var(--muted)',
                 cursor: 'pointer',
                 fontFamily: 'var(--sans)',
+                flexShrink: 0,
               }}
               title={sort.dir === 'asc' ? 'Croissant' : 'Décroissant'}
             >
@@ -348,24 +366,34 @@ export default function ProjectList({
             color: 'var(--select-accent)',
             lineHeight: 1.5,
           }}>
-            Mode organisation actif: la liste est globale et triee par ordre. Les projets archives restent automatiquement en fin de liste pour conserver l'ordre 1, 2, 3... des projets actifs.
+            {mobile
+              ? 'Mode organisation actif: les archives restent en fin de liste pour garder l’ordre continu des projets publies.'
+              : 'Mode organisation actif: la liste est globale et triee par ordre. Les projets archives restent automatiquement en fin de liste pour conserver l\'ordre 1, 2, 3... des projets actifs.'}
           </div>
         )}
 
         {/* Filter bar */}
         {!organizeMode && (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <div style={{
+          display: 'flex',
+          gap: 6,
+          flexWrap: mobile ? 'nowrap' : 'wrap',
+          overflowX: mobile ? 'auto' : 'visible',
+          paddingBottom: mobile ? 2 : 0,
+        }}>
           <SelectFilter
             value={filters.status}
             onChange={v => { onFilterChange({ ...filters, status: v }); setPage(1) }}
             options={STATUSES.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
             label="Statut"
+            mobile={mobile}
           />
           <SelectFilter
             value={filters.category}
             onChange={v => { onFilterChange({ ...filters, category: v }); setPage(1) }}
             options={CATEGORIES}
             label="Catégorie"
+            mobile={mobile}
           />
           {(filters.status !== 'all' || filters.category !== 'all') && (
             <button
@@ -379,6 +407,7 @@ export default function ProjectList({
                 color: 'var(--red)',
                 cursor: 'pointer',
                 fontFamily: 'var(--sans)',
+                flexShrink: 0,
               }}
             >
               Effacer
@@ -389,7 +418,7 @@ export default function ProjectList({
       </div>
 
       {/* List */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '10px 12px 16px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: mobile ? '8px 10px 14px' : '10px 12px 16px' }}>
         {visibleProjects.length === 0 ? (
           <div style={{
             display: 'flex',
@@ -429,6 +458,7 @@ export default function ProjectList({
               selectionActive={!organizeMode && checkedIds.size > 0}
               draggableEnabled={organizeMode}
               showDragHandle={organizeMode}
+              mobile={mobile}
             />
           ))
         )}
@@ -437,7 +467,7 @@ export default function ProjectList({
       {/* Pagination */}
       {!organizeMode && totalPages > 1 && (
         <div style={{
-          padding: '10px 16px',
+          padding: mobile ? '10px 12px' : '10px 16px',
           borderTop: '1px solid var(--border)',
           display: 'flex',
           alignItems: 'center',

@@ -1,14 +1,5 @@
-import React, { useState, useEffect } from 'react'
-
-function useIsMobile() {
-  const [mobile, setMobile] = useState(() => window.innerWidth < 768)
-  useEffect(() => {
-    const fn = () => setMobile(window.innerWidth < 768)
-    window.addEventListener('resize', fn)
-    return () => window.removeEventListener('resize', fn)
-  }, [])
-  return mobile
-}
+import React from 'react'
+import { useIsMobile } from '../../hooks/useIsMobile.js'
 
 const IconFilm = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -59,8 +50,9 @@ const IconLogout = () => (
   </svg>
 )
 
-export default function Sidebar({ view, onView, onSignOut, newLeadsCount = 0 }) {
+export default function Sidebar({ view, onView, onSignOut, newLeadsCount = 0, mobileExpanded = false }) {
   const mobile = useIsMobile()
+  const showLabels = !mobile || mobileExpanded
   const NAV_ITEMS = [
     { id: 'projects', label: 'Projets', icon: <IconFilm /> },
     { id: 'medias',   label: 'Médias',  icon: <IconGrid /> },
@@ -72,7 +64,7 @@ export default function Sidebar({ view, onView, onSignOut, newLeadsCount = 0 }) 
   return (
     <div
       style={{
-        width: mobile ? 52 : 'var(--sidebar-w)',
+        width: mobile ? (mobileExpanded ? 228 : 52) : 'var(--sidebar-w)',
         height: '100vh',
         background: 'var(--s1)',
         borderRight: '1px solid var(--border)',
@@ -81,6 +73,7 @@ export default function Sidebar({ view, onView, onSignOut, newLeadsCount = 0 }) 
         flexShrink: 0,
         zIndex: 10,
         transition: 'width 0.2s ease',
+        boxShadow: mobile && mobileExpanded ? 'var(--shadow-soft)' : 'none',
       }}
     >
       {/* Logo */}
@@ -95,7 +88,7 @@ export default function Sidebar({ view, onView, onSignOut, newLeadsCount = 0 }) 
           flexShrink: 0,
         }}
       >
-        {mobile ? (
+        {mobile && !mobileExpanded ? (
           <span style={{ fontFamily: 'var(--serif)', fontSize: 11, fontWeight: 700, color: 'var(--red)', letterSpacing: '0.02em' }}>TW</span>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
@@ -110,7 +103,7 @@ export default function Sidebar({ view, onView, onSignOut, newLeadsCount = 0 }) 
       </div>
 
       {/* Nav */}
-      <nav style={{ padding: mobile ? '12px 6px' : '12px 10px', flex: 1 }}>
+      <nav style={{ padding: mobile ? (mobileExpanded ? '12px 10px' : '12px 6px') : '12px 10px', flex: 1 }}>
         {NAV_ITEMS.map(item => {
           const isActive = view === item.id
           return (
@@ -120,12 +113,12 @@ export default function Sidebar({ view, onView, onSignOut, newLeadsCount = 0 }) 
               title={mobile ? item.label : undefined}
               style={{
                 width: '100%',
-                padding: mobile ? '10px 0' : '8px 12px',
+                padding: mobile ? (mobileExpanded ? '10px 12px' : '10px 0') : '8px 12px',
                 borderRadius: 'var(--radius)',
                 display: 'flex',
-                gap: mobile ? 0 : 10,
+                gap: showLabels ? 10 : 0,
                 alignItems: 'center',
-                justifyContent: mobile ? 'center' : 'flex-start',
+                justifyContent: showLabels ? 'flex-start' : 'center',
                 fontSize: 13,
                 fontWeight: 500,
                 cursor: 'pointer',
@@ -152,16 +145,16 @@ export default function Sidebar({ view, onView, onSignOut, newLeadsCount = 0 }) 
               }}
             >
               {item.icon}
-              {!mobile && <span style={{ flex: 1 }}>{item.label}</span>}
+              {showLabels && <span style={{ flex: 1 }}>{item.label}</span>}
               {item.badge > 0 && (
                 <span style={{
                   fontSize: 9, fontWeight: 700,
                   padding: '1px 4px', borderRadius: 20,
                   background: isActive ? 'var(--red)' : '#4f7ff3',
                   color: '#fff', minWidth: 16, textAlign: 'center',
-                  position: mobile ? 'absolute' : 'static',
-                  top: mobile ? 6 : undefined,
-                  right: mobile ? 6 : undefined,
+                  position: mobile && !showLabels ? 'absolute' : 'static',
+                  top: mobile && !showLabels ? 6 : undefined,
+                  right: mobile && !showLabels ? 6 : undefined,
                 }}>
                   {item.badge}
                 </span>
@@ -172,8 +165,8 @@ export default function Sidebar({ view, onView, onSignOut, newLeadsCount = 0 }) 
       </nav>
 
       {/* Bottom */}
-      <div style={{ padding: mobile ? '12px 6px' : '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: mobile ? 'center' : 'flex-start', gap: 6 }}>
-        {!mobile && (
+      <div style={{ padding: mobile ? (mobileExpanded ? '12px 10px' : '12px 6px') : '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: showLabels ? 'flex-start' : 'center', gap: 6 }}>
+        {showLabels && (
           <a
             href="/"
             style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--muted)', cursor: 'pointer', transition: 'color 0.15s' }}
@@ -191,16 +184,16 @@ export default function Sidebar({ view, onView, onSignOut, newLeadsCount = 0 }) 
           <button
             onClick={onSignOut}
             title={mobile ? 'Se déconnecter' : undefined}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--muted)', cursor: 'pointer', background: 'none', border: 'none', padding: mobile ? '6px 0' : 0, fontFamily: 'var(--sans)', transition: 'color 0.15s', textAlign: 'left' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--muted)', cursor: 'pointer', background: 'none', border: 'none', padding: mobile ? '6px 0' : 0, fontFamily: 'var(--sans)', transition: 'color 0.15s', textAlign: 'left', width: showLabels ? '100%' : 'auto', justifyContent: showLabels ? 'flex-start' : 'center' }}
             onMouseEnter={e => { e.currentTarget.style.color = '#e57373' }}
             onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted)' }}
           >
             <IconLogout />
-            {!mobile && 'Se déconnecter'}
+            {showLabels && 'Se déconnecter'}
           </button>
         )}
 
-        {!mobile && <div style={{ fontSize: 10, color: 'var(--muted2)', letterSpacing: '0.06em' }}>v2.0</div>}
+        {showLabels && <div style={{ fontSize: 10, color: 'var(--muted2)', letterSpacing: '0.06em' }}>v2.0</div>}
       </div>
     </div>
   )

@@ -1,17 +1,8 @@
 import React, { useState, useEffect } from 'react'
-
-function useIsMobile() {
-  const [mobile, setMobile] = useState(() => window.innerWidth < 768)
-  useEffect(() => {
-    const fn = () => setMobile(window.innerWidth < 768)
-    window.addEventListener('resize', fn)
-    return () => window.removeEventListener('resize', fn)
-  }, [])
-  return mobile
-}
 import StreamableImportModal from './components/projects/StreamableImportModal.jsx'
 import { createStreamableImportSession, STREAMABLE_IDS_QUERY_PARAM } from './lib/streamableImport.js'
 import { useAuth } from './hooks/useAuth.js'
+import { useIsMobile } from './hooks/useIsMobile.js'
 import { useProjects } from './hooks/useProjects.js'
 import { useLeads } from './hooks/useLeads.js'
 import { useToast } from './hooks/useToast.js'
@@ -264,7 +255,13 @@ export default function App() {
         transform: mobile && !sidebarOpen ? 'translateX(-100%)' : 'translateX(0)',
         transition: 'transform 0.25s ease',
       }}>
-        <Sidebar view={view} onView={(v) => { setView(v); if (mobile) setSidebarOpen(false) }} onSignOut={signOut} newLeadsCount={newLeadsCount} />
+        <Sidebar
+          view={view}
+          onView={(v) => { setView(v); if (mobile) setSidebarOpen(false) }}
+          onSignOut={signOut}
+          newLeadsCount={newLeadsCount}
+          mobileExpanded={sidebarOpen}
+        />
       </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -316,38 +313,41 @@ export default function App() {
                 </div>
               ) : (
                 <>
-                  <div style={{
-                    width: selectedId ? 'min(440px, 38vw)' : '100%',
-                    flexShrink: 0,
-                    borderRight: selectedId ? '1px solid var(--border)' : 'none',
-                    overflow: 'hidden',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    transition: 'width 0.25s ease',
-                  }}>
-                    <ProjectList
-                      projects={projects}
-                      selectedId={selectedId}
-                      onSelect={setSelectedId}
-                      onDelete={handleDelete}
-                      onDuplicate={handleDuplicate}
-                      onBulkDelete={async (ids) => {
-                        const { error } = await deleteProjects(ids)
-                        if (error) addToast('Erreur lors de la suppression', 'error')
-                        else {
-                          if (ids.includes(selectedId)) setSelectedId(null)
-                          addToast(`${ids.length} projet${ids.length > 1 ? 's' : ''} supprimé${ids.length > 1 ? 's' : ''}`, 'success')
-                        }
-                      }}
-                      search={search}
-                      filters={filters}
-                      sort={sort}
-                      onFilterChange={setFilters}
-                      onSortChange={setSort}
-                      onReorder={reorderProjects}
-                      onStatusChange={handleStatusChange}
-                    />
-                  </div>
+                  {(!mobile || !selectedId) && (
+                    <div style={{
+                      width: (!mobile && selectedId) ? 'min(440px, 38vw)' : '100%',
+                      flexShrink: 0,
+                      borderRight: (!mobile && selectedId) ? '1px solid var(--border)' : 'none',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      transition: 'width 0.25s ease',
+                    }}>
+                      <ProjectList
+                        projects={projects}
+                        selectedId={selectedId}
+                        onSelect={setSelectedId}
+                        onDelete={handleDelete}
+                        onDuplicate={handleDuplicate}
+                        onBulkDelete={async (ids) => {
+                          const { error } = await deleteProjects(ids)
+                          if (error) addToast('Erreur lors de la suppression', 'error')
+                          else {
+                            if (ids.includes(selectedId)) setSelectedId(null)
+                            addToast(`${ids.length} projet${ids.length > 1 ? 's' : ''} supprimé${ids.length > 1 ? 's' : ''}`, 'success')
+                          }
+                        }}
+                        search={search}
+                        filters={filters}
+                        sort={sort}
+                        onFilterChange={setFilters}
+                        onSortChange={setSort}
+                        onReorder={reorderProjects}
+                        onStatusChange={handleStatusChange}
+                        mobile={mobile}
+                      />
+                    </div>
+                  )}
 
                   {selectedId && selectedProject && (
                     <div style={{
@@ -360,6 +360,7 @@ export default function App() {
                         onUpdate={updateProject}
                         onClose={() => setSelectedId(null)}
                         onToast={addToast}
+                        mobile={mobile}
                       />
                     </div>
                   )}
@@ -421,6 +422,7 @@ export default function App() {
                       }}
                       onDelete={handleDeleteLead}
                       onClose={() => setSelectedLeadId(null)}
+                      mobile={mobile}
                     />
                   </div>
                 )}

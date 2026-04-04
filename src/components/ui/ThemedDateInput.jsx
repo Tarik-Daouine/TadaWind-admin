@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useIsMobile } from '../../hooks/useIsMobile.js'
 
 const WEEKDAY_LABELS = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
 
@@ -104,6 +105,7 @@ export default function ThemedDateInput({
   max,
   ...rest
 }) {
+  const mobile = useIsMobile()
   const rootRef = useRef(null)
   const selectedDate = useMemo(() => parseIsoDate(value), [value])
   const [inputValue, setInputValue] = useState(() => formatDisplayDate(value))
@@ -119,11 +121,15 @@ export default function ThemedDateInput({
 
   useEffect(() => {
     if (!open) return
-    const rect = rootRef.current?.getBoundingClientRect()
-    if (rect) {
-      const spaceBelow = window.innerHeight - rect.bottom
-      const spaceAbove = rect.top
-      setPlacement(spaceBelow < 320 && spaceAbove > 320 ? 'top' : 'bottom')
+    if (mobile) {
+      setPlacement('sheet')
+    } else {
+      const rect = rootRef.current?.getBoundingClientRect()
+      if (rect) {
+        const spaceBelow = window.innerHeight - rect.bottom
+        const spaceAbove = rect.top
+        setPlacement(spaceBelow < 320 && spaceAbove > 320 ? 'top' : 'bottom')
+      }
     }
 
     const handlePointerDown = (event) => {
@@ -133,7 +139,7 @@ export default function ThemedDateInput({
     }
     document.addEventListener('mousedown', handlePointerDown)
     return () => document.removeEventListener('mousedown', handlePointerDown)
-  }, [open])
+  }, [mobile, open])
 
   const monthDays = useMemo(() => getMonthDays(viewDate), [viewDate])
   const minDate = parseIsoDate(min)
@@ -271,13 +277,26 @@ export default function ThemedDateInput({
       </div>
 
       {open && !disabled && (
+        <>
+          {mobile && (
+            <div
+              onClick={() => setOpen(false)}
+              style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(0,0,0,0.35)',
+                zIndex: 299,
+              }}
+            />
+          )}
         <div
           style={{
-            position: 'absolute',
-            top: placement === 'bottom' ? 'calc(100% + 8px)' : 'auto',
-            bottom: placement === 'top' ? 'calc(100% + 8px)' : 'auto',
-            right: 0,
-            width: 278,
+            position: mobile ? 'fixed' : 'absolute',
+            top: mobile ? 'auto' : (placement === 'bottom' ? 'calc(100% + 8px)' : 'auto'),
+            bottom: mobile ? 'max(12px, env(safe-area-inset-bottom))' : (placement === 'top' ? 'calc(100% + 8px)' : 'auto'),
+            left: mobile ? 12 : 'auto',
+            right: mobile ? 12 : 0,
+            width: mobile ? 'auto' : 278,
             padding: 12,
             background: 'var(--s2)',
             border: '1px solid var(--border)',
@@ -392,6 +411,7 @@ export default function ThemedDateInput({
             })}
           </div>
         </div>
+        </>
       )}
     </div>
   )

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import LeadRow from './LeadRow.jsx'
 import { LEAD_QUICK_VIEWS, countLeadsForQuickView, matchesLeadQuickView } from '../../lib/leadViews.js'
+import { useIsMobile } from '../../hooks/useIsMobile.js'
 
 const PAGE_SIZE = 15
 
@@ -102,7 +103,7 @@ function FilterDropdown({ label, value, options, onChange, labelMap }) {
   )
 }
 
-function SummaryBadge({ label, value, tone = 'neutral' }) {
+function SummaryBadge({ label, value, tone = 'neutral', compact = false }) {
   const tones = {
     neutral: {
       background: 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
@@ -122,16 +123,16 @@ function SummaryBadge({ label, value, tone = 'neutral' }) {
 
   return (
     <div style={{
-      minWidth: 98,
-      padding: '8px 10px',
+      minWidth: compact ? 82 : 98,
+      padding: compact ? '7px 9px' : '8px 10px',
       borderRadius: 999,
       background: palette.background,
       border: palette.border,
     }}>
-      <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: palette.sub, marginBottom: 5 }}>
+      <div style={{ fontSize: compact ? 9 : 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: palette.sub, marginBottom: 5 }}>
         {label}
       </div>
-      <div style={{ fontSize: 16, fontWeight: 700, color: palette.color, lineHeight: 1 }}>
+      <div style={{ fontSize: compact ? 15 : 16, fontWeight: 700, color: palette.color, lineHeight: 1 }}>
         {value}
       </div>
     </div>
@@ -163,6 +164,7 @@ export default function LeadsList({
   quickView = 'all',
   onQuickViewChange,
 }) {
+  const mobile = useIsMobile()
   const [page, setPage] = useState(1)
 
   const setFilter = (key, val) => {
@@ -265,7 +267,7 @@ export default function LeadsList({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <div style={{
-        padding: '14px 16px 12px',
+        padding: mobile ? '12px 12px 10px' : '14px 16px 12px',
         flexShrink: 0,
         borderBottom: '1px solid var(--border)',
         background: 'linear-gradient(180deg, rgba(79,127,243,0.06), rgba(13,17,17,0) 58%)',
@@ -290,13 +292,20 @@ export default function LeadsList({
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <SummaryBadge label="Affichés" value={processed.length} />
-            <SummaryBadge label="Nouveaux" value={newCount} tone="blue" />
+            <SummaryBadge label="Affichés" value={processed.length} compact={mobile} />
+            <SummaryBadge label="Nouveaux" value={newCount} tone="blue" compact={mobile} />
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
+          <div style={{
+            display: 'flex',
+            gap: 6,
+            flexWrap: mobile ? 'nowrap' : 'wrap',
+            overflowX: mobile ? 'auto' : 'visible',
+            width: mobile ? '100%' : 'auto',
+            paddingBottom: mobile ? 2 : 0,
+          }}>
             {quickViewCounts.map(view => (
               <button
                 key={view.key}
@@ -311,6 +320,7 @@ export default function LeadsList({
                   cursor: 'pointer',
                   fontFamily: 'var(--sans)',
                   fontWeight: quickView === view.key ? 600 : 500,
+                  flexShrink: 0,
                 }}
               >
                 {view.label} ({view.count})
@@ -325,6 +335,7 @@ export default function LeadsList({
                 background: 'linear-gradient(180deg, rgba(79,127,243,0.18), rgba(79,127,243,0.08))',
                 color: 'var(--blue)',
                 fontWeight: 600,
+                flexShrink: 0,
               }}>
                 Vue ciblée analytics
               </span>
@@ -338,6 +349,7 @@ export default function LeadsList({
             borderRadius: 999,
             background: 'rgba(255,255,255,0.03)',
             border: '1px solid var(--border)',
+            overflowX: mobile ? 'auto' : 'visible',
           }}>
             <SortBtn field="date" label="Date" />
             <SortBtn field="nom" label="Nom" />
@@ -348,9 +360,10 @@ export default function LeadsList({
         <div style={{
           display: 'flex',
           gap: 6,
-          flexWrap: 'wrap',
+          flexWrap: mobile ? 'nowrap' : 'wrap',
           alignItems: 'center',
-          padding: '10px',
+          overflowX: mobile ? 'auto' : 'visible',
+          padding: mobile ? '8px' : '10px',
           borderRadius: 12,
           border: '1px solid var(--border)',
           background: 'rgba(255,255,255,0.025)',
@@ -374,6 +387,7 @@ export default function LeadsList({
                 cursor: 'pointer',
                 padding: '6px 8px',
                 marginLeft: 'auto',
+                flexShrink: 0,
               }}
             >
               ✕ Effacer
@@ -382,7 +396,7 @@ export default function LeadsList({
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '10px 12px 16px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: mobile ? '8px 10px 12px' : '10px 12px 16px' }}>
         {paginated.length === 0 ? (
           <div style={{
             display: 'flex',
@@ -423,6 +437,7 @@ export default function LeadsList({
               onClick={() => onSelect(lead.id)}
               onStatutChange={onStatutChange}
               onDelete={onDelete}
+              mobile={mobile}
             />
           ))
         )}
@@ -432,7 +447,7 @@ export default function LeadsList({
         <div style={{
           flexShrink: 0,
           borderTop: '1px solid var(--border)',
-          padding: '10px 14px',
+          padding: mobile ? '10px 12px' : '10px 14px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',

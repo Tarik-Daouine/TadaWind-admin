@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { parseTranscription } from '../../lib/parseTranscription.js'
+import { useIsMobile } from '../../hooks/useIsMobile.js'
 
 // ── Constantes UI ──────────────────────────────────────────────────────────────
 
@@ -65,16 +66,6 @@ function Select({ value, onChange, options, labelMap }) {
 
 // ── Composant principal ────────────────────────────────────────────────────────
 
-function useIsMobile() {
-  const [mobile, setMobile] = useState(() => window.innerWidth < 768)
-  useEffect(() => {
-    const fn = () => setMobile(window.innerWidth < 768)
-    window.addEventListener('resize', fn)
-    return () => window.removeEventListener('resize', fn)
-  }, [])
-  return mobile
-}
-
 export default function LeadChatbot({ onCreateLead, hasDetail = false }) {
   const mobile = useIsMobile()
   const [open, setOpen]         = useState(false)
@@ -138,17 +129,20 @@ export default function LeadChatbot({ onCreateLead, hasDetail = false }) {
         onClick={() => setOpen(true)}
         style={{
           position: 'fixed',
-          bottom: mobile ? 32 : 24,
+          bottom: mobile ? 18 : 24,
           right: mobile ? 16 : 24,
           zIndex: 200,
           display: 'flex',
           alignItems: 'center',
           gap: 8,
-          padding: '10px 16px',
+          justifyContent: 'center',
+          width: mobile ? 56 : 'auto',
+          height: mobile ? 56 : 'auto',
+          padding: mobile ? 0 : '10px 16px',
           background: 'var(--red)',
           color: '#fff',
           border: 'none',
-          borderRadius: 28,
+          borderRadius: mobile ? '50%' : 28,
           cursor: 'pointer',
           fontSize: 12,
           fontWeight: 600,
@@ -156,13 +150,15 @@ export default function LeadChatbot({ onCreateLead, hasDetail = false }) {
           boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
           transition: 'opacity 0.15s, transform 0.15s',
         }}
+        title="Analyser une transcription"
+        aria-label="Analyser une transcription"
         onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
         onMouseLeave={e => e.currentTarget.style.opacity = '1'}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 5v14M5 12h14"/>
         </svg>
-        Analyser une transcription
+        {!mobile && 'Analyser une transcription'}
       </button>}
 
       {/* Overlay + Drawer */}

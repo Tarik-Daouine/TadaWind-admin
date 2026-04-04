@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { SectionCard, SectionTitle } from '../ui/SectionCard.jsx'
 import ThemedDateInput from '../ui/ThemedDateInput.jsx'
+import { useIsMobile } from '../../hooks/useIsMobile.js'
 
 const STATUT_OPTIONS    = ['nouveau', 'Prospect contacté', 'À relancer', 'Opportunité', 'Relancé', 'Converti', 'Perdu']
 const PRIORITE_OPTIONS  = ['Haute', 'Normale', 'Basse']
@@ -198,7 +199,9 @@ function CompactMetaPill({ label, value, tone = 'neutral' }) {
   )
 }
 
-export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
+export default function LeadDetail({ lead, onUpdate, onDelete, onClose, mobile: mobileProp = false }) {
+  const hookMobile = useIsMobile()
+  const mobile = mobileProp || hookMobile
   const [crm, setCrm] = useState({})
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -331,7 +334,7 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'linear-gradient(180deg, rgba(79,127,243,0.04), rgba(13,17,17,0) 32%), var(--bg)' }}>
       {/* Header */}
       <div style={{
-        padding: '16px 20px 12px',
+        padding: mobile ? '14px 14px 10px' : '16px 20px 12px',
         borderBottom: '1px solid var(--border)',
         flexShrink: 0,
         display: 'flex',
@@ -343,9 +346,9 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
           <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--blue)', marginBottom: 6 }}>
             Fiche lead
           </div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', marginBottom: 6, lineHeight: 1.15 }}>
-            {displayName}
-          </div>
+            <div style={{ fontSize: mobile ? 16 : 20, fontWeight: 700, color: 'var(--text)', marginBottom: 6, lineHeight: 1.15 }}>
+              {displayName}
+            </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -356,17 +359,22 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: statutColor }} />
               {currentStatut}
             </span>
-            {(crm.nomEntreprise || lead.nomEntreprise) && (
-              <span style={{ fontSize: 12, color: 'var(--muted)' }}>{crm.nomEntreprise || lead.nomEntreprise}</span>
-            )}
-            {(crm.email || lead.email) && (
-              <span style={{ fontSize: 11, color: 'var(--muted2)' }}>{crm.email || lead.email}</span>
-            )}
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {metaItems.map(item => (
-              <CompactMetaPill key={item.key} label={item.label} value={item.value} tone={item.tone} />
-            ))}
+              {!mobile && (crm.nomEntreprise || lead.nomEntreprise) && (
+                <span style={{ fontSize: 12, color: 'var(--muted)' }}>{crm.nomEntreprise || lead.nomEntreprise}</span>
+              )}
+              {!mobile && (crm.email || lead.email) && (
+                <span style={{ fontSize: 11, color: 'var(--muted2)' }}>{crm.email || lead.email}</span>
+              )}
+            </div>
+            <div style={{
+              display: mobile ? 'grid' : 'flex',
+              gridTemplateColumns: mobile ? 'repeat(2, minmax(0, 1fr))' : undefined,
+              gap: 8,
+              flexWrap: mobile ? undefined : 'wrap',
+            }}>
+              {metaItems.map(item => (
+                <CompactMetaPill key={item.key} label={item.label} value={item.value} tone={item.tone} />
+              ))}
           </div>
         </div>
         <button
@@ -381,7 +389,7 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
 
       {/* Action bar */}
       <div style={{
-        padding: '10px 20px',
+        padding: mobile ? '10px 14px' : '10px 20px',
         borderBottom: '1px solid var(--border)',
         flexShrink: 0,
         background: 'rgba(255,255,255,0.015)',
@@ -389,7 +397,13 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
         <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted2)', marginBottom: 8 }}>
           Actions rapides
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{
+          display: 'flex',
+          flexWrap: mobile ? 'nowrap' : 'wrap',
+          gap: 8,
+          overflowX: mobile ? 'auto' : 'visible',
+          paddingBottom: mobile ? 2 : 0,
+        }}>
         <button
           onClick={() => crm.telephone && (window.location.href = `tel:${crm.telephone}`)}
           disabled={!crm.telephone}
@@ -418,7 +432,7 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
       </div>
 
       {/* Body */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 20px 18px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: mobile ? '12px 14px 16px' : '14px 20px 18px' }}>
         {/* Section Coordonnées */}
         <SectionCard borderColor="var(--blue-dim)">
           <SectionTitle accent="var(--blue)" accentDim="var(--blue-dim)">Coordonnées</SectionTitle>
@@ -513,14 +527,14 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
       {/* Footer */}
       <div style={{
         flexShrink: 0, borderTop: '1px solid var(--border)',
-        padding: '12px 20px',
+        padding: mobile ? '10px 14px max(10px, env(safe-area-inset-bottom))' : '12px 20px',
         display: 'flex',
         flexDirection: 'column',
         gap: 8,
         background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005))',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: mobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 10, flexDirection: mobile ? 'column' : 'row' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 10, color: 'var(--muted2)', padding: '6px 8px', borderRadius: 999, border: '1px solid var(--border)', background: 'rgba(255,255,255,0.02)' }}>
               {SOURCE_LABELS[lead.source] || lead.source}
               {lead.timestamp && ` · ${new Date(lead.timestamp).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: '2-digit' })}`}
@@ -544,6 +558,7 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose }) {
               color: dirty ? '#fff' : 'var(--muted2)',
               border: dirty ? '1px solid rgba(191,24,24,0.32)' : '1px solid var(--border)',
               boxShadow: dirty ? '0 12px 28px rgba(191,24,24,0.22)' : 'none',
+              width: mobile ? '100%' : 'auto',
             }}
           >
             {saving ? 'Enregistrement…' : 'Enregistrer'}

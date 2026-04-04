@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../lib/supabase.js'
+import { useIsMobile } from '../../hooks/useIsMobile.js'
 
 const IconCopy = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -39,7 +40,7 @@ function formatBytes(bytes) {
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
 }
 
-function MediaCard({ file, onDelete, onCopy, copied, isActiveCover }) {
+function MediaCard({ file, onDelete, onCopy, copied, isActiveCover, mobile = false }) {
   const [imgError, setImgError] = useState(false)
   const [hovered, setHovered] = useState(false)
 
@@ -99,10 +100,12 @@ function MediaCard({ file, onDelete, onCopy, copied, isActiveCover }) {
         {/* Hover overlay */}
         <div style={{
           position: 'absolute', inset: 0,
-          background: 'rgba(0,0,0,0.55)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          opacity: hovered ? 1 : 0,
+          background: mobile ? 'linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.72))' : 'rgba(0,0,0,0.55)',
+          display: 'flex', alignItems: mobile ? 'flex-end' : 'center', justifyContent: 'center', gap: 8,
+          opacity: mobile || hovered ? 1 : 0,
           transition: 'opacity 0.15s',
+          pointerEvents: mobile || hovered ? 'auto' : 'none',
+          paddingBottom: mobile ? 10 : 0,
         }}>
           <button
             onClick={() => onCopy(file.url)}
@@ -147,6 +150,7 @@ function MediaCard({ file, onDelete, onCopy, copied, isActiveCover }) {
 }
 
 export default function MediaLibrary() {
+  const mobile = useIsMobile()
   const [files, setFiles]           = useState([])
   const [coverUrls, setCoverUrls]   = useState(new Set())
   const [usedUrls, setUsedUrls]     = useState(new Set())
@@ -283,20 +287,20 @@ export default function MediaLibrary() {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Header */}
-      <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ padding: mobile ? '14px 12px 12px' : '20px 24px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: mobile ? 'stretch' : 'center', justifyContent: 'space-between', marginBottom: 14, flexDirection: mobile ? 'column' : 'row', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 15, fontWeight: 600 }}>Médiathèque</span>
             <span style={{ fontSize: 11, padding: '1px 7px', borderRadius: 20, background: 'var(--s3)', color: 'var(--muted)' }}>
               {filtered.length}/{files.length} fichiers · {formatBytes(totalSize)}
             </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: mobile ? '100%' : 'auto' }}>
             <select
               value={sortBy}
               onChange={e => setSortBy(e.target.value)}
               style={{
-                height: 30,
+                height: mobile ? 38 : 30,
                 padding: '0 10px',
                 borderRadius: 6,
                 border: '1px solid var(--border-md)',
@@ -304,6 +308,7 @@ export default function MediaLibrary() {
                 color: 'var(--text)',
                 fontSize: 12,
                 fontFamily: 'var(--sans)',
+                flex: mobile ? 1 : '0 0 auto',
               }}
             >
               <option value="project">Trier: projet</option>
@@ -319,6 +324,7 @@ export default function MediaLibrary() {
                 border: '1px solid var(--border-md)',
                 background: 'transparent', color: 'var(--muted)',
                 fontSize: 12, cursor: 'pointer', fontFamily: 'var(--sans)',
+                flexShrink: 0,
               }}
             >
               <IconRefresh /> Actualiser
@@ -371,7 +377,7 @@ export default function MediaLibrary() {
       </div>
 
       {/* Grid */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: mobile ? 12 : 24 }}>
         {loading ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, gap: 12, color: 'var(--muted)' }}>
             <div style={{
@@ -426,7 +432,7 @@ export default function MediaLibrary() {
                     <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
                   </div>
                   {/* Grid */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
                     {group.map(file => (
                       <MediaCard
                         key={file.path}
@@ -435,6 +441,7 @@ export default function MediaLibrary() {
                         onDelete={f => setConfirmFile(f)}
                         copied={copied}
                         isActiveCover={coverUrls.has(file.url)}
+                        mobile={mobile}
                       />
                     ))}
                   </div>

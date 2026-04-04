@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { DASHBOARD_PERIODS, useDashboardLeads } from '../../hooks/useDashboardLeads.js'
+import { useIsMobile } from '../../hooks/useIsMobile.js'
 
 const STATUT_COLORS = {
   'nouveau': '#4f7ff3',
@@ -275,6 +276,7 @@ function PrioriteBadge({ priorite }) {
 }
 
 export default function AnalyticsDashboardPage({ onOpenLeads }) {
+  const mobile = useIsMobile()
   const [periodKey, setPeriodKey] = useState('30d')
   const { loading, error, stats } = useDashboardLeads(periodKey)
 
@@ -322,7 +324,7 @@ export default function AnalyticsDashboardPage({ onOpenLeads }) {
       <div style={{ maxWidth: 1220, margin: '0 auto', padding: '24px 24px 36px' }}>
         <div style={{
           marginBottom: 18,
-          padding: '18px 20px',
+          padding: mobile ? '16px' : '18px 20px',
           borderRadius: 18,
           border: '1px solid var(--border)',
           background: 'radial-gradient(circle at top right, rgba(79,127,243,0.12), transparent 26%), linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
@@ -333,31 +335,31 @@ export default function AnalyticsDashboardPage({ onOpenLeads }) {
               <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--blue)', marginBottom: 8 }}>
                 CRM Analytics
               </div>
-              <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Cockpit commercial</h2>
+              <h2 style={{ fontSize: mobile ? 20 : 22, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Cockpit commercial</h2>
               <p style={{ fontSize: 13, color: 'var(--muted)', maxWidth: 520, lineHeight: 1.55 }}>
                 Vue de pilotage des leads et du pipeline. {totalAllTime} leads au total dans le CRM.
               </p>
             </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <div style={{ padding: '8px 11px', borderRadius: 14, border: '1px solid var(--border)', background: 'rgba(255,255,255,0.03)', minWidth: 110 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', width: mobile ? '100%' : 'auto' }}>
+              <div style={{ padding: '8px 11px', borderRadius: 14, border: '1px solid var(--border)', background: 'rgba(255,255,255,0.03)', minWidth: 110, flex: mobile ? '1 1 0' : '0 0 auto' }}>
                 <div style={{ fontSize: 10, color: 'var(--muted2)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Période</div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{DASHBOARD_PERIODS.find(period => period.key === periodKey)?.label}</div>
               </div>
-              <div style={{ padding: '8px 11px', borderRadius: 14, border: '1px solid rgba(34,197,94,0.18)', background: 'rgba(34,197,94,0.08)', minWidth: 110 }}>
+              <div style={{ padding: '8px 11px', borderRadius: 14, border: '1px solid rgba(34,197,94,0.18)', background: 'rgba(34,197,94,0.08)', minWidth: 110, flex: mobile ? '1 1 0' : '0 0 auto' }}>
                 <div style={{ fontSize: 10, color: 'rgba(34,197,94,0.72)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Pipeline</div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--green)' }}>{fmtEur(finance.pipelinePondere)}</div>
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: mobile ? 'nowrap' : 'wrap', overflowX: mobile ? 'auto' : 'visible', paddingBottom: mobile ? 2 : 0 }}>
             {DASHBOARD_PERIODS.map(period => (
               <FilterChip key={period.key} active={periodKey === period.key} label={period.label} onClick={() => setPeriodKey(period.key)} />
             ))}
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12, marginBottom: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12, marginBottom: 16 }}>
           <KpiCard label="Leads" value={total} accent="var(--text)" delta={fmtDelta(comparisons.total)} onClick={() => openLeads()} />
           <KpiCard label="Nouveaux" value={nouveaux} accent="var(--blue)" delta={fmtDelta(comparisons.nouveaux)} onClick={() => openLeads({ quickView: 'new' })} />
           <KpiCard label="Convertis" value={convertis} accent="var(--green)" delta={fmtDelta(comparisons.convertis)} onClick={() => openLeads({ quickView: 'converted' })} />
@@ -389,7 +391,7 @@ export default function AnalyticsDashboardPage({ onOpenLeads }) {
           </SectionCard>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginTop: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginTop: 16 }}>
           <SectionCard>
             <SectionHeading action={<ActionLink onClick={() => openLeads()}>Ouvrir la liste</ActionLink>}>
               Entonnoir de conversion
@@ -423,7 +425,7 @@ export default function AnalyticsDashboardPage({ onOpenLeads }) {
           </SectionCard>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginTop: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginTop: 16 }}>
           <SectionCard>
             <SectionHeading action={<ActionLink onClick={() => openLeads({ quickView: 'no_next_step' })}>Corriger le CRM</ActionLink>}>
               Qualité CRM
@@ -445,37 +447,57 @@ export default function AnalyticsDashboardPage({ onOpenLeads }) {
 
         <SectionCard style={{ marginTop: 16 }}>
           <SectionHeading>Performance par source</SectionHeading>
-          <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
-            <thead>
-              <tr>
-                {['Source', 'Leads', 'Convertis', 'Taux', 'Pipeline', 'CA réel', ''].map(head => (
-                  <th key={head} style={{ textAlign: 'left', padding: '0 0 10px', fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em', borderBottom: '1px solid var(--border)' }}>
-                    {head}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
+          {mobile ? (
+            <div style={{ display: 'grid', gap: 10 }}>
               {sourcePerformance.map(source => (
-                <tr key={source.key} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '9px 0', fontSize: 13, color: 'var(--text)', fontWeight: 600 }}>{source.label}</td>
-                  <td style={{ padding: '9px 0', fontSize: 12 }}>{source.count}</td>
-                  <td style={{ padding: '9px 0', fontSize: 12 }}>{source.convertis}</td>
-                  <td style={{ padding: '9px 0', fontSize: 12 }}>{fmtPct(source.taux)}</td>
-                  <td style={{ padding: '9px 0', fontSize: 12 }}>{fmtEur(source.pipeline)}</td>
-                  <td style={{ padding: '9px 0', fontSize: 12 }}>{fmtEur(source.ca)}</td>
-                  <td style={{ padding: '9px 0', textAlign: 'right' }}>
+                <div key={source.key} style={{ border: '1px solid var(--border)', borderRadius: 14, padding: '12px 14px', background: 'rgba(255,255,255,0.02)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{source.label}</div>
                     <ActionLink onClick={() => openLeads({ filters: { source: source.key } })}>Voir</ActionLink>
-                  </td>
-                </tr>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>Leads: <span style={{ color: 'var(--text)' }}>{source.count}</span></div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>Convertis: <span style={{ color: 'var(--text)' }}>{source.convertis}</span></div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>Taux: <span style={{ color: 'var(--text)' }}>{fmtPct(source.taux)}</span></div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>Pipeline: <span style={{ color: 'var(--text)' }}>{fmtEur(source.pipeline)}</span></div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>CA réel: <span style={{ color: 'var(--text)' }}>{fmtEur(source.ca)}</span></div>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
-          </div>
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
+              <thead>
+                <tr>
+                  {['Source', 'Leads', 'Convertis', 'Taux', 'Pipeline', 'CA réel', ''].map(head => (
+                    <th key={head} style={{ textAlign: 'left', padding: '0 0 10px', fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em', borderBottom: '1px solid var(--border)' }}>
+                      {head}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sourcePerformance.map(source => (
+                  <tr key={source.key} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '9px 0', fontSize: 13, color: 'var(--text)', fontWeight: 600 }}>{source.label}</td>
+                    <td style={{ padding: '9px 0', fontSize: 12 }}>{source.count}</td>
+                    <td style={{ padding: '9px 0', fontSize: 12 }}>{source.convertis}</td>
+                    <td style={{ padding: '9px 0', fontSize: 12 }}>{fmtPct(source.taux)}</td>
+                    <td style={{ padding: '9px 0', fontSize: 12 }}>{fmtEur(source.pipeline)}</td>
+                    <td style={{ padding: '9px 0', fontSize: 12 }}>{fmtEur(source.ca)}</td>
+                    <td style={{ padding: '9px 0', textAlign: 'right' }}>
+                      <ActionLink onClick={() => openLeads({ filters: { source: source.key } })}>Voir</ActionLink>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            </div>
+          )}
         </SectionCard>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginTop: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginTop: 16 }}>
           <SectionCard>
             <SectionHeading action={<ActionLink onClick={() => openLeads({ quickView: 'follow_up' })}>Voir tous</ActionLink>}>
               Leads à relancer
@@ -485,38 +507,56 @@ export default function AnalyticsDashboardPage({ onOpenLeads }) {
                 Aucun lead à relancer
               </p>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 430 }}>
-                <thead>
-                  <tr>
-                    {['Lead', 'Statut', 'Date de relance', 'Priorité'].map(head => (
-                      <th key={head} style={{ textAlign: 'left', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--muted)', padding: '0 8px 10px', borderBottom: '1px solid var(--border)' }}>
-                        {head}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
+              mobile ? (
+                <div style={{ display: 'grid', gap: 10 }}>
                   {relances.slice(0, 8).map((lead, index) => {
                     const name = [lead.prenom, lead.nom].filter(Boolean).join(' ') || lead.email || lead.nomEntreprise || '—'
                     return (
-                      <tr key={lead.id || index} style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '9px 8px', fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>{name}</td>
-                        <td style={{ padding: '9px 8px' }}><StatutPill statut={lead.statut} /></td>
-                        <td style={{ padding: '9px 8px', fontSize: 12, color: 'var(--red)', fontWeight: 500 }}>{fmtDate(lead.dateRelance)}</td>
-                        <td style={{ padding: '9px 8px' }}><PrioriteBadge priorite={lead.priorite} /></td>
-                      </tr>
+                      <div key={lead.id || index} style={{ border: '1px solid var(--border)', borderRadius: 14, padding: '12px 14px', background: 'rgba(255,255,255,0.02)' }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>{name}</div>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          <StatutPill statut={lead.statut} />
+                          <PrioriteBadge priorite={lead.priorite} />
+                          <span style={{ fontSize: 11, color: 'var(--red)', fontWeight: 600 }}>Relance {fmtDate(lead.dateRelance)}</span>
+                        </div>
+                      </div>
                     )
                   })}
-                </tbody>
-              </table>
-              </div>
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 430 }}>
+                  <thead>
+                    <tr>
+                      {['Lead', 'Statut', 'Date de relance', 'Priorité'].map(head => (
+                        <th key={head} style={{ textAlign: 'left', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--muted)', padding: '0 8px 10px', borderBottom: '1px solid var(--border)' }}>
+                          {head}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {relances.slice(0, 8).map((lead, index) => {
+                      const name = [lead.prenom, lead.nom].filter(Boolean).join(' ') || lead.email || lead.nomEntreprise || '—'
+                      return (
+                        <tr key={lead.id || index} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td style={{ padding: '9px 8px', fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>{name}</td>
+                          <td style={{ padding: '9px 8px' }}><StatutPill statut={lead.statut} /></td>
+                          <td style={{ padding: '9px 8px', fontSize: 12, color: 'var(--red)', fontWeight: 500 }}>{fmtDate(lead.dateRelance)}</td>
+                          <td style={{ padding: '9px 8px' }}><PrioriteBadge priorite={lead.priorite} /></td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+                </div>
+              )
             )}
           </SectionCard>
 
           <SectionCard>
             <SectionHeading>Finance</SectionHeading>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
               <KpiCard label="Pipeline pondéré" value={fmtEur(finance.pipelinePondere)} accent="var(--green)" />
               <KpiCard label="CA réel" value={finance.caReel > 0 ? fmtEur(finance.caReel) : '—'} accent={finance.caReel > 0 ? 'var(--green)' : 'var(--muted2)'} delta={fmtDelta(comparisons.caReel, true)} />
               <KpiCard label="Devis estimés" value={fmtEur(finance.montantTotalEstime)} accent="var(--blue)" />
@@ -530,7 +570,7 @@ export default function AnalyticsDashboardPage({ onOpenLeads }) {
         {parEtab.length > 0 && (
           <SectionCard style={{ marginTop: 16 }}>
             <SectionHeading>Performance par type d’établissement</SectionHeading>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px 24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px 24px' }}>
               {parEtab.map(entry => (
                 <div key={entry.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 12, background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)' }}>
                   <div style={{ width: 130, fontSize: 12, color: 'var(--muted)', flexShrink: 0 }}>{entry.label}</div>
