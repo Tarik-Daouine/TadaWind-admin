@@ -275,7 +275,7 @@ function PrioriteBadge({ priorite }) {
   )
 }
 
-export default function AnalyticsDashboardPage({ onOpenLeads }) {
+export default function AnalyticsDashboardPage({ onOpenLeads, onOpenLead }) {
   const mobile = useIsMobile()
   const [periodKey, setPeriodKey] = useState('30d')
   const { loading, error, stats } = useDashboardLeads(periodKey)
@@ -508,41 +508,51 @@ export default function AnalyticsDashboardPage({ onOpenLeads }) {
               </p>
             ) : (
               mobile ? (
-                <div style={{ display: 'grid', gap: 10 }}>
-                  {relances.slice(0, 8).map((lead, index) => {
+                <div style={{ display: 'grid', gap: 10, maxHeight: 400, overflowY: 'auto' }}>
+                  {relances.map((lead, index) => {
                     const name = [lead.prenom, lead.nom].filter(Boolean).join(' ') || lead.email || lead.nomEntreprise || '—'
                     return (
-                      <div key={lead.id || index} style={{ border: '1px solid var(--border)', borderRadius: 14, padding: '12px 14px', background: 'rgba(255,255,255,0.02)' }}>
+                      <button
+                        key={lead.id || index}
+                        onClick={() => onOpenLead?.(lead.id)}
+                        style={{ border: '1px solid var(--border)', borderRadius: 14, padding: '12px 14px', background: 'rgba(255,255,255,0.02)', textAlign: 'left', cursor: onOpenLead ? 'pointer' : 'default', width: '100%' }}
+                      >
                         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>{name}</div>
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                           <StatutPill statut={lead.statut} />
                           <PrioriteBadge priorite={lead.priorite} />
-                          <span style={{ fontSize: 11, color: 'var(--red)', fontWeight: 600 }}>Relance {fmtDate(lead.dateRelance)}</span>
+                          {lead.dateRelance && <span style={{ fontSize: 11, color: 'var(--red)', fontWeight: 600 }}>Relance {fmtDate(lead.dateRelance)}</span>}
                         </div>
-                      </div>
+                      </button>
                     )
                   })}
                 </div>
               ) : (
-                <div style={{ overflowX: 'auto' }}>
+                <div style={{ overflowX: 'auto', maxHeight: 400, overflowY: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 430 }}>
                   <thead>
                     <tr>
                       {['Lead', 'Statut', 'Date de relance', 'Priorité'].map(head => (
-                        <th key={head} style={{ textAlign: 'left', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--muted)', padding: '0 8px 10px', borderBottom: '1px solid var(--border)' }}>
+                        <th key={head} style={{ textAlign: 'left', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--muted)', padding: '0 8px 10px', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, background: 'var(--s1)', zIndex: 1 }}>
                           {head}
                         </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {relances.slice(0, 8).map((lead, index) => {
+                    {relances.map((lead, index) => {
                       const name = [lead.prenom, lead.nom].filter(Boolean).join(' ') || lead.email || lead.nomEntreprise || '—'
                       return (
-                        <tr key={lead.id || index} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <tr
+                          key={lead.id || index}
+                          onClick={() => onOpenLead?.(lead.id)}
+                          style={{ borderBottom: '1px solid var(--border)', cursor: onOpenLead ? 'pointer' : 'default', transition: 'background 0.1s' }}
+                          onMouseEnter={e => { if (onOpenLead) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+                        >
                           <td style={{ padding: '9px 8px', fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>{name}</td>
                           <td style={{ padding: '9px 8px' }}><StatutPill statut={lead.statut} /></td>
-                          <td style={{ padding: '9px 8px', fontSize: 12, color: 'var(--red)', fontWeight: 500 }}>{fmtDate(lead.dateRelance)}</td>
+                          <td style={{ padding: '9px 8px', fontSize: 12, color: lead.dateRelance ? 'var(--red)' : 'var(--muted2)', fontWeight: 500 }}>{fmtDate(lead.dateRelance)}</td>
                           <td style={{ padding: '9px 8px' }}><PrioriteBadge priorite={lead.priorite} /></td>
                         </tr>
                       )

@@ -205,6 +205,9 @@ export function useDashboardLeads(periodKey = '30d') {
 
     const relances = rows.filter(row => {
       if (CLOSED.includes(row.statut)) return false
+      // Inclure tous les leads avec statut "À relancer" (même sans date de relance)
+      if (row.statut === 'À relancer') return true
+      // Inclure ceux dont la date de relance est aujourd'hui ou dépassée
       if (!row.dateRelance) return false
       const followUpDate = startOfDate(row.dateRelance)
       if (!followUpDate) return false

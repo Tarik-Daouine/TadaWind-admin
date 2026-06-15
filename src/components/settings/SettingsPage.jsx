@@ -104,7 +104,7 @@ export default function SettingsPage({ onToast }) {
             borderRadius: 'var(--radius)', fontSize: 12, color: 'var(--amber)', lineHeight: 1.6,
           }}>
             <strong>Table manquante.</strong> Exécute ce SQL dans Supabase pour activer les réglages :
-            <pre style={{ marginTop: 8, fontSize: 11, background: 'var(--s3)', padding: '10px 12px', borderRadius: 6, color: 'var(--text)', overflowX: 'auto' }}>{`CREATE TABLE IF NOT EXISTS settings (
+            <pre style={{ marginTop: 8, fontSize: 11, background: 'var(--s3)', padding: '10px 12px', borderRadius: 6, color: 'var(--text)', overflowX: 'auto', maxWidth: '100%', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{`CREATE TABLE IF NOT EXISTS settings (
   id text PRIMARY KEY DEFAULT 'main',
   site_title text,
   site_description text,

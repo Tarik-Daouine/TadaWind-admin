@@ -84,6 +84,7 @@ export default function App() {
   const [leadFilters, setLeadFilters]         = useState(defaultLeadFilters)
   const [leadSort, setLeadSort]               = useState(defaultLeadSort)
   const [leadQuickView, setLeadQuickView]     = useState('all')
+  const [chatbotTrigger, setChatbotTrigger]   = useState(0)
   const mobile                                = useIsMobile()
   const [sidebarOpen, setSidebarOpen]         = useState(false)
   const [streamableImportSession, setStreamableImportSession] = useState(null)
@@ -152,6 +153,12 @@ export default function App() {
     setView('projects')
     setSelectedId(projectId)
     setStreamableImportOpen(false)
+  }
+
+  const openLeadDetail = (leadId) => {
+    setView('leads')
+    setSelectedLeadId(leadId)
+    if (mobile) setSidebarOpen(false)
   }
 
   const openLeadsWorkspace = ({ filters = defaultLeadFilters, sort = defaultLeadSort, quickView = 'all', search: nextSearch = '' } = {}) => {
@@ -276,6 +283,8 @@ export default function App() {
           searchPlaceholder={searchPlaceholderByView[view] || 'Rechercher…'}
           searchDisabled={!searchEnabled}
           showProjectActions={view === 'projects'}
+          showLeadActions={view === 'leads'}
+          onNewLead={() => setChatbotTrigger(t => t + 1)}
         />
 
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
@@ -410,7 +419,7 @@ export default function App() {
                   </div>
                 )}
                 {/* Détail — plein écran sur mobile */}
-                {selectedLeadId && (
+                {selectedLeadId && leads.find(l => l.id === selectedLeadId) && (
                   <div style={{ flex: 1, overflow: 'hidden', animation: 'slideRight 0.2s ease both' }}>
                     <LeadDetail
                       lead={leads.find(l => l.id === selectedLeadId)}
@@ -434,6 +443,7 @@ export default function App() {
           {view === 'leads' && (
             <LeadChatbot
               hasDetail={!!selectedLeadId}
+              openTrigger={chatbotTrigger}
               onCreateLead={async (data) => {
                 const { error } = await createLead(data)
                 if (error) addToast('Erreur lors de la création', 'error')
@@ -450,7 +460,7 @@ export default function App() {
           {view === 'settings' && <SettingsPage onToast={addToast} />}
 
           {/* Analytics view */}
-          {view === 'analytics' && <AnalyticsPage onOpenLeads={openLeadsWorkspace} />}
+          {view === 'analytics' && <AnalyticsPage onOpenLeads={openLeadsWorkspace} onOpenLead={openLeadDetail} />}
         </div>
       </div>
 

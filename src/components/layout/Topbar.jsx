@@ -52,6 +52,7 @@ export default function Topbar({
   search,
   onSearch,
   onNewProject,
+  onNewLead,
   mobile,
   onMenuToggle,
   onOpenStreamableImport,
@@ -59,6 +60,7 @@ export default function Topbar({
   searchPlaceholder = 'Rechercher…',
   searchDisabled = false,
   showProjectActions = false,
+  showLeadActions = false,
 }) {
   return (
     <div
@@ -147,6 +149,13 @@ export default function Topbar({
           Nouveau projet
         </Button>
       </>}
+
+      {/* Nouveau lead — affiché dans l'onglet Leads */}
+      {!mobile && showLeadActions && (
+        <Button variant="primary" size="sm" icon={<IconPlus />} onClick={onNewLead}>
+          Nouveau lead
+        </Button>
+      )}
     </div>
   )
 }

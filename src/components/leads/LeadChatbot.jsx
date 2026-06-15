@@ -66,7 +66,7 @@ function Select({ value, onChange, options, labelMap }) {
 
 // ── Composant principal ────────────────────────────────────────────────────────
 
-export default function LeadChatbot({ onCreateLead, hasDetail = false }) {
+export default function LeadChatbot({ onCreateLead, hasDetail = false, openTrigger = 0 }) {
   const mobile = useIsMobile()
   const [open, setOpen]         = useState(false)
   const [step, setStep]         = useState('input')   // 'input' | 'preview'
@@ -83,6 +83,11 @@ export default function LeadChatbot({ onCreateLead, hasDetail = false }) {
     window.addEventListener('resize', fn)
     return () => window.removeEventListener('resize', fn)
   }, [])
+
+  // Ouvrir via le bouton du Topbar
+  useEffect(() => {
+    if (openTrigger > 0) setOpen(true)
+  }, [openTrigger])
 
   // Fermeture Escape
   useEffect(() => {
@@ -267,6 +272,7 @@ export default function LeadChatbot({ onCreateLead, hasDetail = false }) {
                   }}>
                     {/* En-tête section sensible */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ width: 3, height: 12, borderRadius: 2, background: '#f59e0b', flexShrink: 0, display: 'inline-block' }} />
                       <span style={{ fontSize: 9, fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                         Noms propres — vérifie avant création
                       </span>
@@ -306,9 +312,19 @@ export default function LeadChatbot({ onCreateLead, hasDetail = false }) {
                   </div>
 
                   {/* ── Section champs détectés ── */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4 }}>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--muted2)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                      Informations détectées
+                  <div style={{
+                    borderRadius: 8,
+                    border: '1px solid rgba(79,127,243,0.22)',
+                    borderLeft: '3px solid var(--blue)',
+                    background: 'rgba(79,127,243,0.04)',
+                    padding: '12px 14px',
+                    display: 'flex', flexDirection: 'column', gap: 10,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ width: 3, height: 12, borderRadius: 2, background: 'var(--blue)', flexShrink: 0, display: 'inline-block' }} />
+                      <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--blue)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                        Informations détectées
+                      </span>
                     </div>
 
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>

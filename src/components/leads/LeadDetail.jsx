@@ -272,6 +272,8 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose, mobile: 
     setActionLoading('')
   }
 
+  if (!lead) return null
+
   const today = new Date().toISOString().split('T')[0]
   const plusSevenDays = (() => {
     const date = new Date()
@@ -399,10 +401,8 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose, mobile: 
         </div>
         <div style={{
           display: 'flex',
-          flexWrap: mobile ? 'nowrap' : 'wrap',
+          flexWrap: 'wrap',
           gap: 8,
-          overflowX: mobile ? 'auto' : 'visible',
-          paddingBottom: mobile ? 2 : 0,
         }}>
         <button
           onClick={() => crm.telephone && (window.location.href = `tel:${crm.telephone}`)}
@@ -476,7 +476,54 @@ export default function LeadDetail({ lead, onUpdate, onDelete, onClose, mobile: 
             <FieldSelect label="Niveau d'intérêt" value={crm.niveauInteret} onChange={v => setCrmField('niveauInteret', v)} options={INTERET_OPTIONS} />
             <FieldSelect label="Probabilité (%)" value={crm.probabilite} onChange={v => setCrmField('probabilite', v)} options={PROBA_OPTIONS} />
           </div>
-          <FieldSelect label="Next step" value={crm.nextStep} onChange={v => setCrmField('nextStep', v)} options={NEXT_STEP_OPTIONS} />
+          {/* Next Step — pills radio-style */}
+          <div style={{ marginBottom: 10 }}>
+            <label style={{ display: 'block', fontSize: 10, color: 'var(--muted2)', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Next Step
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {NEXT_STEP_OPTIONS.map(opt => {
+                const isActive = crm.nextStep === opt
+                return (
+                  <button
+                    key={opt}
+                    onClick={() => setCrmField('nextStep', isActive ? '' : opt)}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: 999,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      fontFamily: 'var(--sans)',
+                      cursor: 'pointer',
+                      border: isActive ? '1px solid rgba(79,127,243,0.35)' : '1px solid var(--border-md)',
+                      background: isActive ? 'rgba(79,127,243,0.14)' : 'var(--s3)',
+                      color: isActive ? 'var(--blue)' : 'var(--muted)',
+                      transition: 'all 0.12s',
+                    }}
+                  >
+                    {opt}
+                  </button>
+                )
+              })}
+              {/* Badge pour valeur personnalisée (saisie via chatbot ou texte libre) */}
+              {crm.nextStep && !NEXT_STEP_OPTIONS.includes(crm.nextStep) && (
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '5px 10px',
+                  borderRadius: 999,
+                  border: '1px solid rgba(79,127,243,0.35)',
+                  background: 'rgba(79,127,243,0.14)',
+                  fontSize: 11, fontWeight: 600, color: 'var(--blue)',
+                }}>
+                  {crm.nextStep}
+                  <button
+                    onClick={() => setCrmField('nextStep', '')}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--blue)', padding: 0, fontSize: 14, lineHeight: 1, display: 'flex', alignItems: 'center', fontFamily: 'var(--sans)' }}
+                  >×</button>
+                </span>
+              )}
+            </div>
+          </div>
           <div style={fieldGridStyle}>
             <FieldInput label="Date de relance"    value={crm.dateRelance} onChange={v => setCrmField('dateRelance', v)} type="date" />
             <FieldInput label="Date d'envoi devis" value={crm.dateDevis}   onChange={v => setCrmField('dateDevis', v)}   type="date" />

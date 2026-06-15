@@ -301,10 +301,8 @@ export default function LeadsList({
           <div style={{
             display: 'flex',
             gap: 6,
-            flexWrap: mobile ? 'nowrap' : 'wrap',
-            overflowX: mobile ? 'auto' : 'visible',
+            flexWrap: 'wrap',
             width: mobile ? '100%' : 'auto',
-            paddingBottom: mobile ? 2 : 0,
           }}>
             {quickViewCounts.map(view => (
               <button
