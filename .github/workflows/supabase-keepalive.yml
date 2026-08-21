@@ -14,9 +14,9 @@ jobs:
       - name: Ping de la table projects
         run: |
           code=$(curl -s -o /tmp/out.txt -w '%{http_code}' \
-            "${{ secrets.SUPABASE_URL }}/rest/v1/projects?select=id&limit=1" \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
+            "${{ secrets.VITE_SUPABASE_URL }}/rest/v1/projects?select=id&limit=1" \
+            -H "apikey: ${{ secrets.VITE_SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.VITE_SUPABASE_ANON_KEY }}")
           echo "HTTP $code"
           cat /tmp/out.txt
           if [ "$code" != "200" ]; then
