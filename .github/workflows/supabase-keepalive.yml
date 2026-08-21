@@ -1,0 +1,25 @@
+name: Supabase keep-alive
+
+# Le free tier Supabase met le projet en pause apres 7 jours sans activite.
+# Un SELECT quotidien suffit a le garder eveille, donc a ne pas perdre de lead.
+on:
+  schedule:
+    - cron: '30 5 * * *'   # tous les jours 05h30 UTC (07h30 Paris)
+  workflow_dispatch:        # declenchement manuel possible
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping de la table projects
+        run: |
+          code=$(curl -s -o /tmp/out.txt -w '%{http_code}' \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/projects?select=id&limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
+          echo "HTTP $code"
+          cat /tmp/out.txt
+          if [ "$code" != "200" ]; then
+            echo "::error::Supabase a repondu $code - projet en pause ou cles invalides"
+            exit 1
+          fi
