@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import ProspectorSettings from './ProspectorSettings.jsx'
 import { SectionCard } from '../ui/SectionCard.jsx'
 import ProspectsWorkspace from './ProspectsWorkspace.jsx'
+import ValidationQueue from './ValidationQueue.jsx'
 import { prospectorJobError, prospectorJobLabel, useProspectorJobs } from '../../hooks/useProspectorJobs.js'
 
 const VIEWS = [
@@ -13,23 +14,31 @@ const NEXT = {
   dashboard:['Le socle de prospection est prêt','Configure le profil, la zone et le barème pour préparer les premières campagnes.'],
   search:['Découverte en préparation','La recherche OpenStreetMap sera activée avec le worker. Aucun prospect fictif ne sera créé.'],
   prospects:['Aucun prospect pour le moment','Les fiches apparaîtront ici après ajout manuel ou découverte vérifiée.'],
-  validate:['Aucun message à valider','Seuls les brouillons sourcés apparaîtront ici. Chaque premier contact nécessitera ta validation.'],
   contacted:['Aucun contact enregistré','Un prospect arrivera ici après confirmation manuelle de son envoi.'],
   followups:['Aucune relance à traiter','Les échéances seront calculées à partir des réglages, puis proposées pour validation.'],
   opportunities:['Aucune opportunité ouverte','Les opportunités seront créées à partir des prospects qualifiés et revus.'],
   campaigns:['Aucune campagne lancée','Les campagnes utiliseront ta zone et les catégories configurées.'],
 }
 
+const FULL_HEIGHT_VIEWS = new Set(['prospects','validate'])
+
 export default function ProspectorApp({onToast}) {
   const [view,setView] = useState('dashboard')
+  const [focusProspectId,setFocusProspectId] = useState(null)
   const jobs = useProspectorJobs()
+  const openProspect = (id) => { setFocusProspectId(id); setView('prospects') }
   return <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',minWidth:0}}>
     <div style={{padding:'17px 22px 0',background:'var(--s1)',borderBottom:'1px solid var(--border)',flexShrink:0}}>
       <div style={{display:'flex',alignItems:'baseline',gap:10,marginBottom:14}}><h1 style={{fontFamily:'var(--serif)',fontSize:22,fontWeight:400}}>Prospection</h1><span style={{fontSize:11,color:'var(--muted2)'}}>assistant commercial</span></div>
       <div role="tablist" aria-label="Navigation Prospection" style={{display:'flex',gap:4,overflowX:'auto'}}>{VIEWS.map(([id,label])=><button key={id} role="tab" aria-selected={view===id} onClick={()=>setView(id)} style={{border:'none',borderBottom:`2px solid ${view===id?'var(--red)':'transparent'}`,background:'transparent',color:view===id?'var(--text)':'var(--muted)',fontFamily:'var(--sans)',fontSize:12,fontWeight:500,padding:'8px 10px 10px',cursor:'pointer',whiteSpace:'nowrap'}}>{label}</button>)}</div>
     </div>
     <JobStatus jobs={jobs}/>
-    <div style={{flex:1,overflow:view==='prospects'?'hidden':'auto'}}>{view==='settings'?<ProspectorSettings onToast={onToast}/>:view==='prospects'?<ProspectsWorkspace onToast={onToast}/>:<Placeholder view={view} onSettings={()=>setView('settings')}/>}</div>
+    <div style={{flex:1,overflow:FULL_HEIGHT_VIEWS.has(view)?'hidden':'auto'}}>
+      {view==='settings' ? <ProspectorSettings onToast={onToast}/>
+        : view==='prospects' ? <ProspectsWorkspace onToast={onToast} focusProspectId={focusProspectId}/>
+        : view==='validate' ? <ValidationQueue onToast={onToast} onOpenProspect={openProspect}/>
+        : <Placeholder view={view} onSettings={()=>setView('settings')}/>}
+    </div>
   </div>
 }
 

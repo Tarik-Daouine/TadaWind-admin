@@ -1,7 +1,10 @@
 # Tada Wind Prospector — Plan d'action
 
 > **Statut (2026-09-05, reprise Claude Code) :** L0 · L1–L2 (nav + Réglages) · L3 (lib scoring/dedupe) · L4–L5 (Prospects + fiche) · L6–L7 (queue + worker + enrichissement) · **L11** (campagne OSM → worker `discovery` → prospects + `distance_km`) · **L8–L10** (chaîne worker `analyze → score(SQL) → strategize → copywrite → to_validate`, adaptateur LLM Anthropic dans `_shared/prospector/llm-provider.ts`, sorties validées Zod + preuves vérifiées en base). Edge Functions `prospector-worker` v5 / `prospector-enrich` v3 déployées.
-> Restent : **UI file « À valider » / éditeur-approbation de message / Dashboard** (les RPC existent). **Secrets à poser :** `ANTHROPIC_API_KEY` + modèle dans Réglages (défauts posés : `claude-sonnet-5` / `claude-haiku-4-5`) → active la chaîne IA ; secret GitHub `PROSPECTOR_CRON_SECRET` → active le cron worker. Sans clé LLM : `analyze` échoue en `LLM_NOT_CONFIGURED` (terminal), le prospect reste `to_analyze`.
+> · **L13** (file « À valider » : mode batch clavier, éditeur multi-canal, preuves affichées, approuver / modifier / régénérer / plus tard / refuser / blacklist, confirmation d'envoi manuelle).
+> Restent : **Dashboard** et les vues Contactés / Relances / Opportunités / Campagnes / Recherche. **Secrets à poser :** `ANTHROPIC_API_KEY` + modèle dans Réglages (défauts posés : `claude-sonnet-5` / `claude-haiku-4-5`) → active la chaîne IA ; secret GitHub `PROSPECTOR_CRON_SECRET` → active le cron worker. Sans clé LLM : `analyze` échoue en `LLM_NOT_CONFIGURED` (terminal), le prospect reste `to_analyze`.
+>
+> **Note P1 (validation humaine).** Modifier un message remet la révision à l'état « non validé » — c'est voulu : une sortie IA modifiée n'est plus la sortie IA. `prospector_review_message` / action `edit` rend alors l'humain auteur de la révision : les citations dont la phrase a disparu du texte sont retirées, les autres sont revérifiées contre leur source, puis la traçabilité est retamponnée. L'envoi reste une action manuelle explicite (`prospector_confirm_message_sent`).
 > Document destiné à être partagé entre agents IA (Claude Code + « ChatGPT Astra ») et validé par Tarik.
 > Toute décision marquée ⚠️ doit être tranchée par Tarik avant le lot concerné.
 
