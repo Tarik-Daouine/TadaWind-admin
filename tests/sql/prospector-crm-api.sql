@@ -1,0 +1,13 @@
+create function pg_temp.assert_true(ok boolean,label text) returns void language plpgsql as $$begin if ok is distinct from true then raise exception 'ASSERTION_FAILED: %',label; end if; end$$;
+create function pg_temp.expect_error(statement text,expected text) returns void language plpgsql as $$declare caught text;begin begin execute statement;exception when others then caught:=sqlerrm;end;if caught is null or position(expected in caught)=0 then raise exception 'EXPECTED_ERROR: %, got %',expected,coalesce(caught,'success');end if;end$$;
+insert into public.prospects(id,name,city) values('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','Fiche Test','Sarlat');
+select set_config('request.jwt.claims','{"role":"authenticated","sub":"11111111-1111-4111-8111-111111111111"}',true);
+set local role authenticated;
+select pg_temp.expect_error($q$update public.prospects set notes='direct'$q$,'permission denied');
+select pg_temp.expect_error($q$select public.prospector_update_prospect('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',now(),'{}')$q$,'INVALID_PROSPECT_PATCH');
+select pg_temp.expect_error($q$select public.prospector_update_prospect('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','2000-01-01','{"notes":"x"}')$q$,'PROSPECT_CONFLICT');
+select pg_temp.expect_error($q$select public.prospector_update_prospect('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',(select updated_at from public.prospects where id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),'{"status":"won"}')$q$,'INVALID_PROSPECT_PATCH');
+select public.prospector_update_prospect('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',(select updated_at from public.prospects where id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),'{"notes":"Note test","tags":[" hôtel ","hotel","hôtel"]}');
+select pg_temp.assert_true((select notes='Note test' and cardinality(tags)=2 and tags @> array['hôtel','hotel'] from public.prospects where id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),'notes and deduped tags');
+select pg_temp.assert_true((select count(*)=1 from public.prospect_events where prospect_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' and type='note_added'),'audit event');
+reset role;

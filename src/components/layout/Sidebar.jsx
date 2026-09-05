@@ -42,6 +42,12 @@ const IconBarChart = () => (
   </svg>
 )
 
+const IconTarget = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+  </svg>
+)
+
 const IconLogout = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -50,13 +56,14 @@ const IconLogout = () => (
   </svg>
 )
 
-export default function Sidebar({ view, onView, onSignOut, newLeadsCount = 0, mobileExpanded = false }) {
+export default function Sidebar({ view, onView, onSignOut, newLeadsCount = 0, prospectorQueueCount = 0, mobileExpanded = false }) {
   const mobile = useIsMobile()
   const showLabels = !mobile || mobileExpanded
   const NAV_ITEMS = [
     { id: 'projects', label: 'Projets', icon: <IconFilm /> },
     { id: 'medias',   label: 'Médias',  icon: <IconGrid /> },
     { id: 'leads',      label: 'Leads',      icon: <IconUsers />, badge: newLeadsCount },
+    { id: 'prospection',label: 'Prospection',icon: <IconTarget />,badge:prospectorQueueCount },
     { id: 'analytics',  label: 'Analytique', icon: <IconBarChart /> },
     { id: 'settings',   label: 'Réglages',   icon: <IconGear /> },
   ]

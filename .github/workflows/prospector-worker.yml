@@ -1,0 +1,31 @@
+name: Prospector worker
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prospector-worker
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Process queued jobs
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          CRON_SECRET: ${{ secrets.PROSPECTOR_CRON_SECRET }}
+        run: |
+          test -n "$SUPABASE_URL" && test -n "$CRON_SECRET"
+          curl --fail-with-body --silent --show-error \
+            --max-time 55 --retry 2 --retry-all-errors \
+            -X POST "$SUPABASE_URL/functions/v1/prospector-worker" \
+            -H "Content-Type: application/json" \
+            -H "x-prospector-cron-secret: $CRON_SECRET" \
+            -d '{}'

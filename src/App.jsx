@@ -20,6 +20,8 @@ import AnalyticsPage from './components/analytics/AnalyticsPage.jsx'
 import LeadsList from './components/leads/LeadsList.jsx'
 import LeadDetail from './components/leads/LeadDetail.jsx'
 import LeadChatbot from './components/leads/LeadChatbot.jsx'
+import ProspectorApp from './components/prospector/ProspectorApp.jsx'
+import { useProspectorQueueCount } from './hooks/useProspects.js'
 
 function LoadingScreen({ message = 'Chargement…' }) {
   return (
@@ -68,6 +70,7 @@ export default function App() {
   } = useProjects()
 
   const { leads, loading: leadsLoading, createLead, updateLead, deleteLead, newLeadsCount } = useLeads()
+  const prospectorQueueCount = useProspectorQueueCount(!!session)
 
   // ── UI state ──────────────────────────────────────────────────────────────
   const { toasts, addToast, removeToast } = useToast()
@@ -96,6 +99,7 @@ export default function App() {
     analytics: 'Recherche inactive',
     medias: 'Recherche inactive',
     settings: 'Recherche inactive',
+    prospection: 'Recherche gérée dans Prospection',
   }
 
   // Flux officiel Streamable:
@@ -267,6 +271,7 @@ export default function App() {
           onView={(v) => { setView(v); if (mobile) setSidebarOpen(false) }}
           onSignOut={signOut}
           newLeadsCount={newLeadsCount}
+          prospectorQueueCount={prospectorQueueCount}
           mobileExpanded={sidebarOpen}
         />
       </div>
@@ -461,6 +466,9 @@ export default function App() {
 
           {/* Analytics view */}
           {view === 'analytics' && <AnalyticsPage onOpenLeads={openLeadsWorkspace} onOpenLead={openLeadDetail} />}
+
+          {/* Prospector workspace */}
+          {view === 'prospection' && <ProspectorApp onToast={addToast} />}
         </div>
       </div>
 

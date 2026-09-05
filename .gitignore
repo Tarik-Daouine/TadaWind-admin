@@ -2,3 +2,5 @@ node_modules/
 playwright/.auth/
 playwright-report/
 test-results/
+supabase/.temp/
+supabase/.branches/
