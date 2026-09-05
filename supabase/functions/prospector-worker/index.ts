@@ -1,3 +1,4 @@
+import {runDiscovery} from '../_shared/prospector/discovery-service.ts'
 import {runEnrichment} from '../_shared/prospector/enrichment-service.ts'
 import {errorCode,json,requireWorkerRequest,serviceClient} from '../_shared/prospector/runtime.ts'
 
@@ -9,7 +10,8 @@ Deno.serve(async request=>{
   for(const job of claimed.data??[]){
     try{
       let result:unknown
-      if(job.type==='manual_analyze'||job.type==='enrich')result=await runEnrichment(client,job.prospect_id)
+      if(job.type==='discovery')result=await runDiscovery(client,job.campaign_id)
+      else if(job.type==='manual_analyze'||job.type==='enrich')result=await runEnrichment(client,job.prospect_id)
       else throw new Error('JOB_TYPE_NOT_IMPLEMENTED')
       const finish=await client.rpc('prospector_finish_job',{p_id:job.id,p_claim_token:job.claim_token,p_result:result,p_error:null})
       if(finish.error)throw new Error(finish.error.message);outcomes.push({id:job.id,status:'done'})

@@ -2,6 +2,8 @@ import type {SupabaseClient} from 'npm:@supabase/supabase-js@2.100.0'
 import {buildOverpassQuery,parseOverpassResponse} from './discovery.js'
 
 const USER_AGENT=Deno.env.get('NOMINATIM_USER_AGENT')||'TadaWindProspector/1.0 (admin@tada-wind.fr)'
+// Overpass refuse un rayon > ~200 km ; on borne la requête sans changer le rayon de campagne stocké.
+const OVERPASS_MAX_RADIUS_KM=200
 
 async function jsonRequest(url:string,init:RequestInit={}){
   const response=await fetch(url,{...init,headers:{accept:'application/json','user-agent':USER_AGENT,...init.headers},signal:AbortSignal.timeout(30000)})
@@ -32,11 +34,12 @@ export async function runDiscovery(client:SupabaseClient,campaignId:string){
   const center=Number.isFinite(settings.reference_lat)&&Number.isFinite(settings.reference_lng)
     ?{lat:settings.reference_lat,lng:settings.reference_lng}:await geocode(settings.reference_address)
   const radiusKm=Number(filters.radius_km??settings.radius_preferred_km)
-  const query=buildOverpassQuery({lat:center.lat,lng:center.lng,radiusKm,categories:filters.categories})
+  const overpassRadiusKm=Math.min(OVERPASS_MAX_RADIUS_KM,Math.max(1,radiusKm))
+  const query=buildOverpassQuery({lat:center.lat,lng:center.lng,radiusKm:overpassRadiusKm,categories:filters.categories})
   const form=new URLSearchParams({data:query})
   const payload=await jsonRequest('https://overpass-api.de/api/interpreter',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded;charset=UTF-8'},body:form})
   const candidates=parseOverpassResponse(payload,{maxResults:50})
-  const stored=await client.rpc('prospector_store_discovery',{p_campaign_id:campaignId,p_candidates:candidates,p_report:{found:candidates.length,center,radius_km:radiusKm}})
+  const stored=await client.rpc('prospector_store_discovery',{p_campaign_id:campaignId,p_candidates:candidates,p_report:{found:candidates.length,center,radius_km:radiusKm,overpass_radius_km:overpassRadiusKm}})
   if(stored.error)throw new Error(stored.error.message)
   return stored.data
 }

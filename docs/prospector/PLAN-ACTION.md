@@ -1,6 +1,7 @@
 # Tada Wind Prospector — Plan d'action
 
-> **Statut : implémentation Astra en cours (L3, contrats IA et parsing L7). Intégration et migration L0 restent à réaliser.**
+> **Statut (2026-09-05, reprise Claude Code) :** L0 appliqué en base · L1–L2 (nav + Réglages) · L3 (lib scoring/dedupe) · L4–L5 (Prospects + fiche) · L6–L7 (queue + worker + enrichissement) · **L11 câblé de bout en bout** (campagne OSM → worker `discovery` → prospects + `distance_km` haversine).
+> Restent : couche IA L8–L10 (analyze/score/strategize/copywrite + adaptateur LLM), UI file « À valider » / génération de message / Dashboard, secrets serveur (`ANTHROPIC_API_KEY`, `PROSPECTOR_CRON_SECRET`).
 > Document destiné à être partagé entre agents IA (Claude Code + « ChatGPT Astra ») et validé par Tarik.
 > Toute décision marquée ⚠️ doit être tranchée par Tarik avant le lot concerné.
 
