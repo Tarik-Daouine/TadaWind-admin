@@ -1,5 +1,6 @@
 import {runDiscovery} from '../_shared/prospector/discovery-service.ts'
 import {runEnrichment} from '../_shared/prospector/enrichment-service.ts'
+import {runAnalyze, runStrategize, runCopywrite} from '../_shared/prospector/ai-pipeline.ts'
 import {errorCode,json,requireWorkerRequest,serviceClient} from '../_shared/prospector/runtime.ts'
 
 Deno.serve(async request=>{
@@ -11,7 +12,11 @@ Deno.serve(async request=>{
     try{
       let result:unknown
       if(job.type==='discovery')result=await runDiscovery(client,job.campaign_id)
-      else if(job.type==='manual_analyze'||job.type==='enrich')result=await runEnrichment(client,job.prospect_id)
+      else if(job.type==='enrich')result=await runEnrichment(client,job.prospect_id)
+      else if(job.type==='manual_analyze')result=await runEnrichment(client,job.prospect_id,{allowNoWebsite:true})
+      else if(job.type==='analyze')result=await runAnalyze(client,job.prospect_id)
+      else if(job.type==='strategize')result=await runStrategize(client,job.prospect_id)
+      else if(job.type==='copywrite')result=await runCopywrite(client,job.prospect_id)
       else throw new Error('JOB_TYPE_NOT_IMPLEMENTED')
       const finish=await client.rpc('prospector_finish_job',{p_id:job.id,p_claim_token:job.claim_token,p_result:result,p_error:null})
       if(finish.error)throw new Error(finish.error.message);outcomes.push({id:job.id,status:'done'})

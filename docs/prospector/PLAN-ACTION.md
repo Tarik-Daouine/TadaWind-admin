@@ -1,7 +1,7 @@
 # Tada Wind Prospector — Plan d'action
 
-> **Statut (2026-09-05, reprise Claude Code) :** L0 appliqué en base · L1–L2 (nav + Réglages) · L3 (lib scoring/dedupe) · L4–L5 (Prospects + fiche) · L6–L7 (queue + worker + enrichissement) · **L11 câblé de bout en bout** (campagne OSM → worker `discovery` → prospects + `distance_km` haversine).
-> Restent : couche IA L8–L10 (analyze/score/strategize/copywrite + adaptateur LLM), UI file « À valider » / génération de message / Dashboard, secrets serveur (`ANTHROPIC_API_KEY`, `PROSPECTOR_CRON_SECRET`).
+> **Statut (2026-09-05, reprise Claude Code) :** L0 · L1–L2 (nav + Réglages) · L3 (lib scoring/dedupe) · L4–L5 (Prospects + fiche) · L6–L7 (queue + worker + enrichissement) · **L11** (campagne OSM → worker `discovery` → prospects + `distance_km`) · **L8–L10** (chaîne worker `analyze → score(SQL) → strategize → copywrite → to_validate`, adaptateur LLM Anthropic dans `_shared/prospector/llm-provider.ts`, sorties validées Zod + preuves vérifiées en base). Edge Functions `prospector-worker` v5 / `prospector-enrich` v3 déployées.
+> Restent : **UI file « À valider » / éditeur-approbation de message / Dashboard** (les RPC existent). **Secrets à poser :** `ANTHROPIC_API_KEY` + modèle dans Réglages (défauts posés : `claude-sonnet-5` / `claude-haiku-4-5`) → active la chaîne IA ; secret GitHub `PROSPECTOR_CRON_SECRET` → active le cron worker. Sans clé LLM : `analyze` échoue en `LLM_NOT_CONFIGURED` (terminal), le prospect reste `to_analyze`.
 > Document destiné à être partagé entre agents IA (Claude Code + « ChatGPT Astra ») et validé par Tarik.
 > Toute décision marquée ⚠️ doit être tranchée par Tarik avant le lot concerné.
 
