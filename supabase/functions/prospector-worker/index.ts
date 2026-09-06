@@ -5,9 +5,10 @@ import {errorCode,json,requireWorkerRequest,serviceClient} from '../_shared/pros
 
 // Un job à la fois (bail de 240 s pour absorber la latence LLM), mais on enchaîne tant
 // qu'il reste du temps : à un seul job par cycle de cron, une campagne de 50 prospects
-// demanderait plus de 200 cycles, soit plus de 16 h. La fenêtre laisse au dernier job
-// démarré le temps de finir dans le budget curl du workflow (180 s).
-const CLAIM_WINDOW_MS = 60_000
+// demanderait plus de 200 cycles, soit plus de 16 h.
+// La fenêtre borne le DÉMARRAGE d'un nouveau job, pas sa durée : le plus long (copywrite,
+// 120 s de timeout) doit encore tenir dans les 180 s de curl une fois démarré au pire moment.
+const CLAIM_WINDOW_MS = 20_000
 // Sans clé, sans taux de change ou hors plafond, tous les jobs IA échoueraient
 // définitivement d'affilée : on arrête le cycle au premier signal de ce type.
 const STOP_CYCLE = new Set(['LLM_NOT_CONFIGURED','BUDGET_FX_NOT_CONFIGURED','MONTHLY_BUDGET_EXCEEDED','MODEL_PRICING_NOT_CONFIGURED'])

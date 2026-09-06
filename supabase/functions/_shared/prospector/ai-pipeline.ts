@@ -76,7 +76,11 @@ export async function runCopywrite(client: SupabaseClient, prospectId: string) {
   if (!ctx.analysis) throw new Error('ANALYSIS_MISSING')
   if (!ctx.strategy) throw new Error('STRATEGY_MISSING')
   if (!Array.isArray(ctx.available_channels) || ctx.available_channels.length === 0) throw new Error('NO_AVAILABLE_CHANNEL')
-  const request = makeAnthropicProvider({client, fn: 'copywrite', model: ctx.model, prospectId, maxTokens: 8192})
+  // Mesuré en conditions réelles (2026-09-06) : la sortie dépasse 16 000 tokens et tronque.
+  // Le contrat de grounding impose de redécouper chaque champ des 4 variantes, plus un
+  // claim + evidence_quote par citation — le volume dépasse ce qu'un appel peut produire.
+  // Tant que le contrat n'est pas réduit (une variante à la fois), on échoue vite et à bas coût.
+  const request = makeAnthropicProvider({client, fn: 'copywrite', model: ctx.model, prospectId, maxTokens: 8192, timeoutMs: 120000})
   const promptContext = {sources: ctx.sources, prospectId}
   const message = await requestValidatedJson({
     request,
