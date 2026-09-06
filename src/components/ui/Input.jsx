@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useId, useState } from 'react'
 import ThemedDateInput from './ThemedDateInput.jsx'
 
 export default function Input({
@@ -15,6 +15,8 @@ export default function Input({
   ...rest
 }) {
   const [focused, setFocused] = useState(false)
+  const generatedId = useId()
+  const controlId = rest.id || generatedId
 
   const inputStyle = {
     width: '100%',
@@ -37,6 +39,7 @@ export default function Input({
     <div style={{ marginBottom: 16 }}>
       {label && (
         <label
+          htmlFor={controlId}
           style={{
             display: 'block',
             fontSize: 11,
@@ -52,6 +55,7 @@ export default function Input({
       )}
       {multiline ? (
         <textarea
+          id={controlId}
           value={value}
           onChange={onChange}
           placeholder={placeholder}
@@ -63,6 +67,7 @@ export default function Input({
         />
       ) : type === 'date' ? (
         <ThemedDateInput
+          id={controlId}
           value={value}
           onChange={(nextValue) => onChange?.({ target: { value: nextValue } })}
           placeholder={placeholder}
@@ -71,6 +76,7 @@ export default function Input({
         />
       ) : (
         <input
+          id={controlId}
           type={type}
           value={value}
           onChange={onChange}

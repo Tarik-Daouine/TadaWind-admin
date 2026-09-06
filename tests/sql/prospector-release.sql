@@ -1,0 +1,27 @@
+select public.prospector_review_message((select id from public.prospect_messages where prospect_id='cccccccc-0000-4000-8000-00000000d001' and channel='email'),'approve',1);
+select public.prospector_confirm_message_sent((select id from public.prospect_messages where prospect_id='cccccccc-0000-4000-8000-00000000d001' and channel='email'),1);
+select pg_temp.assert_true((select status='contacted' and next_followup_at>now()+interval '2 days' from public.prospects where id='cccccccc-0000-4000-8000-00000000d001'),'manual send schedules follow-up');
+-- Un deuxième envoi confirmé fait passer le prospect en relance 1.
+select public.prospector_review_message((select id from public.prospect_messages where prospect_id='cccccccc-0000-4000-8000-00000000d001' and channel='linkedin'),'approve',1);
+select public.prospector_confirm_message_sent((select id from public.prospect_messages where prospect_id='cccccccc-0000-4000-8000-00000000d001' and channel='linkedin'),1);
+select pg_temp.assert_true((select status='followup_1' from public.prospects where id='cccccccc-0000-4000-8000-00000000d001'),'second confirmed send moves to follow-up 1');
+select pg_temp.expect_error($q$select public.prospector_record_outcome('cccccccc-0000-4000-8000-00000000d001','2000-01-01','interested','Test')$q$,'PROSPECT_CONFLICT');
+select pg_temp.expect_error($q$select public.prospector_record_outcome('cccccccc-0000-4000-8000-00000000d001',now(),'contacted','Test')$q$,'INVALID_CRM_OUTCOME');
+select public.prospector_record_outcome('cccccccc-0000-4000-8000-00000000d001',(select updated_at from public.prospects where id='cccccccc-0000-4000-8000-00000000d001'),'interested','Souhaite un rendez-vous');
+select pg_temp.assert_true((select status='interested' and next_followup_at is null from public.prospects where id='cccccccc-0000-4000-8000-00000000d001'),'reply stops automatic follow-ups');
+select pg_temp.assert_true((select count(*)=2 from public.prospect_messages where status='sent'),'sent history preserved');
+select pg_temp.expect_error($q$select public.prospector_reserve_ai(1)$q$,'permission denied');
+reset role;
+select set_config('request.jwt.claims','{"role":"service_role"}',true);
+set local role service_role;
+select pg_temp.expect_error($q$select public.prospector_record_outcome('cccccccc-0000-4000-8000-00000000d001',now(),'won','Test')$q$,'permission denied');
+select pg_temp.expect_error($q$select public.prospector_reserve_ai(1)$q$,'BUDGET_FX_NOT_CONFIGURED');
+reset role;
+update public.prospector_budget set eur_per_usd=1 where id='main';
+set local role service_role;
+select public.prospector_reserve_ai(6);
+select pg_temp.expect_error($q$select public.prospector_reserve_ai(5)$q$,'MONTHLY_BUDGET_EXCEEDED');
+select public.prospector_settle_ai((select id from public.prospector_ai_reservations limit 1),2);
+select public.prospector_reserve_ai(8);
+select pg_temp.expect_error($q$select public.prospector_reserve_ai(0.01)$q$,'MONTHLY_BUDGET_EXCEEDED');
+reset role;

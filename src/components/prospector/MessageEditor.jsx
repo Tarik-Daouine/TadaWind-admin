@@ -1,0 +1,221 @@
+import React, { useEffect, useMemo, useState } from 'react'
+import Button from '../ui/Button.jsx'
+import { SectionCard, SectionTitle } from '../ui/SectionCard.jsx'
+
+export const CHANNEL_LABELS = {
+  email: 'Email',
+  instagram_dm: 'DM Instagram',
+  linkedin: 'LinkedIn',
+  phone_script: 'Script téléphone',
+}
+
+// La stratégie recommande un canal (« phone ») ; les brouillons portent « phone_script ».
+export const channelFromStrategy = (value) => (value === 'phone' ? 'phone_script' : value)
+
+const inputStyle = {
+  width: '100%',
+  background: 'var(--s3)',
+  border: '1px solid var(--border-md)',
+  borderRadius: 'var(--radius)',
+  color: 'var(--text)',
+  fontFamily: 'var(--sans)',
+  fontSize: 13,
+  lineHeight: 1.7,
+  padding: '10px 12px',
+  outline: 'none',
+  boxSizing: 'border-box',
+  resize: 'vertical',
+}
+
+function StatusChip({ message }) {
+  const map = {
+    approved: ['Approuvé', 'var(--green)', 'var(--green-dim)'],
+    draft: ['Brouillon', 'var(--amber)', 'var(--amber-dim)'],
+    edited: ['Modifié', 'var(--amber)', 'var(--amber-dim)'],
+    rejected: ['Refusé', 'var(--red)', 'var(--red-dim)'],
+  }
+  const [label, color, background] = map[message.status] ?? [message.status, 'var(--gray)', 'var(--gray-dim)']
+  return (
+    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', padding: '2px 8px', borderRadius: 20, color, background }}>
+      {label}{message.revision > 1 ? ` · rév. ${message.revision}` : ''}
+    </span>
+  )
+}
+
+/** Preuves : ce que le message affirme, en regard de l'extrait de source qui le justifie. */
+function Citations({ message }) {
+  const citations = Array.isArray(message.sources_used) ? message.sources_used : []
+  if (!citations.length) {
+    return (
+      <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>
+        Aucun constat sourcé dans cette version. Le texte est entièrement de toi — rien n’est attribué au prospect par le système.
+      </div>
+    )
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {citations.map((citation, index) => (
+        <div key={`${citation.source_id}-${index}`} style={{ borderLeft: '2px solid var(--blue)', paddingLeft: 10 }}>
+          <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.6 }}>« {citation.claim} »</div>
+          <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.6, marginTop: 3 }}>
+            Source {citation.type} : « {citation.evidence_quote} »
+          </div>
+          {citation.url && (
+            <a href={citation.url} target="_blank" rel="noreferrer"
+              style={{ fontSize: 10, color: 'var(--blue)', wordBreak: 'break-all' }}>{citation.url}</a>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function PhoneScript({ script }) {
+  if (!script) return null
+  const objections = Array.isArray(script.objections) ? script.objections : []
+  if (!objections.length) return null
+  return (
+    <SectionCard>
+      <SectionTitle>Objections préparées</SectionTitle>
+      {objections.map((item, index) => (
+        <div key={index} style={{ fontSize: 12, lineHeight: 1.65, marginBottom: 8 }}>
+          <div style={{ color: 'var(--muted)' }}>— {item.objection}</div>
+          <div style={{ color: 'var(--text)' }}>→ {item.response}</div>
+        </div>
+      ))}
+      <div style={{ fontSize: 10, color: 'var(--muted2)' }}>Hypothèses proposées par l’IA, pas des réactions réelles du prospect.</div>
+    </SectionCard>
+  )
+}
+
+export default function MessageEditor({ messages, recommended, onSave, onApprove, onConfirmSent, busy }) {
+  const available = messages ?? []
+  const [channel, setChannel] = useState(null)
+  const [draft, setDraft] = useState({ subject: '', body: '' })
+  const [sentRef, setSentRef] = useState('')
+
+  const current = useMemo(
+    () => available.find(item => item.channel === channel) ?? available[0] ?? null,
+    [available, channel],
+  )
+
+  // Sélection initiale : le canal recommandé s'il existe encore parmi les brouillons.
+  useEffect(() => {
+    if (!available.length) { setChannel(null); return }
+    const preferred = available.some(item => item.channel === recommended) ? recommended : available[0].channel
+    setChannel(preferred)
+  }, [available.map(item => item.id).join(','), recommended])
+
+  useEffect(() => {
+    setDraft({ subject: current?.subject ?? '', body: current?.body ?? '' })
+    setSentRef('')
+  }, [current?.id, current?.revision])
+
+  if (!current) {
+    return (
+      <SectionCard>
+        <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>
+          Aucun brouillon disponible pour ce prospect. Utilise « Régénérer » pour en préparer un.
+        </div>
+      </SectionCard>
+    )
+  }
+
+  const dirty = (draft.subject ?? '') !== (current.subject ?? '') || (draft.body ?? '') !== (current.body ?? '')
+  const approved = current.status === 'approved'
+
+  return (
+    <>
+      <div role="tablist" aria-label="Canal du message"
+        style={{ display: 'flex', gap: 4, marginBottom: 12, flexWrap: 'wrap' }}>
+        {available.map(item => {
+          const active = item.id === current.id
+          return (
+            <button key={item.id} role="tab" aria-selected={active} onClick={() => setChannel(item.channel)}
+              style={{
+                border: `1px solid ${active ? 'var(--border-strong)' : 'var(--border)'}`,
+                background: active ? 'var(--s3)' : 'transparent',
+                color: active ? 'var(--text)' : 'var(--muted)',
+                borderRadius: 999, padding: '5px 12px', fontSize: 12, fontFamily: 'var(--sans)', cursor: 'pointer',
+              }}>
+              {CHANNEL_LABELS[item.channel] ?? item.channel}
+              {item.channel === recommended && <span style={{ color: 'var(--green)', marginLeft: 6 }}>●</span>}
+            </button>
+          )
+        })}
+      </div>
+
+      <SectionCard>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 12 }}>
+          <SectionTitle>{CHANNEL_LABELS[current.channel] ?? current.channel}</SectionTitle>
+          <StatusChip message={current} />
+        </div>
+
+        {current.channel === 'email' && (
+          <label style={{ display: 'block', marginBottom: 10 }}>
+            <span style={{ display: 'block', fontSize: 10, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 5 }}>Objet</span>
+            <input value={draft.subject} onChange={event => setDraft(previous => ({ ...previous, subject: event.target.value }))}
+              style={inputStyle} aria-label="Objet du message" />
+          </label>
+        )}
+
+        <label style={{ display: 'block' }}>
+          <span style={{ display: 'block', fontSize: 10, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 5 }}>Message</span>
+          <textarea value={draft.body} rows={current.channel === 'instagram_dm' ? 6 : 12}
+            onChange={event => setDraft(previous => ({ ...previous, body: event.target.value }))}
+            style={inputStyle} aria-label="Corps du message" />
+        </label>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+          <Button size="sm" onClick={() => setDraft({ subject: current.subject ?? '', body: current.body ?? '' })} disabled={!dirty || busy}>
+            Annuler mes modifications
+          </Button>
+          <Button variant="ghost" size="sm" loading={busy === 'save'} disabled={!dirty || (busy && busy !== 'save')}
+            onClick={() => onSave(current, { subject: draft.subject, body: draft.body })}>
+            Enregistrer
+          </Button>
+          <div style={{ flex: 1 }} />
+          {!approved && (
+            <Button variant="primary" size="sm" loading={busy === 'approve'} disabled={dirty || (busy && busy !== 'approve')}
+              title={dirty ? 'Enregistre d’abord tes modifications' : undefined}
+              onClick={() => onApprove(current)}>
+              ✅ Approuver ce message
+            </Button>
+          )}
+        </div>
+        {dirty && (
+          <div style={{ fontSize: 11, color: 'var(--amber)', marginTop: 8, lineHeight: 1.5 }}>
+            Modifications non enregistrées. En enregistrant, tu deviens l’auteur de cette version : les citations dont la phrase a disparu du texte sont retirées automatiquement.
+          </div>
+        )}
+      </SectionCard>
+
+      {approved && (
+        <SectionCard borderColor="rgba(34,197,94,0.35)">
+          <SectionTitle accent="var(--green)" accentDim="rgba(34,197,94,0.25)">Envoi — action manuelle</SectionTitle>
+          <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.65, marginBottom: 10 }}>
+            Le système n’envoie rien. Copie le message, envoie-le depuis ton outil, puis enregistre-le ici pour passer le prospect en « Contacté ».
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <input value={sentRef} onChange={event => setSentRef(event.target.value)} placeholder="Référence (facultatif) : objet, lien, n° de conversation…"
+              aria-label="Référence de l’envoi" style={{ ...inputStyle, flex: 1, minWidth: 220, fontSize: 12, padding: '7px 10px' }} />
+            <Button size="sm" onClick={() => navigator.clipboard?.writeText([current.subject, current.body].filter(Boolean).join('\n\n'))}>
+              Copier
+            </Button>
+            <Button variant="primary" size="sm" loading={busy === 'sent'} disabled={busy && busy !== 'sent'}
+              onClick={() => onConfirmSent(current, sentRef)}>
+              Je l’ai envoyé
+            </Button>
+          </div>
+        </SectionCard>
+      )}
+
+      {current.channel === 'phone_script' && <PhoneScript script={current.variables?.phone_script} />}
+
+      <SectionCard>
+        <SectionTitle accent="var(--blue)" accentDim="rgba(79,127,243,0.25)">Sources utilisées pour la personnalisation</SectionTitle>
+        <Citations message={current} />
+      </SectionCard>
+    </>
+  )
+}
