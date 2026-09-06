@@ -1,5 +1,7 @@
 // Project-scoped management access. Never prints tokens, connection strings or row data.
 import { readFileSync } from 'node:fs'
+import {fileURLToPath} from 'node:url'
+import {resolve} from 'node:path'
 
 const env = Object.fromEntries(readFileSync(new URL('../.env', import.meta.url), 'utf8').split(/\r?\n/)
   .filter(line => /^[A-Z_]+\s*=/.test(line)).map(line => { const i = line.indexOf('='); return [line.slice(0, i).trim(), line.slice(i + 1).trim().replace(/^['"]|['"]$/g, '')] }))
@@ -18,7 +20,7 @@ export async function management(path, body) {
   return text ? JSON.parse(text) : null
 }
 
-const command = process.argv[2]
+const command = process.argv[1] && resolve(process.argv[1])===fileURLToPath(import.meta.url) ? process.argv[2] : null
 const migration = new URL('../supabase/migrations/20260905153918_prospector_foundation.sql', import.meta.url)
 const crmMigration = new URL('../supabase/migrations/20260905155054_prospector_crm_api.sql', import.meta.url)
 const workerMigration = new URL('../supabase/migrations/20260905155847_prospector_worker_support.sql', import.meta.url)

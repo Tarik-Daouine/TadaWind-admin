@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { applyProspectorView } from '../lib/prospector/views.js'
 
 function readable(error) {
   const message=error?.message ?? ''
@@ -10,16 +11,19 @@ function readable(error) {
   return 'Impossible de mettre à jour les prospects. Vérifie la connexion et réessaie.'
 }
 
-export function useProspects() {
+export function useProspects(campaignId=null,view='prospects') {
   const [prospects,setProspects]=useState([]), [loading,setLoading]=useState(true), [error,setError]=useState(null)
   const generation=useRef(0)
   const reload=useCallback(async()=>{
     const current=++generation.current; setLoading(true); setError(null)
-    const result=await supabase.from('prospects').select('*').is('deleted_at',null).order('score',{ascending:false,nullsFirst:false}).order('created_at',{ascending:false})
+    let query=supabase.from('prospects').select('*').is('deleted_at',null).order('score',{ascending:false,nullsFirst:false}).order('created_at',{ascending:false})
+    if(campaignId)query=query.eq('campaign_id',campaignId)
+    query=applyProspectorView(query,view)
+    const result=await query
     if(current!==generation.current) return
     if(result.error){setError(readable(result.error));setProspects([])} else setProspects(result.data ?? [])
     setLoading(false)
-  },[])
+  },[campaignId,view])
   useEffect(()=>{reload();return()=>{generation.current++}},[reload])
   const create=async input=>{
     setError(null)

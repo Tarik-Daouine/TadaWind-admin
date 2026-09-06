@@ -27,7 +27,7 @@ export async function runAnalyze(client: SupabaseClient, prospectId: string) {
   const analysis = await requestValidatedJson({
     request,
     prompt: buildAnalyzePrompt(promptContext),
-    validate: output => validateAnalysis(output, promptContext),
+    validate: (output: unknown) => validateAnalysis(output, promptContext),
   })
   const prospect = await rpc(client, 'prospector_store_analysis', {p_id: prospectId, p_analysis: analysis})
   return {stage: 'analyze', prospect}
@@ -57,7 +57,7 @@ export async function runStrategize(client: SupabaseClient, prospectId: string) 
   const strategy = await requestValidatedJson({
     request,
     prompt: buildStrategizePrompt(promptInput),
-    validate: output => validateStrategy(output, {
+    validate: (output: unknown) => validateStrategy(output, {
       services: ctx.business_profile.services,
       availableChannels: ctx.available_channels,
       hasReferencePrices,
@@ -89,7 +89,7 @@ export async function runCopywrite(client: SupabaseClient, prospectId: string) {
       availableChannels: ctx.available_channels,
       tone: ctx.tone,
     }),
-    validate: output => validateMessage(output, promptContext),
+    validate: (output: unknown) => validateMessage(output, promptContext),
   })
   const result = await rpc(client, 'prospector_store_messages', {p_id: prospectId, p_message: message})
   return {stage: 'copywrite', result}

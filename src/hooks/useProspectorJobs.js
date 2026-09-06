@@ -20,6 +20,10 @@ export function prospectorJobLabel(job) {
 
 export function prospectorJobError(error) {
   const labels = {
+    LLM_NOT_CONFIGURED: 'La clé ou le modèle IA reste à configurer.',
+    BUDGET_FX_NOT_CONFIGURED: 'Le taux de conversion du budget reste à configurer.',
+    MONTHLY_BUDGET_EXCEEDED: 'Le plafond mensuel IA est atteint.',
+    MODEL_PRICING_NOT_CONFIGURED: 'Le tarif de ce modèle doit être vérifié avant utilisation.',
     NO_WEBSITE: 'Aucun site web n’est renseigné.', PROSPECT_NOT_FOUND: 'Le prospect n’existe plus.',
     UNSAFE_URL: 'L’adresse du site est bloquée pour des raisons de sécurité.',
     UNSAFE_HOST: 'Le domaine du site est bloqué pour des raisons de sécurité.',

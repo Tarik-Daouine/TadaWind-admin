@@ -4,12 +4,13 @@ import { useIsMobile } from '../../hooks/useIsMobile.js'
 import { SectionCard,SectionTitle } from '../ui/SectionCard.jsx'
 import Input from '../ui/Input.jsx'
 import Button from '../ui/Button.jsx'
+import ProspectFollowup from './ProspectFollowup.jsx'
 
 const TABS=[['summary','Résumé'],['analysis','Analyse'],['presence','Présence numérique'],['opportunities','Opportunités'],['messages','Messages'],['history','Historique'],['notes','Notes']]
 const EDIT=['name','category','description','address','city','postal_code','phone','email','website','instagram','linkedin']
 const fieldLabel={name:'Entreprise',category:'Catégorie',description:'Description',address:'Adresse',city:'Ville',postal_code:'Code postal',phone:'Téléphone',email:'Email professionnel',website:'Site web',instagram:'Instagram',linkedin:'LinkedIn'}
 
-export default function ProspectDetail({prospect,onUpdate,onRequestAnalysis,onClose,onToast}) {
+export default function ProspectDetail({prospect,onUpdate,onRequestAnalysis,onClose,onToast,onReload}) {
   const mobile=useIsMobile(),[tab,setTab]=useState('summary'),[form,setForm]=useState(prospect),[related,setRelated]=useState({sources:[],events:[],messages:[]}),[loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[analyzing,setAnalyzing]=useState(false)
   useEffect(()=>setForm(prospect),[prospect])
   useEffect(()=>{let live=true;setLoading(true);Promise.all([
@@ -24,7 +25,7 @@ export default function ProspectDetail({prospect,onUpdate,onRequestAnalysis,onCl
   return <div style={{height:'100%',display:'flex',flexDirection:'column',background:'var(--s1)'}}>
     <div style={{padding:'15px 18px',borderBottom:'1px solid var(--border)',display:'flex',justifyContent:'space-between',gap:12,alignItems:'flex-start'}}><div><button onClick={onClose} style={{background:'none',border:0,color:'var(--muted)',fontSize:11,cursor:'pointer',padding:0,marginBottom:7}}>← Retour aux prospects</button><h2 style={{fontFamily:'var(--serif)',fontSize:21,fontWeight:400}}>{prospect.name}</h2><div style={{fontSize:11,color:'var(--muted)',marginTop:4}}>{prospect.city||'Ville inconnue'} · {prospect.status}</div></div><Button variant="primary" size="sm" onClick={analyze} loading={analyzing}>Analyser</Button></div>
     <div role="tablist" aria-label="Fiche prospect" style={{display:'flex',gap:2,padding:'0 12px',borderBottom:'1px solid var(--border)',overflowX:'auto'}}>{TABS.map(([id,label])=><button key={id} role="tab" aria-selected={tab===id} onClick={()=>setTab(id)} style={{border:0,borderBottom:`2px solid ${tab===id?'var(--red)':'transparent'}`,background:'transparent',color:tab===id?'var(--text)':'var(--muted)',fontSize:11,fontFamily:'var(--sans)',padding:'10px 8px',cursor:'pointer',whiteSpace:'nowrap'}}>{label}</button>)}</div>
-    <div style={{flex:1,overflowY:'auto',padding:mobile?'16px 14px':'20px'}}>{tab==='summary'&&<>
+    <div style={{flex:1,overflowY:'auto',padding:mobile?'16px 14px':'20px'}}>{tab==='summary'&&<><ProspectFollowup key={prospect.updated_at} prospect={prospect} onUpdate={onUpdate} onReload={onReload} onToast={onToast}/>
       <SectionCard><SectionTitle>Score et prochaine action</SectionTitle><div style={{display:'flex',gap:20,alignItems:'center',flexWrap:'wrap'}}><div style={{fontSize:28,fontWeight:700,color:prospect.score==null?'var(--muted2)':'var(--text)'}}>{prospect.score==null?'—':`${prospect.score}/100`}</div><div style={{flex:1,minWidth:180,fontSize:12,color:'var(--muted)',lineHeight:1.65}}>{prospect.score_reasons?.length?prospect.score_reasons.map(reason=><div key={reason}>• {reason}</div>):'Ce prospect n’a pas encore été scoré.'}</div></div></SectionCard>
       <SectionCard><SectionTitle>Identité et contact</SectionTitle><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(185px,1fr))',gap:'0 12px'}}>{EDIT.filter(key=>key!=='description').map(key=><Input key={key} label={fieldLabel[key]} value={form[key]??''} onChange={e=>set(key,e.target.value)}/>)}</div><Input label="Description" multiline value={form.description??''} onChange={e=>set('description',e.target.value)}/><div style={{display:'flex',justifyContent:'flex-end'}}><Button variant="primary" onClick={saveIdentity} loading={saving}>Sauvegarder la fiche</Button></div></SectionCard></>}
       {tab==='analysis'&&<JsonPanel title="Analyse validée" value={prospect.analysis} empty="Aucune analyse disponible."/>}

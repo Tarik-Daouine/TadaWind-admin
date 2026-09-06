@@ -9,12 +9,14 @@ const ANTHROPIC_VERSION = '2023-06-01'
 
 // Estimation de coût seulement (USD par million de tokens). À ajuster si la grille évolue.
 const PRICING: Record<string, {input: number; output: number}> = {
-  'claude-sonnet-5': {input: 3, output: 15},
-  'claude-haiku-4-5-20251001': {input: 0.8, output: 4},
+  'claude-sonnet-5': {input: 2, output: 10},
+  'claude-haiku-4-5-20251001': {input: 1, output: 5},
+  'claude-haiku-4-5': {input: 1, output: 5},
 }
 function costUsd(model: string, inputTokens: number, outputTokens: number): number {
-  const price = PRICING[model] ?? {input: 3, output: 15}
-  return Number(((inputTokens / 1e6) * price.input + (outputTokens / 1e6) * price.output).toFixed(4))
+  const price = PRICING[model]
+  if(!price)throw new Error('MODEL_PRICING_NOT_CONFIGURED')
+  return Math.ceil(((inputTokens / 1e6) * price.input + (outputTokens / 1e6) * price.output)*1e6)/1e6
 }
 
 function stripFences(text: string): string {
@@ -36,6 +38,7 @@ export function makeAnthropicProvider(options: ProviderOptions) {
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY') ?? ''
   const model = (options.model ?? '').trim()
   if (!apiKey || !model) throw new Error('LLM_NOT_CONFIGURED')
+  if(!PRICING[model])throw new Error('MODEL_PRICING_NOT_CONFIGURED')
   const maxTokens = options.maxTokens ?? 4096
   const timeoutMs = options.timeoutMs ?? 60000
 
@@ -46,6 +49,15 @@ export function makeAnthropicProvider(options: ProviderOptions) {
       system: prompt.system ?? '',
       messages: [{role: 'user', content: prompt.user ?? ''}],
     }
+    // Count tokens before the paid request; reserve maximum output cost atomically.
+    const headers={'content-type':'application/json','x-api-key':apiKey,'anthropic-version':ANTHROPIC_VERSION}
+    const counted=await fetch(ANTHROPIC_URL+'/count_tokens',{method:'POST',headers,body:JSON.stringify({model,system:body.system,messages:body.messages}),signal:AbortSignal.timeout(15000)})
+    if(!counted.ok){await counted.body?.cancel();throw new Error('LLM_TOKEN_COUNT_FAILED')}
+    const tokenData=await counted.json()
+    if(!Number.isSafeInteger(tokenData.input_tokens)||tokenData.input_tokens<0)throw new Error('LLM_TOKEN_COUNT_FAILED')
+    const reserved=await options.client.rpc('prospector_reserve_ai',{p_max_usd:costUsd(model,Math.ceil(tokenData.input_tokens*1.1)+1024,maxTokens)})
+    if(reserved.error)throw new Error(reserved.error.message)
+    const reservationId=reserved.data
     let response: Response
     try {
       response = await fetch(ANTHROPIC_URL, {
@@ -72,7 +84,7 @@ export function makeAnthropicProvider(options: ProviderOptions) {
       | null
     const usage = data?.usage ?? {}
     // Comptabilisation systématique, y compris si la sortie sera rejetée ensuite.
-    await options.client.from('ai_usage').insert({
+    const recorded=await options.client.from('ai_usage').insert({
       function: options.fn,
       model,
       prospect_id: options.prospectId ?? null,
@@ -80,7 +92,12 @@ export function makeAnthropicProvider(options: ProviderOptions) {
       input_tokens: Math.max(0, Math.trunc(usage.input_tokens ?? 0)),
       output_tokens: Math.max(0, Math.trunc(usage.output_tokens ?? 0)),
       cost_estimate_usd: costUsd(model, usage.input_tokens ?? 0, usage.output_tokens ?? 0),
-    }).then(() => {}, () => {})
+    })
+    if(recorded.error)throw new Error('LLM_USAGE_RECORD_FAILED')
+    if(Number.isSafeInteger(usage.input_tokens)&&Number.isSafeInteger(usage.output_tokens)){
+      const settled=await options.client.rpc('prospector_settle_ai',{p_id:reservationId,p_actual_usd:costUsd(model,usage.input_tokens!,usage.output_tokens!)})
+      if(settled.error)throw new Error('LLM_USAGE_RECORD_FAILED')
+    }
     if (!data) throw new Error('LLM_INVALID_OUTPUT')
     if (data.stop_reason === 'refusal') throw new Error('LLM_REFUSAL')
     if (data.stop_reason === 'max_tokens') throw new Error('LLM_TRUNCATED')

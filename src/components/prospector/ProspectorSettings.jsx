@@ -3,6 +3,7 @@ import { useProspectorSettings } from '../../hooks/useProspectorSettings.js'
 import { SectionCard, SectionTitle } from '../ui/SectionCard.jsx'
 import Input from '../ui/Input.jsx'
 import Button from '../ui/Button.jsx'
+import ProspectorBudget from './ProspectorBudget.jsx'
 
 const labelStyle = { display:'block',fontSize:11,letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--muted)',marginBottom:6,fontWeight:500 }
 const selectStyle = { width:'100%',background:'var(--s3)',border:'1px solid var(--border-md)',color:'var(--text)',borderRadius:'var(--radius)',padding:'8px 12px',fontSize:13,fontFamily:'var(--sans)',outline:'none' }
@@ -64,7 +65,7 @@ export default function ProspectorSettings({ onToast }) {
     <SectionCard><SectionTitle>Messages, canaux et coûts</SectionTitle><Input label="Ton" value={form.tone} onChange={e=>set('tone',e.target.value)}/><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10,marginBottom:18}}>
       {Object.entries({email:'Email',instagram:'Instagram',linkedin:'LinkedIn',phone:'Téléphone'}).map(([key,label])=><Toggle key={key} label={label} checked={!!form.channels[key]} onChange={v=>set('channels',{...form.channels,[key]:v})}/>)}</div>
       <div style={grid}><Input label="Modèle IA simple" value={form.ai_model_simple ?? ''} onChange={e=>set('ai_model_simple',e.target.value)} placeholder="À configurer après vérification"/><Input label="Modèle IA complexe" value={form.ai_model_complex ?? ''} onChange={e=>set('ai_model_complex',e.target.value)} placeholder="À configurer après vérification"/>
-      <NumberField label="Budget IA mensuel (USD)" value={form.monthly_budget_usd} step="0.01" onChange={v=>set('monthly_budget_usd',v)} hint="Laisse vide tant que le plafond n’est pas décidé."/>
+      <ProspectorBudget/>
       <Input label="Relances — jours séparés par des virgules" value={(form.followup_delays_days ?? []).join(', ')} onChange={e=>set('followup_delays_days',e.target.value.split(',').map(v=>v.trim()))}/></div>
       <div style={{fontSize:12,color:'var(--muted)',lineHeight:1.6}}>Les modèles vides désactivent naturellement les étapes IA. Les clés restent exclusivement dans les secrets Supabase.</div></SectionCard>
     <div style={{display:'flex',justifyContent:'flex-end'}}><Button variant="primary" onClick={handleSave} loading={saving}>Sauvegarder les réglages</Button></div>

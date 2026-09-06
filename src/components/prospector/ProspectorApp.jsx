@@ -3,6 +3,9 @@ import ProspectorSettings from './ProspectorSettings.jsx'
 import { SectionCard } from '../ui/SectionCard.jsx'
 import ProspectsWorkspace from './ProspectsWorkspace.jsx'
 import ValidationQueue from './ValidationQueue.jsx'
+import SearchCampaign from './SearchCampaign.jsx'
+import CampaignsView from './CampaignsView.jsx'
+import DashboardProspection from './DashboardProspection.jsx'
 import { prospectorJobError, prospectorJobLabel, useProspectorJobs } from '../../hooks/useProspectorJobs.js'
 
 const VIEWS = [
@@ -20,22 +23,29 @@ const NEXT = {
   campaigns:['Aucune campagne lancée','Les campagnes utiliseront ta zone et les catégories configurées.'],
 }
 
-const FULL_HEIGHT_VIEWS = new Set(['prospects','validate'])
+const FULL_HEIGHT_VIEWS = new Set(['prospects','validate','contacted','followups','opportunities'])
 
 export default function ProspectorApp({onToast}) {
   const [view,setView] = useState('dashboard')
   const [focusProspectId,setFocusProspectId] = useState(null)
+  const [campaign,setCampaign] = useState(null)
   const jobs = useProspectorJobs()
-  const openProspect = (id) => { setFocusProspectId(id); setView('prospects') }
+  const openProspect = (id) => { setCampaign(null);setFocusProspectId(id); setView('prospects') }
+  const openCampaign = (item) => {setFocusProspectId(null);setCampaign(item);setView('prospects')}
   return <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',minWidth:0}}>
     <div style={{padding:'17px 22px 0',background:'var(--s1)',borderBottom:'1px solid var(--border)',flexShrink:0}}>
       <div style={{display:'flex',alignItems:'baseline',gap:10,marginBottom:14}}><h1 style={{fontFamily:'var(--serif)',fontSize:22,fontWeight:400}}>Prospection</h1><span style={{fontSize:11,color:'var(--muted2)'}}>assistant commercial</span></div>
       <div role="tablist" aria-label="Navigation Prospection" style={{display:'flex',gap:4,overflowX:'auto'}}>{VIEWS.map(([id,label])=><button key={id} role="tab" aria-selected={view===id} onClick={()=>setView(id)} style={{border:'none',borderBottom:`2px solid ${view===id?'var(--red)':'transparent'}`,background:'transparent',color:view===id?'var(--text)':'var(--muted)',fontFamily:'var(--sans)',fontSize:12,fontWeight:500,padding:'8px 10px 10px',cursor:'pointer',whiteSpace:'nowrap'}}>{label}</button>)}</div>
     </div>
     <JobStatus jobs={jobs}/>
+    {view==='prospects'&&campaign&&<div style={statusStyle}>Prospects de « {campaign.name} » <button onClick={()=>setCampaign(null)} style={{color:'var(--text)',background:'transparent',border:'1px solid var(--border)',cursor:'pointer',padding:5}}>Afficher tous les prospects</button></div>}
     <div style={{flex:1,overflow:FULL_HEIGHT_VIEWS.has(view)?'hidden':'auto'}}>
       {view==='settings' ? <ProspectorSettings onToast={onToast}/>
-        : view==='prospects' ? <ProspectsWorkspace onToast={onToast} focusProspectId={focusProspectId}/>
+        : view==='dashboard' ? <DashboardProspection onNavigate={id=>{setCampaign(null);setFocusProspectId(null);setView(id)}}/>
+        : ['contacted','followups','opportunities'].includes(view) ? <ProspectsWorkspace key={view} view={view} onToast={onToast}/>
+        : view==='search' ? <SearchCampaign onToast={onToast}/>
+        : view==='campaigns' ? <CampaignsView onSearch={()=>setView('search')} onOpenCampaign={openCampaign}/>
+        : view==='prospects' ? <ProspectsWorkspace key={campaign?.id??'all'} onToast={onToast} focusProspectId={focusProspectId} campaignId={campaign?.id}/>
         : view==='validate' ? <ValidationQueue onToast={onToast} onOpenProspect={openProspect}/>
         : <Placeholder view={view} onSettings={()=>setView('settings')}/>}
     </div>
