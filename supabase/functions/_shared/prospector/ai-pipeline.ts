@@ -1,6 +1,6 @@
 import type {SupabaseClient} from 'npm:@supabase/supabase-js@2.100.0'
 import {buildAnalyzePrompt, buildStrategizePrompt, buildCopywritePrompt} from './prompts.js'
-import {validateAnalysis, validateStrategy, validateMessage} from './schemas.js'
+import {validateAnalysis, validateStrategy, validateCopywrite} from './schemas.js'
 import {requestValidatedJson} from './llm-output.js'
 import {makeAnthropicProvider} from './llm-provider.ts'
 
@@ -70,18 +70,21 @@ export async function runStrategize(client: SupabaseClient, prospectId: string) 
 interface CopywriteContext extends StrategyContext {
   strategy: unknown
   tone: string
+  protected_channels?: string[]
+  first_touch_sent?: boolean
 }
-export async function runCopywrite(client: SupabaseClient, prospectId: string) {
+export async function runCopywrite(client: SupabaseClient, prospectId: string, requestedChannel?: string) {
   const ctx = await rpc<CopywriteContext>(client, 'prospector_copywrite_context', {p_id: prospectId})
   if (!ctx.analysis) throw new Error('ANALYSIS_MISSING')
   if (!ctx.strategy) throw new Error('STRATEGY_MISSING')
   if (!Array.isArray(ctx.available_channels) || ctx.available_channels.length === 0) throw new Error('NO_AVAILABLE_CHANNEL')
-  // Mesuré en conditions réelles (2026-09-06) : la sortie dépasse 16 000 tokens et tronque.
-  // Le contrat de grounding impose de redécouper chaque champ des 4 variantes, plus un
-  // claim + evidence_quote par citation — le volume dépasse ce qu'un appel peut produire.
-  // Tant que le contrat n'est pas réduit (une variante à la fois), on échoue vite et à bas coût.
-  const request = makeAnthropicProvider({client, fn: 'copywrite', model: ctx.model, prospectId, maxTokens: 8192, timeoutMs: 120000})
-  const promptContext = {sources: ctx.sources, prospectId}
+  // One concise variant, with full grounding, keeps output and retry costs bounded.
+  const request = makeAnthropicProvider({client, fn: 'copywrite', model: ctx.model, prospectId, maxTokens: 4096, timeoutMs: 60000, disableThinking: true})
+  const recommended=(ctx.strategy as {recommended_channel:string}).recommended_channel
+  const channel=requestedChannel ?? (recommended==='phone'?'phone_script':recommended)
+  if(!ctx.available_channels.includes(channel==='phone_script'?'phone':channel))throw new Error('NO_AVAILABLE_CHANNEL')
+  if(ctx.first_touch_sent || ctx.protected_channels?.includes(channel))throw new Error('MESSAGE_CONFLICT')
+  const promptContext = {sources: ctx.sources, prospectId, channel}
   const message = await requestValidatedJson({
     request,
     prompt: buildCopywritePrompt({
@@ -92,8 +95,10 @@ export async function runCopywrite(client: SupabaseClient, prospectId: string) {
       businessProfile: ctx.business_profile,
       availableChannels: ctx.available_channels,
       tone: ctx.tone,
+      channel,
     }),
-    validate: (output: unknown) => validateMessage(output, promptContext),
+    validate: (output: unknown) => validateCopywrite(output, promptContext),
+    onValidationFailure: (diagnostic: {attempt: number; code: string}) => console.warn(JSON.stringify({stage: 'copywrite_validation', prospectId, ...diagnostic})),
   })
   const result = await rpc(client, 'prospector_store_messages', {p_id: prospectId, p_message: message})
   return {stage: 'copywrite', result}

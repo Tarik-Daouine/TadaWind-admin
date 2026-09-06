@@ -109,9 +109,36 @@ export function validateStrategy(output, { services, availableChannels, hasRefer
 }
 
 /** Structural traceability only: human review must still check meaning and truth. */
-export function validateMessage(output, { sources, prospectId }) {
+export function validateCopywrite(output, context) {
+  const shape = MessageSchema.shape.variants.shape
+  if (!Object.hasOwn(shape, context.channel)) throw new Error('INVALID_MESSAGE_CHANNEL')
+  const sourceMap = validateSourceContext(context.sources, context.prospectId)
+  const wireSchema = MessageSchema.omit({sources_used:true}).extend({
+    variants: obj({ [context.channel]: shape[context.channel] }),
+    grounding: z.array(obj({path:short,text:copy,kind:z.enum(['fact','proposal','generic']),
+      evidence:z.array(obj({source_id:uuid,evidence_quote:copy})).max(8)})).min(1).max(24),
+  })
+  const wire = wireSchema.parse(output)
+  const citations = []
+  const grounding = wire.grounding.map(({evidence,...segment}) => {
+    if ((segment.kind==='fact') !== (evidence.length>0)) throw new Error('INVALID_GROUNDING')
+    for (const proof of evidence) {
+      const source = sourceMap.get(proof.source_id)
+      if (!source) throw new Error('INVALID_CITATION_SOURCE')
+      // Provenance comes from the server; claim and path come from this exact segment.
+      citations.push({...proof,type:source.type,url:source.url,path:segment.path,claim:segment.text})
+    }
+    return {...segment,source_ids:evidence.map(proof=>proof.source_id)}
+  })
+  return validateMessage({...wire,grounding,sources_used:citations},context)
+}
+
+export function validateMessage(output, { sources, prospectId, channel }) {
   const sourceMap = validateSourceContext(sources, prospectId)
-  const result = MessageSchema.parse(output)
+  if(channel && !Object.hasOwn(MessageSchema.shape.variants.shape,channel))throw new Error('INVALID_MESSAGE_CHANNEL')
+  const schema=channel ? MessageSchema.extend({variants:obj({[channel]:MessageSchema.shape.variants.shape[channel]})}) : MessageSchema
+  const result = schema.parse(output)
+  if(channel && (Object.values(messageFields(result.variants)).join('').length>2400 || result.grounding.length>24 || result.sources_used.length>8))throw new Error('MESSAGE_TOO_LONG')
   const fields = messageFields(result.variants)
   for (const segment of result.grounding) {
     if (!Object.hasOwn(fields, segment.path) || (segment.kind === 'fact' && !segment.source_ids.length) || segment.source_ids.some(id => !sourceMap.has(id))) throw new Error('INVALID_GROUNDING')

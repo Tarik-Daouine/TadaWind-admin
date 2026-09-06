@@ -152,3 +152,28 @@ test('refuser un prospect exige un motif et le sort de la file', async ({ page }
   await expect(page.getByText('Aucun message à valider')).toBeVisible()
   expect(rejected.p_reason).toBe('trop_loin')
 })
+
+test('génère un autre canal à la demande sans remplacer le brouillon affiché', async ({ page }) => {
+  const calls = []
+  await page.addInitScript(({ key, session }) => localStorage.setItem(key, JSON.stringify(session)),
+    { key: 'sb-'+ref+'-auth-token', session: { access_token: accessToken, refresh_token: 'local-refresh', expires_at: Math.floor(Date.now()/1000)+3600, expires_in:3600, token_type:'bearer', user } })
+  await page.route('**/rest/v1/**', async route => {
+    const request=route.request(), url=new URL(request.url())
+    const json=body=>route.fulfill({status:200,contentType:'application/json',headers:{'content-range':'0-0/1'},body:JSON.stringify(body)})
+    if(url.pathname.endsWith('/prospector_settings')) return json({channels:{email:true,instagram:true,linkedin:false,phone:false}})
+    if(url.pathname.endsWith('/prospects')) return json([{...prospect,email:'test@local.invalid',instagram:'https://instagram.com/test'}])
+    if(url.pathname.endsWith('/prospect_messages')) return json([message('email',{status:'approved'})])
+    if(url.pathname.endsWith('/rpc/prospector_request_channel')) {calls.push(request.postDataJSON());return json({id:'test-job',status:'queued'})}
+    return json([])
+  })
+  await page.goto('/')
+  await page.getByRole('button',{name:'Prospection'}).click()
+  await page.getByRole('tab',{name:'À valider'}).click()
+  await expect(page.getByRole('tab',{name:/Email/})).toBeVisible()
+  await expect(page.getByRole('tab',{name:'DM Instagram'})).toHaveCount(0)
+  await expect(page.getByRole('button',{name:'Régénérer ce canal'})).toBeDisabled()
+  await page.getByLabel('Canal à générer').selectOption('instagram_dm')
+  await page.getByRole('button',{name:'Générer ce canal',exact:true}).click()
+  await expect.poll(()=>calls).toEqual([{p_id:PROSPECT_ID,p_channel:'instagram_dm'}])
+  await expect(page.getByLabel('Corps du message')).toHaveValue(message('email').body)
+})

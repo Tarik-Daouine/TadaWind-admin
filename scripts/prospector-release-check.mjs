@@ -1,10 +1,10 @@
 import {readFileSync} from 'node:fs'
 import {management} from './prospector-db.mjs'
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8')
-const migrations=['20260906103000_prospector_followup.sql','20260906103100_prospector_budget.sql','20260906103200_prospector_budget_errors.sql']
+const migrations=['20260906103000_prospector_followup.sql','20260906103100_prospector_budget.sql','20260906103200_prospector_budget_errors.sql','20260906180000_prospector_single_channel.sql']
 const ddl=migrations.map(name=>read('supabase/migrations/'+name)).join('\n')
 const fixture=read('tests/sql/prospector-review-ui.sql').split('-- Le worker')[0]
-const tests=read('tests/sql/prospector-release.sql')
+const tests=read(process.argv[2]==='single-channel'?'tests/sql/prospector-single-channel.sql':'tests/sql/prospector-release.sql')
 if(process.argv[2]==='apply'){
   for(const name of migrations){
     const version=name.split('_')[0]
@@ -12,7 +12,7 @@ if(process.argv[2]==='apply'){
     if(exists.length)continue
     await management('database/query',{query:'begin;'+read('supabase/migrations/'+name)+"\ninsert into supabase_migrations.schema_migrations(version,name) values('"+version+"','"+name.slice(15,-4)+"');commit;"})
   }
-  console.log('Follow-up and budget migrations applied.')
+  console.log('Release migrations applied.')
 }else{
   const isolate=text=>text.replaceAll('public.','prospector_release_test.').replaceAll("'public'","'prospector_release_test'")
   // Replay all migrations in an isolated, rolled-back schema.

@@ -20,7 +20,9 @@ export const REJECTION_REASONS = [
 
 export function prospectorReviewError(error) {
   const message = error?.message ?? ''
-  if (message.includes('MESSAGE_CONFLICT')) return 'Ce message a changé depuis son affichage. Recharge la file avant de recommencer.'
+  if (message.includes('MESSAGE_CONFLICT')) return 'Ce message a changé, a été modifié ou approuvé. La génération ne peut pas l’écraser.'
+  if (message.includes('NO_AVAILABLE_CHANNEL')) return 'Ce canal est désactivé ou ses coordonnées sont manquantes.'
+  if (message.includes('PROSPECT_JOB_ACTIVE')) return 'Un autre traitement est déjà en cours pour ce prospect.'
   if (message.includes('MESSAGE_VALIDATION_REQUIRED')) return 'La traçabilité de ce message doit être revalidée. Enregistre une modification puis réessaie.'
   if (message.includes('INVALID_MESSAGE_EVIDENCE')) return 'Une citation ne correspond plus à sa source. Retire-la avant d’approuver.'
   if (message.includes('MESSAGE_BODY_REQUIRED')) return 'Le message ne peut pas être vide.'
@@ -110,8 +112,8 @@ export function useProspectorValidation() {
     blacklist: (prospect, reason) =>
       call('prospector_blacklist_prospect', { p_id: prospect.id, p_reason: reason }, () => dropProspect(prospect.id)),
 
-    regenerate: (prospect) =>
-      call('prospector_request_regeneration', { p_id: prospect.id }, () => {
+    regenerate: (prospect, channel) =>
+      call('prospector_request_channel', { p_id: prospect.id, p_channel: channel ?? null }, () => {
         window.dispatchEvent(new CustomEvent('prospector:job-created'))
       }),
 

@@ -26,7 +26,11 @@ select pg_temp.assert_true((select count(*)=1 from public.prospect_jobs where pr
 select pg_temp.assert_true((select count(*)=2 from public.prospect_events where prospect_id='aaaaaaaa-0000-4000-8000-0000000f0001' and type in ('analyzed','scored')), 'événements analyzed + scored');
 
 update public.prospects set strategy='{"angles":[{"title":"Terrasse"}]}' where id='aaaaaaaa-0000-4000-8000-0000000f0001';
-select public.prospector_store_messages('aaaaaaaa-0000-4000-8000-0000000f0001', $m${
+update public.prospects set instagram='https://instagram.com/test',linkedin='https://linkedin.com/test',phone='0102030405' where id='aaaaaaaa-0000-4000-8000-0000000f0001';
+reset role;
+update public.prospector_settings set channels='{"email":true,"instagram":true,"linkedin":true,"phone":true}' where id='main';
+set local role service_role;
+do $$ declare original jsonb := $m${
  "variants":{"email":{"subject":"Une idée","body":"Votre hôtel est situé à Sarlat. Je vous propose une vidéo."},
    "instagram_dm":{"body":"Votre hôtel est situé à Sarlat. Une vidéo ?"},
    "linkedin":{"body":"Votre hôtel est situé à Sarlat. Une vidéo ?"},
@@ -50,7 +54,14 @@ select public.prospector_store_messages('aaaaaaaa-0000-4000-8000-0000000f0001', 
    {"path":"phone_script.objections.0.objection","text":"Budget ?","kind":"proposal","source_ids":[]},
    {"path":"phone_script.objections.0.response","text":"On adapte.","kind":"proposal","source_ids":[]},
    {"path":"phone_script.cta","text":"Un échange ?","kind":"proposal","source_ids":[]}],
- "tone_check":{"generic":false,"fake_compliment":false,"corporate":false},"confidence":0.7,"model":"claude-sonnet-5"}$m$::jsonb);
+ "tone_check":{"generic":false,"fake_compliment":false,"corporate":false},"confidence":0.7,"model":"claude-sonnet-5"}$m$::jsonb; ch text; one_message jsonb; begin
+  foreach ch in array array['email','instagram_dm','linkedin','phone_script'] loop
+    one_message := original || jsonb_build_object('variants',jsonb_build_object(ch,original->'variants'->ch),
+      'sources_used',(select jsonb_agg(e) from jsonb_array_elements(original->'sources_used') e where e->>'path' like ch||'.%'),
+      'grounding',(select jsonb_agg(e) from jsonb_array_elements(original->'grounding') e where e->>'path' like ch||'.%'));
+    perform public.prospector_store_messages('aaaaaaaa-0000-4000-8000-0000000f0001',one_message);
+  end loop;
+end $$;
 
 select pg_temp.assert_true((select count(*)=4 from public.prospect_messages where prospect_id='aaaaaaaa-0000-4000-8000-0000000f0001' and status='draft'), '4 brouillons créés');
 select pg_temp.assert_true((select bool_and(validated_revision=1) from public.prospect_messages where prospect_id='aaaaaaaa-0000-4000-8000-0000000f0001'), 'preuves validées en base');

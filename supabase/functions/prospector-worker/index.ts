@@ -7,7 +7,7 @@ import {errorCode,json,requireWorkerRequest,serviceClient} from '../_shared/pros
 // qu'il reste du temps : à un seul job par cycle de cron, une campagne de 50 prospects
 // demanderait plus de 200 cycles, soit plus de 16 h.
 // La fenêtre borne le DÉMARRAGE d'un nouveau job, pas sa durée : le plus long (copywrite,
-// 120 s de timeout) doit encore tenir dans les 180 s de curl une fois démarré au pire moment.
+// deux appels de 60 s au plus, plus comptage des tokens) doit tenir dans les 180 s de curl.
 const CLAIM_WINDOW_MS = 20_000
 // Sans clé, sans taux de change ou hors plafond, tous les jobs IA échoueraient
 // définitivement d'affilée : on arrête le cycle au premier signal de ce type.
@@ -28,7 +28,7 @@ Deno.serve(async request=>{
       else if(job.type==='manual_analyze')result=await runEnrichment(client,job.prospect_id,{allowNoWebsite:true})
       else if(job.type==='analyze')result=await runAnalyze(client,job.prospect_id)
       else if(job.type==='strategize')result=await runStrategize(client,job.prospect_id)
-      else if(job.type==='copywrite')result=await runCopywrite(client,job.prospect_id)
+      else if(job.type==='copywrite')result=await runCopywrite(client,job.prospect_id,job.payload?.channel)
       else throw new Error('JOB_TYPE_NOT_IMPLEMENTED')
       const finish=await client.rpc('prospector_finish_job',{p_id:job.id,p_claim_token:job.claim_token,p_result:result,p_error:null})
       if(finish.error)throw new Error(finish.error.message)

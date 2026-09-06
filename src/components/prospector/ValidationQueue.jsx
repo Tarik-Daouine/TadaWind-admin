@@ -4,6 +4,7 @@ import Modal from '../ui/Modal.jsx'
 import { SectionCard, SectionTitle } from '../ui/SectionCard.jsx'
 import { useIsMobile } from '../../hooks/useIsMobile.js'
 import { REJECTION_REASONS, useProspectorValidation } from '../../hooks/useProspectorValidation.js'
+import ChannelGeneration from './ChannelGeneration.jsx'
 import MessageEditor, { CHANNEL_LABELS, channelFromStrategy } from './MessageEditor.jsx'
 
 const PRIORITY = {
@@ -112,7 +113,7 @@ export default function ValidationQueue({ onToast, onOpenProspect }) {
     const handler = (event) => {
       if (modal || busy) return
       const tag = event.target?.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || event.target?.isContentEditable || event.metaKey || event.ctrlKey || event.altKey) return
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || event.target?.isContentEditable || event.metaKey || event.ctrlKey || event.altKey) return
       if (event.key === 'j' || event.key === 'ArrowDown') { event.preventDefault(); step(1) }
       if (event.key === 'k' || event.key === 'ArrowUp') { event.preventDefault(); step(-1) }
       if (event.key === 'l' && selected) { event.preventDefault(); run('later', () => queue.snooze(selected, drafts[0]), 'Reporté de 7 jours') }
@@ -195,6 +196,8 @@ export default function ValidationQueue({ onToast, onOpenProspect }) {
             )}
           </SectionCard>
 
+          <ChannelGeneration key={selected.id} prospect={selected} messages={drafts} recommended={recommended} busy={busy}
+            onGenerate={channel => run('regenerate', () => queue.regenerate(selected, channel), 'Brouillon ajouté à la file de traitement. Actualise après le prochain cycle.')} />
           <MessageEditor
             messages={drafts}
             recommended={recommended}
@@ -205,10 +208,6 @@ export default function ValidationQueue({ onToast, onOpenProspect }) {
           />
 
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingTop: 4, paddingBottom: 24 }}>
-            <Button size="sm" loading={busy === 'regenerate'} disabled={busy && busy !== 'regenerate'}
-              onClick={() => run('regenerate', () => queue.regenerate(selected), 'Régénération ajoutée à la file de traitement')}>
-              🔄 Régénérer
-            </Button>
             <Button size="sm" loading={busy === 'later'} disabled={busy && busy !== 'later'}
               onClick={() => run('later', () => queue.snooze(selected, drafts[0]), 'Reporté de 7 jours')}>
               ⏭️ Plus tard
