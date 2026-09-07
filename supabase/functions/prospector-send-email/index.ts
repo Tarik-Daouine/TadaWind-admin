@@ -55,10 +55,10 @@ async function graphSend(token: string, sender: string, to: string, subject: str
     signal: AbortSignal.timeout(30000),
   })
   if (response.status === 202) return
-  const detail = await response.text().catch(() => '')
   await response.body?.cancel().catch(() => {})
-  // 4xx : la requête est en cause, réessayer à l'identique ne servirait à rien.
-  throw new Error(response.status >= 500 || response.status === 429 ? 'GRAPH_UNAVAILABLE' : 'GRAPH_REJECTED')
+  // Seul un refus explicite autorise à libérer la réservation. 408/5xx sont ambigus.
+  throw new Error(response.status === 429 ? 'GRAPH_RATE_LIMITED'
+    : response.status >= 400 && response.status < 500 && response.status !== 408 ? 'GRAPH_REJECTED' : 'SEND_OUTCOME_UNKNOWN')
 }
 
 Deno.serve(async request => {
@@ -88,25 +88,40 @@ Deno.serve(async request => {
   const claimed = await asUser.rpc('prospector_begin_send', {p_id: payload.message_id, p_expected_revision: payload.revision})
   if (claimed.error) return json({error: errorCode(new Error(claimed.error.message))}, 409)
 
+  let dispatchStarted = false
+  let accepted = false
   try {
     const context = await serviceClient().rpc('prospector_send_context', {p_id: payload.message_id})
     if (context.error) throw new Error('SEND_CONTEXT_FAILED')
+    if (context.data.revision !== payload.revision || context.data.status !== 'approved') throw new Error('MESSAGE_CONFLICT')
     const {recipient, subject, body} = context.data as {recipient: string | null; subject: string | null; body: string}
     if (!recipient) throw new Error('NO_RECIPIENT_EMAIL')
 
     const token = await graphToken(cfg.values)
-    await graphSend(token, cfg.values.MS_GRAPH_SENDER, recipient, subject ?? '', buildTadaWindEmailHtml(body), buildTadaWindEmailPlainText(body))
+    const html = buildTadaWindEmailHtml(body), text = buildTadaWindEmailPlainText(body)
+    dispatchStarted = true
+    await graphSend(token, cfg.values.MS_GRAPH_SENDER, recipient, subject ?? '', html, text)
+    accepted = true
 
     // Le message ne passe à `sent` qu'après un accusé de Graph.
     const confirmed = await asUser.rpc('prospector_confirm_message_sent', {
       p_id: payload.message_id, p_expected_revision: payload.revision, p_reference: `graph:${cfg.values.MS_GRAPH_SENDER}`,
     })
-    if (confirmed.error) return json({sent: true, warning: 'CONFIRM_FAILED', detail: confirmed.error.message}, 207)
+    if (confirmed.error) return json({accepted: true, warning: 'CONFIRM_FAILED'}, 207)
     return json({sent: true, recipient})
   } catch (error) {
     const code = errorCode(error)
-    // On libère la réservation pour qu'une nouvelle tentative explicite reste possible.
-    await asUser.rpc('prospector_release_send', {p_id: payload.message_id, p_reason: code})
-    return json({error: code}, code === 'GRAPH_UNAVAILABLE' ? 503 : 502)
+    if (accepted) return json({accepted: true, warning: 'CONFIRM_FAILED'}, 207)
+    if (dispatchStarted && !['GRAPH_REJECTED','GRAPH_RATE_LIMITED'].includes(code)) {
+      return json({error: 'SEND_OUTCOME_UNKNOWN'}, 502)
+    }
+    // Aucune requête sendMail émise, ou refus HTTP explicite. Libération liée à cette tentative.
+    try {
+      const released = await serviceClient().rpc('prospector_release_send', {
+        p_id: payload.message_id, p_lock_at: claimed.data.send_lock_at, p_reason: code,
+      })
+      if (released.error) return json({error: 'SEND_RECONCILIATION_REQUIRED'}, 502)
+    } catch { return json({error: 'SEND_RECONCILIATION_REQUIRED'}, 502) }
+    return json({error: code}, 502)
   }
 })

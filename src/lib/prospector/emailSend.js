@@ -5,6 +5,11 @@
 // verdict renvoyé par la sonde de l'Edge Function : configuré, ou pas.
 
 const SEND_ERRORS = {
+  SEND_OUTCOME_UNKNOWN: 'Issue de l’envoi inconnue. Ne renvoie pas ce message, même manuellement. Vérifie les éléments envoyés dans Outlook.',
+  SEND_RECONCILIATION_REQUIRED: 'Envoi en cours ou à vérifier. Ne renvoie pas ce message. Vérifie les éléments envoyés dans Outlook avant de confirmer son envoi.',
+  GRAPH_RATE_LIMITED: 'Microsoft a refusé l’envoi temporairement (limite de débit). Réessaie plus tard.',
+  APPROVAL_REQUIRED: 'Ce message doit être approuvé avant de partir.',
+  MESSAGE_CONFLICT: 'Le message a changé. Recharge la file avant d’envoyer.',
   GRAPH_NOT_CONFIGURED: 'L’envoi Outlook n’est pas encore configuré sur le serveur.',
   GRAPH_AUTH_FAILED: 'Microsoft a refusé les identifiants d’envoi. Vérifie la configuration serveur.',
   GRAPH_REJECTED: 'Microsoft a refusé ce message. Vérifie l’adresse du destinataire et le contenu.',
@@ -19,7 +24,7 @@ const SEND_ERRORS = {
 }
 
 export function prospectorSendError(code) {
-  return SEND_ERRORS[code] ?? 'L’envoi a échoué. Réessaie, ou copie le message et envoie-le depuis Outlook.'
+  return SEND_ERRORS[code] ?? SEND_ERRORS.SEND_OUTCOME_UNKNOWN
 }
 
 /**
@@ -27,7 +32,8 @@ export function prospectorSendError(code) {
  * Tant que la sonde n'a pas répondu, l'envoi reste fermé : le défaut est
  * l'inaction, jamais un premier contact envoyé par optimisme.
  */
-export function describeSendAvailability({ channel, sendConfig, recipient, approved } = {}) {
+export function describeSendAvailability({ channel, sendConfig, recipient, approved, sendLockAt } = {}) {
+  if (sendLockAt) return { sendable: false, reason: SEND_ERRORS.SEND_RECONCILIATION_REQUIRED }
   if (channel !== 'email') return { sendable: false, reason: 'Seul le canal email part depuis l’admin.' }
   if (!approved) return { sendable: false, reason: 'Approuve le message avant de l’envoyer.' }
   if (!sendConfig?.checked) return { sendable: false, reason: 'Vérification de la configuration d’envoi…' }

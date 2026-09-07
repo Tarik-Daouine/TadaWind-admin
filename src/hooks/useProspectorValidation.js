@@ -21,6 +21,7 @@ export const REJECTION_REASONS = [
 
 export function prospectorReviewError(error) {
   const message = error?.message ?? ''
+  if (message.includes('SEND_RECONCILIATION_REQUIRED')) return prospectorSendError('SEND_RECONCILIATION_REQUIRED')
   if (message.includes('MESSAGE_CONFLICT')) return 'Ce message a changé, a été modifié ou approuvé. La génération ne peut pas l’écraser.'
   if (message.includes('NO_AVAILABLE_CHANNEL')) return 'Ce canal est désactivé ou ses coordonnées sont manquantes.'
   if (message.includes('PROSPECT_JOB_ACTIVE')) return 'Un autre traitement est déjà en cours pour ce prospect.'
@@ -125,13 +126,24 @@ export function useProspectorValidation() {
     // Envoi réel via Microsoft Graph, déclenché par un clic sur un message déjà
     // approuvé. La réservation côté base empêche le double envoi.
     sendEmail: async (message) => {
-      const { data, error } = await supabase.functions.invoke('prospector-send-email', {
+      // Fermer immédiatement le bouton, même si la réponse réseau ou le rechargement échoue.
+      applyMessage({ ...message, send_lock_at: message.send_lock_at || new Date().toISOString() })
+      let result
+      try { result = await supabase.functions.invoke('prospector-send-email', {
         body: { message_id: message.id, revision: message.revision },
-      })
-      if (error && !data) return { error: 'Envoi impossible pour le moment. Vérifie ta connexion et réessaie.' }
-      if (data?.error) return { error: prospectorSendError(data.error) }
+      }) } catch { return { error: prospectorSendError('SEND_OUTCOME_UNKNOWN') } }
+      let { data, error } = result
+      // Supabase range le JSON des réponses non-2xx dans FunctionsHttpError.context.
+      if (!data && error?.context?.json) {
+        try { data = await error.context.json() } catch { /* Issue inconnue. */ }
+      }
+      if (data?.error) {
+        await reload()
+        return { error: prospectorSendError(data.error) }
+      }
+      if (error || (!data?.sent && !data?.accepted)) return { error: prospectorSendError('SEND_OUTCOME_UNKNOWN') }
       if (data?.warning === 'CONFIRM_FAILED') {
-        return { error: 'Message envoyé, mais le suivi n’a pas pu être enregistré. Recharge la file avant de recommencer.' }
+        return { error: 'Microsoft a accepté le message, mais le suivi manque. Ne renvoie pas ce message. Vérifie Outlook puis utilise « Je l’ai envoyé ».' }
       }
       dropProspect(message.prospect_id)
       return { data, error: null }

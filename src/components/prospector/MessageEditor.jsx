@@ -152,6 +152,7 @@ export default function MessageEditor({ messages, recommended, onSave, onApprove
   // Le bouton d'envoi ne s'active que si le serveur déclare Microsoft Graph
   // configuré. Le front n'apprend jamais les identifiants, seulement ce verdict.
   const { sendable: canSend, reason: sendReason } = describeSendAvailability({
+    sendLockAt: current.send_lock_at,
     channel: current.channel, sendConfig, recipient, approved,
   })
   const sendable = canSend && Boolean(onSendEmail)

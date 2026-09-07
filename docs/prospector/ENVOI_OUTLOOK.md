@@ -39,9 +39,9 @@ Restreindre l'application à la seule boîte d'envoi via une *application access
 
 ## Ce qui empêche le double envoi
 
-`prospector_begin_send` prend un verrou consultatif et refuse : un message non approuvé, un canal autre qu'email, un message déjà envoyé, un envoi commencé il y a moins de deux minutes, une révision qui ne correspond plus, un prospect sans adresse. Le double-clic, le rechargement pendant l'appel et deux onglets ouverts butent tous sur le même verrou.
+`prospector_begin_send` prend un verrou consultatif et refuse : un message non approuvé, un canal autre qu'email, un message déjà envoyé, toute réservation d'envoi existante, une révision qui ne correspond plus, un prospect sans adresse. Le verrou **ne périme jamais** : un crash ou un timeout ne prouvent pas l'absence d'envoi. Le double-clic, le rechargement et deux onglets butent sur le même verrou. Le texte et sa révision restent protégés pendant cette période.
 
-Le passage à `sent` n'a lieu qu'après un `202` de Graph. Si Graph échoue, la réservation est relâchée avec le motif : une nouvelle tentative explicite reste possible, mais elle reste **explicite**.
+Le passage à `sent` n'a lieu qu'après un `202` de Graph (acceptation de la demande, pas preuve de livraison). La réservation n'est relâchée que si aucun appel `sendMail` n'a commencé, ou après refus HTTP explicite (4xx sauf 408). Les erreurs réseau, 408, 5xx, réponses inattendues et échecs de confirmation conservent le verrou. Même la perte de la réponse après une confirmation réussie ne permet pas un nouvel envoi : la base conserve `sent`.
 
 ## Erreurs distinguées
 
@@ -49,7 +49,16 @@ Le passage à `sent` n'a lieu qu'après un `202` de Graph. Si Graph échoue, la 
 |---|---|---|
 | `GRAPH_AUTH_FAILED` | secret expiré, permission non consentie | non, corriger la configuration |
 | `GRAPH_REJECTED` | Graph refuse la requête (4xx) : adresse, contenu, politique | non à l'identique |
-| `GRAPH_UNAVAILABLE` | 5xx ou 429 | oui, plus tard |
-| `CONFIRM_FAILED` (207) | **l'email est parti**, le suivi n'a pas été écrit | ne pas renvoyer : recharger la file |
+| `GRAPH_RATE_LIMITED` | refus 429 | oui, plus tard |
+| `SEND_OUTCOME_UNKNOWN` | timeout, 408, 5xx ou réponse ambiguë pendant l'envoi | **non**, vérifier Outlook |
+| `SEND_RECONCILIATION_REQUIRED` | réservation persistante, ou libération non confirmée | **non**, vérifier l'état avant déverrouillage |
+| `CONFIRM_FAILED` (207) | Microsoft a accepté la demande, mais le suivi n'a pas été enregistré | **ne pas renvoyer**, vérifier Outlook puis confirmer le suivi |
 
-Le cas `CONFIRM_FAILED` est le seul où l'affichage peut mentir par excès de prudence. Il est signalé comme tel dans l'admin, précisément pour éviter un second envoi au même prospect.
+## Rapprocher un envoi incertain
+
+1. Ne pas renvoyer, y compris par copier-coller manuel. Vérifier le destinataire, l'objet, le texte et l'heure dans les éléments envoyés Outlook ; si nécessaire attendre et consulter les traces Microsoft. Une absence immédiate dans le dossier ne prouve pas un échec.
+2. Si l'envoi est confirmé, utiliser « Je l'ai envoyé » avec une référence. Cela met à jour le suivi sans émettre d'email.
+3. Si l'absence d'envoi est établie, un opérateur serveur peut appeler `prospector_release_send(p_id, p_lock_at, p_reason)` avec l'identifiant, la valeur exacte actuelle de `send_lock_at` et les éléments de vérification. Cette RPC est réservée à `service_role`, compare la tentative et journalise le motif. Ne jamais déverrouiller un lot à l'aveugle.
+4. Si l'issue demeure inconnue, conserver le verrou. Aucun réessai automatique.
+
+Tests sans email réel : `npm test`, `node scripts/prospector-release-check.mjs send-safety` (schéma isolé, rollback), `npx playwright test` (Microsoft et données simulés).

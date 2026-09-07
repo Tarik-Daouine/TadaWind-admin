@@ -1,10 +1,10 @@
 import {readFileSync} from 'node:fs'
 import {management} from './prospector-db.mjs'
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8')
-const migrations=['20260906103000_prospector_followup.sql','20260906103100_prospector_budget.sql','20260906103200_prospector_budget_errors.sql','20260906180000_prospector_single_channel.sql']
+const migrations=['20260906103000_prospector_followup.sql','20260906103100_prospector_budget.sql','20260906103200_prospector_budget_errors.sql','20260906180000_prospector_single_channel.sql','20260907121149_prospector_location_jobs.sql','20260907135447_prospector_graph_send.sql','20260907180000_prospector_send_safety.sql']
 const ddl=migrations.map(name=>read('supabase/migrations/'+name)).join('\n')
 const fixture=read('tests/sql/prospector-review-ui.sql').split('-- Le worker')[0]
-const tests=read(process.argv[2]==='single-channel'?'tests/sql/prospector-single-channel.sql':'tests/sql/prospector-release.sql')
+const tests=read(process.argv[2]==='send-safety'?'tests/sql/prospector-send-safety.sql':process.argv[2]==='single-channel'?'tests/sql/prospector-single-channel.sql':'tests/sql/prospector-release.sql')
 if(process.argv[2]==='apply'){
   for(const name of migrations){
     const version=name.split('_')[0]
