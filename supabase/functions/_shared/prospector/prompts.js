@@ -71,6 +71,9 @@ Maximum 150 mots (80 mots pour un DM), 2400 caractères tous champs cumulés. 1 
 Maximum 24 segments grounding, 8 citations et 2 objections pour un script téléphone. Regroupe les phrases contiguës de même nature.
 Accroche précise sourcée, observation précise sourcée, opportunité comme proposition, un angle, CTA simple.
 Pars d'UN élément positif explicitement décrit dans une source, puis propose une idée future.
+Chaque segment fact doit être une citation LITTÉRALE de sa preuve : text, sans espaces de bord, doit être contenu exactement dans evidence_quote. Aucune paraphrase ni ajout dans ce segment.
+Attribue la citation au site avec un segment generic « Sur votre site, vous indiquez : “ », puis le segment fact copié mot pour mot, puis un segment generic fermant les guillemets. Salutations et liaisons restent hors du segment fact.
+Garde un objet neutre, sans caractéristique du prospect. Les segments generic/proposal ne doivent ajouter aucun fait sur le prospect.
 Interdiction des constats d'absence ou de manque : ne dis jamais que le prospect n'a pas de vidéo, drone, belles photos ou communication, même si l'analyse le suggère.
 Un seul fait par segment fact. Chaque evidence_quote doit démontrer tout ce fait ; ne regroupe pas plusieurs caractéristiques sous un extrait qui n'en prouve qu'une.
 Ne prétends pas avoir vu une qualité visuelle à partir d'un extrait textuel.

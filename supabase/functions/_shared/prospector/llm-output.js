@@ -3,6 +3,7 @@
  * Never return or log the raw rejected response.
  */
 const VALIDATION_HINTS = {
+  FACT_NOT_EXTRACTIVE: 'Chaque text fact doit être copié littéralement depuis evidence_quote, sans paraphrase, salutation ou ajout. Place les liaisons dans des segments generic séparés.',
   INCOMPLETE_GROUNDING: 'La concaténation des segments doit reproduire chaque champ, y compris chaque espace et saut de ligne.',
   INVALID_CITATION_QUOTE: 'evidence_quote doit être copié littéralement depuis content_excerpt, et claim doit être présent exactement dans le texte.',
   INVALID_CITATION_SOURCE: 'Recopie les identifiants, types et URL exacts des sources fournies.',

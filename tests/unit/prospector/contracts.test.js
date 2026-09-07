@@ -15,19 +15,31 @@ const singleMessage = channel => {
 describe('rédaction par canal', () => {
   const toWire = canonical => {
     const {sources_used,...rest}=canonical
-    return {...rest,grounding:canonical.grounding.map(({source_ids,...segment})=>({...segment,
-      evidence:sources_used.filter(c=>c.path===segment.path&&c.claim===segment.text).map(c=>({source_id:c.source_id,evidence_quote:c.evidence_quote}))}))}
+    const wire=structuredClone({...rest,grounding:canonical.grounding.map(({source_ids,...segment})=>({...segment,
+      evidence:sources_used.filter(c=>c.path===segment.path&&c.claim===segment.text).map(c=>({source_id:c.source_id,evidence_quote:c.evidence_quote}))}))})
+    for(const segment of wire.grounding.filter(s=>s.kind==='fact')) {
+      const keys=segment.path.split('.');const leaf=keys.pop();let obj=wire.variants;for(const key of keys)obj=obj[key]
+      const quote=segment.evidence[0].evidence_quote
+      obj[leaf]=obj[leaf].replace(segment.text,quote);segment.text=quote
+    }
+    return wire
   }
   it.each(['email', 'instagram_dm', 'linkedin', 'phone_script'])('construit les citations exactes de %s depuis ses preuves imbriquées', channel => {
     const canonical=singleMessage(channel)
     const wire=toWire(canonical)
-    expect(validateCopywrite(wire,{...context,channel})).toEqual(canonical)
+    const result=validateCopywrite(wire,{...context,channel})
+    expect(validateMessage(result,{...context,channel})).toEqual(result)
+    expect(result.sources_used[0].claim).toBe(wire.grounding.find(s=>s.kind==='fact').text)
     wire.grounding.find(s=>s.kind==='fact').evidence=[]
     expect(()=>validateCopywrite(wire,{...context,channel})).toThrow('INVALID_GROUNDING')
   })
   it('refuse les faux extraits, les sources inconnues et les preuves sur une proposition',()=>{
     const wire=toWire(singleMessage('email'))
     const fact=wire.grounding.find(s=>s.kind==='fact')
+    const original=fact.text
+    fact.text+=' et une piscine inventée'
+    expect(()=>validateCopywrite(wire,{...context,channel:'email'})).toThrow('FACT_NOT_EXTRACTIVE')
+    fact.text=original
     fact.evidence[0].evidence_quote='Extrait inventé'
     expect(()=>validateCopywrite(wire,{...context,channel:'email'})).toThrow('INVALID_CITATION_QUOTE')
     fact.evidence[0].source_id=otherId

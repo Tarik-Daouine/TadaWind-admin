@@ -125,6 +125,9 @@ export function validateCopywrite(output, context) {
     for (const proof of evidence) {
       const source = sourceMap.get(proof.source_id)
       if (!source) throw new Error('INVALID_CITATION_SOURCE')
+      if (!source.content_excerpt.includes(proof.evidence_quote)) throw new Error('INVALID_CITATION_QUOTE')
+      // New AI drafts quote facts verbatim. A related quote cannot justify extra claims.
+      if (!proof.evidence_quote.includes(segment.text.trim())) throw new Error('FACT_NOT_EXTRACTIVE')
       // Provenance comes from the server; claim and path come from this exact segment.
       citations.push({...proof,type:source.type,url:source.url,path:segment.path,claim:segment.text})
     }

@@ -18,7 +18,7 @@ Deno.serve(async request=>{
   const client=serviceClient(),started=Date.now(),outcomes=[]
   while(Date.now()-started<CLAIM_WINDOW_MS){
     const claimed=await client.rpc('prospector_claim_jobs',{p_limit:1,p_lease_seconds:240})
-    if(claimed.error){if(!outcomes.length)return json({error:'CLAIM_FAILED'},500);break}
+    if(claimed.error)return json({claimed:outcomes.length,outcomes,error:'CLAIM_FAILED'},500)
     const job=(claimed.data??[])[0]
     if(!job)break
     try{
@@ -39,5 +39,6 @@ Deno.serve(async request=>{
       if(STOP_CYCLE.has(code))break
     }
   }
-  return json({claimed:outcomes.length,outcomes})
+  const failed=outcomes.some(outcome=>outcome.status!=='done')
+  return json({claimed:outcomes.length,outcomes,ok:!failed},failed?502:200)
 })
