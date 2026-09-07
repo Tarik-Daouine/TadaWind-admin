@@ -3,7 +3,8 @@ import Button from '../ui/Button.jsx'
 import Modal from '../ui/Modal.jsx'
 import { SectionCard, SectionTitle } from '../ui/SectionCard.jsx'
 import { useIsMobile } from '../../hooks/useIsMobile.js'
-import { REJECTION_REASONS, useProspectorValidation } from '../../hooks/useProspectorValidation.js'
+import { REJECTION_REASONS, useGraphSendConfig, useProspectorValidation } from '../../hooks/useProspectorValidation.js'
+import { recipientEmail } from '../../lib/prospector/emailSend.js'
 import ChannelGeneration from './ChannelGeneration.jsx'
 import MessageEditor, { CHANNEL_LABELS, channelFromStrategy } from './MessageEditor.jsx'
 
@@ -79,6 +80,7 @@ function ReasonModal({ open, title, intro, confirmLabel, danger, onClose, onConf
 export default function ValidationQueue({ onToast, onOpenProspect }) {
   const mobile = useIsMobile()
   const queue = useProspectorValidation()
+  const sendConfig = useGraphSendConfig()
   const [selectedId, setSelectedId] = useState(null)
   const [busy, setBusy] = useState(null)
   const [modal, setModal] = useState(null)
@@ -206,6 +208,9 @@ export default function ValidationQueue({ onToast, onOpenProspect }) {
             onSave={(message, patch) => run('save', () => queue.saveEdit(message, patch), 'Message enregistré')}
             onApprove={(message) => run('approve', () => queue.approve(message), 'Message approuvé — à toi de l’envoyer')}
             onConfirmSent={(message, reference) => run('sent', () => queue.confirmSent(message, reference), 'Prospect passé en « Contacté »')}
+            sendConfig={sendConfig}
+            recipient={recipientEmail(selected)}
+            onSendEmail={(message) => run('send', () => queue.sendEmail(message), 'Email envoyé depuis Outlook — prospect passé en « Contacté »')}
           />
 
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingTop: 4, paddingBottom: 24 }}>
