@@ -89,7 +89,7 @@ function PhoneScript({ script }) {
   )
 }
 
-export default function MessageEditor({ messages, recommended, onSave, onApprove, onConfirmSent, busy }) {
+export default function MessageEditor({ messages, recommended, onSave, onApprove, onConfirmSent, busy, onToast }) {
   const available = messages ?? []
   const [channel, setChannel] = useState(null)
   const [draft, setDraft] = useState({ subject: '', body: '' })
@@ -123,6 +123,26 @@ export default function MessageEditor({ messages, recommended, onSave, onApprove
   }
 
   const dirty = (draft.subject ?? '') !== (current.subject ?? '') || (draft.body ?? '') !== (current.body ?? '')
+
+  // La copie peut échouer (permission refusée, contexte non sécurisé) : on le dit,
+  // plutôt que de laisser croire que le message est dans le presse-papiers.
+  const handleCopy = async () => {
+    try {
+      if (current.channel === 'email') {
+        const { format } = await copyTadaWindEmailToClipboard(current.body)
+        onToast?.(format === 'html' ? 'Message et signature copiés' : 'Message copié en texte seul (signature incluse)', 'success')
+        return
+      }
+      const plain = [current.subject, current.body].filter(Boolean).join('\n\n')
+      if (!navigator?.clipboard?.writeText) throw new Error('CLIPBOARD_UNAVAILABLE')
+      await navigator.clipboard.writeText(plain)
+      onToast?.('Message copié', 'success')
+    } catch (error) {
+      onToast?.(error?.message === 'CLIPBOARD_UNAVAILABLE'
+        ? 'Le presse-papiers n’est pas disponible ici. Sélectionne le texte et copie-le manuellement.'
+        : 'Copie refusée par le navigateur. Autorise le presse-papiers, ou copie le texte manuellement.', 'error')
+    }
+  }
   const approved = current.status === 'approved'
 
   return (
@@ -206,11 +226,7 @@ export default function MessageEditor({ messages, recommended, onSave, onApprove
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <input value={sentRef} onChange={event => setSentRef(event.target.value)} placeholder="Référence (facultatif) : objet, lien, n° de conversation…"
               aria-label="Référence de l’envoi" style={{ ...inputStyle, flex: 1, minWidth: 220, fontSize: 12, padding: '7px 10px' }} />
-            <Button size="sm" onClick={() => current.channel === 'email'
-              ? copyTadaWindEmailToClipboard(current.body)
-              : navigator.clipboard?.writeText([current.subject, current.body].filter(Boolean).join('\n\n'))}>
-              Copier
-            </Button>
+            <Button size="sm" onClick={handleCopy}>Copier</Button>
             <Button variant="primary" size="sm" loading={busy === 'sent'} disabled={busy && busy !== 'sent'}
               onClick={() => onConfirmSent(current, sentRef)}>
               Je l’ai envoyé

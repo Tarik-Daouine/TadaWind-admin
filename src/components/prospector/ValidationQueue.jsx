@@ -200,6 +200,7 @@ export default function ValidationQueue({ onToast, onOpenProspect }) {
             onGenerate={channel => run('regenerate', () => queue.regenerate(selected, channel), 'Brouillon ajouté à la file de traitement. Actualise après le prochain cycle.')} />
           <MessageEditor
             messages={drafts}
+            onToast={onToast}
             recommended={recommended}
             busy={busy}
             onSave={(message, patch) => run('save', () => queue.saveEdit(message, patch), 'Message enregistré')}

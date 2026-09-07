@@ -64,29 +64,43 @@ export const TADA_WIND_SIGNATURE_TEXT = [
 ].join('\n')
 
 export function buildTadaWindEmailHtml(body = '') {
-  if (String(body).includes(SIGNATURE_MARKER)) return String(body)
-  const bodyHtml = plainTextToEmailHtml(body)
+  // Le corps est du texte brut par contrat : il est toujours réencodé, jamais
+  // renvoyé tel quel. Un marqueur trouvé dans le texte est neutralisé plutôt que
+  // de court-circuiter l'échappement — sinon un corps le contenant ressortait
+  // en HTML non échappé.
+  const bodyHtml = plainTextToEmailHtml(String(body).split(SIGNATURE_MARKER).join(''))
   return `<div style="font-family:Arial,Helvetica,sans-serif;color:#263235;">${bodyHtml}${TADA_WIND_SIGNATURE_HTML}</div>`
 }
 
 export function buildTadaWindEmailPlainText(body = '') {
-  const normalized = String(body).trimEnd()
-  if (normalized.includes('Tarik Daouine') && normalized.includes('www.tadawind.com')) return normalized
+  // Correspondance exacte sur la signature entière : chercher « Tarik Daouine »
+  // et « tadawind.com » séparément suffisait à sauter la signature dès qu'un
+  // brouillon citait simplement le site.
+  const normalized = String(body).replace(/\r\n/g, '\n').trimEnd()
+  if (normalized.includes(TADA_WIND_SIGNATURE_TEXT)) return normalized
   return `${normalized}\n\n${TADA_WIND_SIGNATURE_TEXT}`.trim()
 }
 
 export async function copyTadaWindEmailToClipboard(body = '') {
   const html = buildTadaWindEmailHtml(body)
   const text = buildTadaWindEmailPlainText(body)
-
-  if (navigator.clipboard?.write && typeof ClipboardItem !== 'undefined') {
-    const item = new ClipboardItem({
-      'text/html': new Blob([html], { type: 'text/html' }),
-      'text/plain': new Blob([text], { type: 'text/plain' }),
-    })
-    await navigator.clipboard.write([item])
-    return
+  const canWriteRich = Boolean(navigator?.clipboard?.write) && typeof ClipboardItem !== 'undefined'
+  const canWriteText = Boolean(navigator?.clipboard?.writeText)
+  // Sans presse-papiers utilisable, on le dit. La version précédente retombait
+  // sur `navigator.clipboard?.writeText(...)`, qui résolvait sans rien copier :
+  // l'utilisateur croyait avoir copié le message.
+  if (!canWriteRich && !canWriteText) throw new Error('CLIPBOARD_UNAVAILABLE')
+  try {
+    if (canWriteRich) {
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' }),
+        'text/plain': new Blob([text], { type: 'text/plain' }),
+      })])
+      return { format: 'html' }
+    }
+    await navigator.clipboard.writeText(text)
+    return { format: 'text' }
+  } catch (cause) {
+    throw new Error('CLIPBOARD_DENIED', { cause })
   }
-
-  await navigator.clipboard?.writeText(text)
 }
