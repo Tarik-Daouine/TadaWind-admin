@@ -232,7 +232,7 @@ export default function MessageEditor({ messages, recommended, onSave, onApprove
         <SectionCard borderColor="rgba(34,197,94,0.35)">
           <SectionTitle accent="var(--green)" accentDim="rgba(34,197,94,0.25)">Envoi — action manuelle</SectionTitle>
           <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.65, marginBottom: 10 }}>
-            Le système n’envoie rien pour le moment. Le bouton « Copier » ajoute automatiquement la signature Tada Wind en HTML et en texte avant collage dans Outlook.
+            Rien ne part sans ton clic. Le bouton « Copier » ajoute automatiquement la signature Tada Wind en HTML et en texte avant collage dans Outlook.
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <input value={sentRef} onChange={event => setSentRef(event.target.value)} placeholder="Référence (facultatif) : objet, lien, n° de conversation…"
