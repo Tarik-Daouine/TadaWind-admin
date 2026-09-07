@@ -23,6 +23,39 @@ const prospect = {
 }
 
 const citation = { source_id: SOURCE_ID, type: 'website_page', url: 'https://domaine.invalid/', path: 'email.body', claim: FACT, evidence_quote: 'Nos mariages au domaine' }
+for (const outcome of ['unknown', 'accepted']) {
+  test(`bloque un nouvel envoi après issue ${outcome}, même après rechargement`, async ({ page }) => {
+    let draft = message('email', { status: 'approved' })
+    let sends = 0
+    await page.addInitScript(({ key, session }) => localStorage.setItem(key, JSON.stringify(session)),
+      { key: `sb-${ref}-auth-token`, session: { access_token: accessToken, refresh_token: 'local-refresh', expires_at: Math.floor(Date.now() / 1000) + 3600, expires_in: 3600, token_type: 'bearer', user } })
+    await page.route('**/functions/v1/prospector-send-email', async route => {
+      if (route.request().postDataJSON()?.probe) return route.fulfill({ json: { configured: true, sender: 'fixture@example.invalid' } })
+      sends++
+      draft = { ...draft, send_lock_at: '2026-09-01T10:00:00Z' }
+      return route.fulfill({ status: outcome === 'unknown' ? 502 : 207, json: outcome === 'unknown' ? { error: 'SEND_OUTCOME_UNKNOWN' } : { accepted: true, warning: 'CONFIRM_FAILED' } })
+    })
+    await page.route('**/rest/v1/**', route => {
+      const path = new URL(route.request().url()).pathname
+      return route.fulfill({ json: path.endsWith('/prospects') ? [{ ...prospect, email: 'test@example.invalid' }] : path.endsWith('/prospect_messages') ? [draft] : [] })
+    })
+    const open = async () => {
+      await page.goto('/')
+      await page.getByRole('button', { name: 'Prospection' }).click()
+      await page.getByRole('tab', { name: 'À valider' }).click()
+    }
+    await open()
+    await page.getByRole('button', { name: /Envoyer depuis Outlook/ }).click()
+    expect(sends).toBe(0)
+    await page.getByRole('button', { name: /Confirmer l’envoi/ }).click()
+    await expect(page.getByRole('button', { name: /Envoyer depuis Outlook/ })).toBeDisabled()
+    await expect.poll(() => sends).toBe(1)
+    await open()
+    await expect(page.getByRole('button', { name: /Envoyer depuis Outlook/ })).toBeDisabled()
+    await expect(page.getByText(/Envoi en cours ou à vérifier/)).toBeVisible()
+    expect(sends).toBe(1)
+  })
+}
 function message(channel, extra = {}) {
   return {
     id: `aaaaaaaa-0000-4000-8000-0000000m${channel.slice(0, 4).padEnd(4, '0')}`.slice(0, 36),

@@ -13,6 +13,7 @@ describe('ouverture de l’envoi', () => {
     ['aucun argument', undefined],
     ['canal non email', { ...base, channel: 'instagram_dm' }],
     ['message non approuvé', { ...base, approved: false }],
+    ['envoi ancien toujours verrouillé', { ...base, sendLockAt: '2020-01-01T00:00:00Z' }],
     ['sonde en attente', { ...base, sendConfig: { checked: false, configured: false } }],
     ['sonde en attente affirmant être configurée', { ...base, sendConfig: { checked: false, configured: true } }],
     ['serveur non configuré', { ...base, sendConfig: { checked: true, configured: false, missing: ['MS_GRAPH_TENANT_ID'] } }],
@@ -71,6 +72,6 @@ describe('échecs d’envoi expliqués', () => {
   })
 
   it('gère un code absent', () => {
-    expect(prospectorSendError(undefined)).toContain('échoué')
+    expect(prospectorSendError(undefined)).toContain('Ne renvoie pas')
   })
 })
