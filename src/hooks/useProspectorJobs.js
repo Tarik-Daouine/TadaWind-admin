@@ -21,6 +21,14 @@ export function prospectorJobLabel(job) {
 export function prospectorJobError(error) {
   const labels = {
     LLM_NOT_CONFIGURED: 'La clé ou le modèle IA reste à configurer.',
+    LLM_INVALID_OUTPUT: 'Brouillon refusé : le texte ou ses preuves ne respecte pas les contrôles. Aucun message n’a été envoyé.',
+    LLM_TRUNCATED: 'L’IA a atteint sa limite de réponse. Le brouillon incomplet n’a pas été enregistré.',
+    LLM_PROVIDER_ERROR: 'L’appel IA a échoué. Son coût peut rester réservé jusqu’à vérification.',
+    MESSAGE_CONFLICT: 'Un message modifié, approuvé ou envoyé est protégé contre la régénération.',
+    PARKED_CONTRACT_TOO_LARGE: 'Ancienne rédaction arrêtée. Sa reprise se fait après vérification, une fiche à la fois.',
+    DNS_RESOLUTION_FAILED: 'Le domaine ne répond pas à la résolution DNS. Vérifie l’adresse du site.',
+    UNSAFE_DNS_RESULT: 'Le domaine pointe vers une adresse non publique : la collecte a été bloquée.',
+    EMPTY_ENRICHMENT_SOURCE: 'Aucun contenu exploitable n’a été trouvé sur cette page.',
     BUDGET_FX_NOT_CONFIGURED: 'Le taux de conversion du budget reste à configurer.',
     MONTHLY_BUDGET_EXCEEDED: 'Le plafond mensuel IA est atteint.',
     MODEL_PRICING_NOT_CONFIGURED: 'Le tarif de ce modèle doit être vérifié avant utilisation.',

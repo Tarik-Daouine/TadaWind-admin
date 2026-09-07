@@ -115,7 +115,7 @@ export default function MessageEditor({ messages, recommended, onSave, onApprove
     return (
       <SectionCard>
         <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>
-          Aucun brouillon disponible pour ce prospect. Utilise « Régénérer » pour en préparer un.
+          Aucun brouillon disponible pour ce prospect. Choisis un canal ci-dessus pour en préparer un.
         </div>
       </SectionCard>
     )

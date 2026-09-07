@@ -56,21 +56,18 @@ estimated_value_eur = null sans référence tarifaire explicite dans le profil ;
   { sources: sourceData(sources, prospectId), analysis: verified, business_profile: profileData(businessProfile), available_channels: availableChannels })
 }
 
-export function buildCopywritePrompt({ sources, prospectId, analysis, strategy, businessProfile, availableChannels, tone = 'naturel, humain, direct, sympathique, sobre' }) {
+export function buildCopywritePrompt({ sources, prospectId, analysis, strategy, businessProfile, availableChannels, channel, tone = 'naturel, humain, direct, sympathique, sobre' }) {
   const verifiedAnalysis = validateAnalysis(analysis, { sources, prospectId })
   const verifiedStrategy = validateStrategy(strategy, { services: businessProfile.services, availableChannels, hasReferencePrices: Array.isArray(businessProfile.reference_prices) && businessProfile.reference_prices.length > 0 })
-  return prompt(`Rédige quatre brouillons : email, DM Instagram, LinkedIn, script téléphone. Aucun statut approved/sent.
-Accroche précise sourcée, observation précise sourcée, opportunité comme proposition, un angle, CTA simple.
-Pas d'ouverture générique « Bonjour, je suis vidéaste », de faux compliment, de superlatif sans preuve ni de ton corporate.
-N'inclus pas de prix estimatif interne dans le message. Utilise uniquement le profil pour décrire Tada Wind.
-grounding recouvre TOUS les champs texte (objet, corps, chaque champ du script et chaque objection/réponse).
-Pour chaque path, concaténer text dans l'ordre doit reproduire exactement le champ, espaces compris.
-Tout constat sur le prospect est fact, jamais proposal/generic. Chaque variante contient au moins un fact.
-Chaque fact a des source_ids et une entrée sources_used par ID : claim = text entier, même path, URL/type exacts.
-evidence_quote est un extrait littéral pertinent de content_excerpt. Ne cite jamais un passage sans rapport.
-proposal = idée future ou offre ; generic = salutation/liaison/CTA/profil TW sans assertion sur le prospect.
-Paths sans préfixe variants : email.subject, email.body, instagram_dm.body, linkedin.body,
-phone_script.opening/reason/proposal/cta, phone_script.objections.0.objection ou .response, etc.
-Le contrôle humain vérifiera les faits et les citations ; ne prétends pas que tes affirmations sont certifiées.`, messageContract,
-  { sources: sourceData(sources, prospectId), analysis: verifiedAnalysis, strategy: verifiedStrategy, business_profile: profileData(businessProfile), tone })
+  const selected=channel ?? (verifiedStrategy.recommended_channel==='phone'?'phone_script':verifiedStrategy.recommended_channel)
+  if(!Object.hasOwn(messageContract.variants,selected)||!availableChannels.includes(selected==='phone_script'?'phone':selected))throw new Error('UNAVAILABLE_CHANNEL')
+  return prompt(`Sélectionne UN extrait utile pour préparer un premier message sur le canal ${selected}.
+Retourne uniquement source_id, evidence_quote et confidence. Ne rédige pas le message : le serveur s'en charge.
+evidence_quote doit être une sous-chaîne EXACTE de content_excerpt, entre 15 et 350 caractères. Ne corrige ni ponctuation, ni accents, ni espaces.
+Choisis une phrase autonome contenant UN détail concret : activité, architecture, espace ou service du prospect.
+Évite slogans, superlatifs, menus de navigation, mentions légales, témoignages et propos d'un tiers.
+N'infère aucun manque, besoin, budget ou qualité visuelle. Ne choisis pas un extrait affirmant une absence de vidéo ou de communication.
+La source doit appartenir au prospect. La pertinence de cet extrait sera revue par l'humain.`,
+    {source_id:'uuid exact fourni',evidence_quote:'extrait littéral de 15 à 350 caractères',confidence:'nombre 0–1'},
+    {sources:sourceData(sources,prospectId),analysis:verifiedAnalysis,strategy:verifiedStrategy,business_profile:profileData(businessProfile),channel:selected,tone})
 }

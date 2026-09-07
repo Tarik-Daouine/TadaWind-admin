@@ -10,7 +10,11 @@ insert into public.prospects(id,name,category,city,website,contact_email,distanc
     '{"summary":"x","qualitative_scores":{},"buying_signals":[]}','{"angles":[{"title":"x"}],"recommended_channel":"email"}');
 insert into public.prospect_sources(id,prospect_id,type,url,content_excerpt,confidence)
   values('cccccccc-0000-4000-8000-00000000d5f1','cccccccc-0000-4000-8000-00000000d001','website_page','https://revue.invalid/','Notre hôtel est situé à Sarlat.','0.8');
-select public.prospector_store_messages('cccccccc-0000-4000-8000-00000000d001', $m${
+update public.prospects set instagram='https://instagram.com/test',linkedin='https://linkedin.com/test',phone='0102030405' where id='cccccccc-0000-4000-8000-00000000d001';
+reset role;
+update public.prospector_settings set channels='{"email":true,"instagram":true,"linkedin":true,"phone":true}' where id='main';
+set local role service_role;
+do $$ declare original jsonb := $m${
  "variants":{"email":{"subject":"Idee","body":"Votre hôtel est situé à Sarlat. Une vidéo ?"},
   "instagram_dm":{"body":"Votre hôtel est situé à Sarlat."},"linkedin":{"body":"Votre hôtel est situé à Sarlat."},
   "phone_script":{"opening":"Votre hôtel est situé à Sarlat.","reason":"r","proposal":"p","objections":[],"cta":"c"}},
@@ -25,7 +29,14 @@ select public.prospector_store_messages('cccccccc-0000-4000-8000-00000000d001', 
   {"path":"linkedin.body","text":"Votre hôtel est situé à Sarlat.","kind":"fact","source_ids":["cccccccc-0000-4000-8000-00000000d5f1"]},
   {"path":"phone_script.opening","text":"Votre hôtel est situé à Sarlat.","kind":"fact","source_ids":["cccccccc-0000-4000-8000-00000000d5f1"]},
   {"path":"phone_script.reason","text":"r","kind":"proposal","source_ids":[]},{"path":"phone_script.proposal","text":"p","kind":"proposal","source_ids":[]},{"path":"phone_script.cta","text":"c","kind":"proposal","source_ids":[]}],
- "tone_check":{"generic":false,"fake_compliment":false,"corporate":false},"confidence":0.7}$m$::jsonb);
+ "tone_check":{"generic":false,"fake_compliment":false,"corporate":false},"confidence":0.7}$m$::jsonb; ch text; one_message jsonb; begin
+  foreach ch in array array['email','instagram_dm','linkedin','phone_script'] loop
+    one_message := original || jsonb_build_object('variants',jsonb_build_object(ch,original->'variants'->ch),
+      'sources_used',(select jsonb_agg(e) from jsonb_array_elements(original->'sources_used') e where e->>'path' like ch||'.%'),
+      'grounding',(select jsonb_agg(e) from jsonb_array_elements(original->'grounding') e where e->>'path' like ch||'.%'));
+    perform public.prospector_store_messages('cccccccc-0000-4000-8000-00000000d001',one_message);
+  end loop;
+end $$;
 reset role;
 
 select set_config('request.jwt.claims','{"role":"authenticated","sub":"11111111-1111-4111-8111-111111111111"}',true);

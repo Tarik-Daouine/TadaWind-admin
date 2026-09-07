@@ -31,6 +31,7 @@ export interface ProviderOptions {
   campaignId?: string | null
   maxTokens?: number
   timeoutMs?: number
+  disableThinking?: boolean
 }
 
 /** Retourne une fonction `request({system, user})` compatible avec requestValidatedJson. */
@@ -46,6 +47,8 @@ export function makeAnthropicProvider(options: ProviderOptions) {
     const body = {
       model,
       max_tokens: maxTokens,
+      // Sonnet 5 enables adaptive thinking by default; it shares the output limit.
+      ...(options.disableThinking ? {thinking: {type: 'disabled'}} : {}),
       system: prompt.system ?? '',
       messages: [{role: 'user', content: prompt.user ?? ''}],
     }
