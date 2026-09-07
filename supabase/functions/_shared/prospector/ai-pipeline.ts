@@ -1,6 +1,7 @@
+import {composeGroundedMessage} from './compose-message.js'
 import type {SupabaseClient} from 'npm:@supabase/supabase-js@2.100.0'
 import {buildAnalyzePrompt, buildStrategizePrompt, buildCopywritePrompt} from './prompts.js'
-import {validateAnalysis, validateStrategy, validateCopywrite} from './schemas.js'
+import {validateAnalysis, validateStrategy, validateCopywriteSelection} from './schemas.js'
 import {requestValidatedJson} from './llm-output.js'
 import {makeAnthropicProvider} from './llm-provider.ts'
 
@@ -79,7 +80,7 @@ export async function runCopywrite(client: SupabaseClient, prospectId: string, r
   if (!ctx.strategy) throw new Error('STRATEGY_MISSING')
   if (!Array.isArray(ctx.available_channels) || ctx.available_channels.length === 0) throw new Error('NO_AVAILABLE_CHANNEL')
   // One concise variant, with full grounding, keeps output and retry costs bounded.
-  const request = makeAnthropicProvider({client, fn: 'copywrite', model: ctx.model, prospectId, maxTokens: 4096, timeoutMs: 60000, disableThinking: true})
+  const request = makeAnthropicProvider({client, fn: 'copywrite', model: ctx.model, prospectId, maxTokens: 1024, timeoutMs: 45000, disableThinking: true})
   const recommended=(ctx.strategy as {recommended_channel:string}).recommended_channel
   const channel=requestedChannel ?? (recommended==='phone'?'phone_script':recommended)
   if(!ctx.available_channels.includes(channel==='phone_script'?'phone':channel))throw new Error('NO_AVAILABLE_CHANNEL')
@@ -97,9 +98,13 @@ export async function runCopywrite(client: SupabaseClient, prospectId: string, r
       tone: ctx.tone,
       channel,
     }),
-    validate: (output: unknown) => validateCopywrite(output, promptContext),
+    validate: (output: unknown) => validateCopywriteSelection(output, promptContext),
     onValidationFailure: (diagnostic: {attempt: number; code: string}) => console.warn(JSON.stringify({stage: 'copywrite_validation', prospectId, ...diagnostic})),
   })
-  const result = await rpc(client, 'prospector_store_messages', {p_id: prospectId, p_message: message})
+  const strategy = ctx.strategy as {primary_angle_index:number; angles:{tada_wind_services:string[]}[]}
+  const service = strategy.angles[strategy.primary_angle_index]?.tada_wind_services[0]
+  if (!service || !ctx.business_profile.services.includes(service)) throw new Error('STRATEGY_MISSING')
+  const composed = composeGroundedMessage(message, {...promptContext, service})
+  const result = await rpc(client, 'prospector_store_messages', {p_id: prospectId, p_message: composed})
   return {stage: 'copywrite', result}
 }

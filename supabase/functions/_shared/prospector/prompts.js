@@ -61,33 +61,13 @@ export function buildCopywritePrompt({ sources, prospectId, analysis, strategy, 
   const verifiedStrategy = validateStrategy(strategy, { services: businessProfile.services, availableChannels, hasReferencePrices: Array.isArray(businessProfile.reference_prices) && businessProfile.reference_prices.length > 0 })
   const selected=channel ?? (verifiedStrategy.recommended_channel==='phone'?'phone_script':verifiedStrategy.recommended_channel)
   if(!Object.hasOwn(messageContract.variants,selected)||!availableChannels.includes(selected==='phone_script'?'phone':selected))throw new Error('UNAVAILABLE_CHANNEL')
-  const examplePath = selected === 'phone_script' ? 'phone_script.opening' : selected + '.body'
-  const contract = { variants: { [selected]: messageContract.variants[selected] },
-    grounding: [{path:examplePath,text:'segment exact avec espaces et ponctuation',kind:'fact|proposal|generic',
-      evidence:[{source_id:'uuid fourni',evidence_quote:'extrait exact de content_excerpt qui justifie ce segment'}]}],
-    tone_check:messageContract.tone_check,confidence:'nombre 0–1' }
-  return prompt(`Rédige UN SEUL brouillon pour le canal ${selected}. Aucun autre canal, aucun statut approved/sent.
-Maximum 150 mots (80 mots pour un DM), 2400 caractères tous champs cumulés. 1 à 2 constats factuels bien étayés suffisent.
-Maximum 24 segments grounding, 8 citations et 2 objections pour un script téléphone. Regroupe les phrases contiguës de même nature.
-Accroche précise sourcée, observation précise sourcée, opportunité comme proposition, un angle, CTA simple.
-Pars d'UN élément positif explicitement décrit dans une source, puis propose une idée future.
-Chaque segment fact doit être une citation LITTÉRALE de sa preuve : text, sans espaces de bord, doit être contenu exactement dans evidence_quote. Aucune paraphrase ni ajout dans ce segment.
-Attribue la citation au site avec un segment generic « Sur votre site, vous indiquez : “ », puis le segment fact copié mot pour mot, puis un segment generic fermant les guillemets. Salutations et liaisons restent hors du segment fact.
-Garde un objet neutre, sans caractéristique du prospect. Les segments generic/proposal ne doivent ajouter aucun fait sur le prospect.
-Interdiction des constats d'absence ou de manque : ne dis jamais que le prospect n'a pas de vidéo, drone, belles photos ou communication, même si l'analyse le suggère.
-Un seul fait par segment fact. Chaque evidence_quote doit démontrer tout ce fait ; ne regroupe pas plusieurs caractéristiques sous un extrait qui n'en prouve qu'une.
-Ne prétends pas avoir vu une qualité visuelle à partir d'un extrait textuel.
-Pas d'ouverture générique « Bonjour, je suis vidéaste », de faux compliment, de superlatif sans preuve ni de ton corporate.
-N'inclus pas de prix estimatif interne dans le message. Utilise uniquement le profil pour décrire Tada Wind.
-grounding recouvre TOUS les champs texte (objet, corps, chaque champ du script et chaque objection/réponse).
-Pour chaque path, concaténer text dans l'ordre doit reproduire exactement le champ, espaces compris.
-Tout constat sur le prospect est fact, jamais proposal/generic. Chaque variante contient au moins un fact.
-Chaque segment fact contient directement ses preuves dans evidence : source_id et evidence_quote. Pas d'index ni de renvoi à un autre tableau.
-Chaque segment proposal ou generic contient evidence: []. N'ajoute pas sources_used, source_ids, claim, URL ou type : le serveur construit ces champs depuis les preuves.
-evidence_quote est un extrait littéral pertinent de content_excerpt. Ne cite jamais un passage sans rapport.
-proposal = idée future ou offre ; generic = salutation/liaison/CTA/profil TW sans assertion sur le prospect.
-Paths sans préfixe variants : email.subject, email.body, instagram_dm.body, linkedin.body,
-phone_script.opening/reason/proposal/cta, phone_script.objections.0.objection ou .response, etc.
-Le contrôle humain vérifiera les faits et les citations ; ne prétends pas que tes affirmations sont certifiées.`, contract,
-  { sources: sourceData(sources, prospectId), analysis: verifiedAnalysis, strategy: verifiedStrategy, business_profile: profileData(businessProfile), tone })
+  return prompt(`Sélectionne UN extrait utile pour préparer un premier message sur le canal ${selected}.
+Retourne uniquement source_id, evidence_quote et confidence. Ne rédige pas le message : le serveur s'en charge.
+evidence_quote doit être une sous-chaîne EXACTE de content_excerpt, entre 15 et 350 caractères. Ne corrige ni ponctuation, ni accents, ni espaces.
+Choisis une phrase autonome contenant UN détail concret : activité, architecture, espace ou service du prospect.
+Évite slogans, superlatifs, menus de navigation, mentions légales, témoignages et propos d'un tiers.
+N'infère aucun manque, besoin, budget ou qualité visuelle. Ne choisis pas un extrait affirmant une absence de vidéo ou de communication.
+La source doit appartenir au prospect. La pertinence de cet extrait sera revue par l'humain.`,
+    {source_id:'uuid exact fourni',evidence_quote:'extrait littéral de 15 à 350 caractères',confidence:'nombre 0–1'},
+    {sources:sourceData(sources,prospectId),analysis:verifiedAnalysis,strategy:verifiedStrategy,business_profile:profileData(businessProfile),channel:selected,tone})
 }

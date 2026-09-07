@@ -109,6 +109,17 @@ export function validateStrategy(output, { services, availableChannels, hasRefer
 }
 
 /** Structural traceability only: human review must still check meaning and truth. */
+export function validateCopywriteSelection(output, context) {
+  const sourceMap=validateSourceContext(context.sources,context.prospectId)
+  const selected=obj({source_id:uuid,evidence_quote:z.string().min(15).max(350),confidence:unit}).parse(output)
+  const source=sourceMap.get(selected.source_id)
+  if(!source)throw new Error('INVALID_CITATION_SOURCE')
+  if(!source.content_excerpt.includes(selected.evidence_quote))throw new Error('INVALID_CITATION_QUOTE')
+  return {confidence:selected.confidence,
+    grounding:[{path:'evidence',text:selected.evidence_quote,kind:'fact',source_ids:[source.id]}],
+    sources_used:[{path:'evidence',claim:selected.evidence_quote,source_id:source.id,type:source.type,url:source.url,evidence_quote:selected.evidence_quote}]}
+}
+
 export function validateCopywrite(output, context) {
   const shape = MessageSchema.shape.variants.shape
   if (!Object.hasOwn(shape, context.channel)) throw new Error('INVALID_MESSAGE_CHANNEL')

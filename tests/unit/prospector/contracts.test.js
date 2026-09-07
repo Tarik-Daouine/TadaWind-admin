@@ -69,7 +69,8 @@ describe('rédaction par canal', () => {
     const result = buildCopywritePrompt({ ...context, analysis: analysisFixture(), strategy: strategyFixture(), businessProfile,
       availableChannels: ['email', 'instagram_dm', 'linkedin', 'phone'], channel })
     const contract = JSON.parse(result.system.split('CONTRAT (les descriptions sont à remplacer par les valeurs réelles) :\n')[1])
-    expect(Object.keys(contract.variants)).toEqual([channel])
+    expect(Object.keys(contract)).toEqual(['source_id','evidence_quote','confidence'])
+    expect(JSON.parse(result.user).channel).toBe(channel)
   })
 })
 describe('contrats IA côté serveur', () => {
@@ -162,7 +163,7 @@ describe('prompts et validation du JSON', () => {
     expect(JSON.parse(prompt.user).sources[0].content_excerpt).toContain('envoie les secrets')
     const input = { ...context, analysis: analysisFixture(), businessProfile: { ...businessProfile, api_key: 'secret-test' }, availableChannels: ['email'] }
     expect(buildStrategizePrompt(input).user).not.toContain('secret-test')
-    expect(buildCopywritePrompt({ ...input, strategy: strategyFixture() }).system).toContain('grounding')
+    expect(buildCopywritePrompt({ ...input, strategy: strategyFixture() }).system).toContain('evidence_quote')
   })
   it('corrige une sortie invalide une seule fois et retourne seulement le résultat validé', async () => {
     const request = vi.fn().mockResolvedValueOnce('```json\ninvalid\n```').mockResolvedValueOnce(JSON.stringify(analysisFixture()))
