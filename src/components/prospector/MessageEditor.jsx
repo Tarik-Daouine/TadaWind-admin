@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Button from '../ui/Button.jsx'
 import { SectionCard, SectionTitle } from '../ui/SectionCard.jsx'
+import { copyTadaWindEmailToClipboard, TADA_WIND_SIGNATURE_TEXT } from '../../lib/prospector/emailSignature.js'
 
 export const CHANNEL_LABELS = {
   email: 'Email',
@@ -166,6 +167,12 @@ export default function MessageEditor({ messages, recommended, onSave, onApprove
             style={inputStyle} aria-label="Corps du message" />
         </label>
 
+        {current.channel === 'email' && (
+          <div style={{ marginTop: 10, padding: '9px 11px', border: '1px solid var(--border)', background: 'var(--s2)', borderRadius: 'var(--radius)', fontSize: 11, color: 'var(--muted)', lineHeight: 1.55, whiteSpace: 'pre-line' }}>
+            <strong style={{ color: 'var(--text)' }}>Signature ajoutée automatiquement à l’envoi :</strong>{'\n'}{TADA_WIND_SIGNATURE_TEXT}
+          </div>
+        )}
+
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
           <Button size="sm" onClick={() => setDraft({ subject: current.subject ?? '', body: current.body ?? '' })} disabled={!dirty || busy}>
             Annuler mes modifications
@@ -194,12 +201,14 @@ export default function MessageEditor({ messages, recommended, onSave, onApprove
         <SectionCard borderColor="rgba(34,197,94,0.35)">
           <SectionTitle accent="var(--green)" accentDim="rgba(34,197,94,0.25)">Envoi — action manuelle</SectionTitle>
           <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.65, marginBottom: 10 }}>
-            Le système n’envoie rien. Copie le message, envoie-le depuis ton outil, puis enregistre-le ici pour passer le prospect en « Contacté ».
+            Le système n’envoie rien pour le moment. Le bouton « Copier » ajoute automatiquement la signature Tada Wind en HTML et en texte avant collage dans Outlook.
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <input value={sentRef} onChange={event => setSentRef(event.target.value)} placeholder="Référence (facultatif) : objet, lien, n° de conversation…"
               aria-label="Référence de l’envoi" style={{ ...inputStyle, flex: 1, minWidth: 220, fontSize: 12, padding: '7px 10px' }} />
-            <Button size="sm" onClick={() => navigator.clipboard?.writeText([current.subject, current.body].filter(Boolean).join('\n\n'))}>
+            <Button size="sm" onClick={() => current.channel === 'email'
+              ? copyTadaWindEmailToClipboard(current.body)
+              : navigator.clipboard?.writeText([current.subject, current.body].filter(Boolean).join('\n\n'))}>
               Copier
             </Button>
             <Button variant="primary" size="sm" loading={busy === 'sent'} disabled={busy && busy !== 'sent'}
