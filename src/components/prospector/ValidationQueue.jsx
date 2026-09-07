@@ -3,7 +3,8 @@ import Button from '../ui/Button.jsx'
 import Modal from '../ui/Modal.jsx'
 import { SectionCard, SectionTitle } from '../ui/SectionCard.jsx'
 import { useIsMobile } from '../../hooks/useIsMobile.js'
-import { REJECTION_REASONS, useProspectorValidation } from '../../hooks/useProspectorValidation.js'
+import { REJECTION_REASONS, useGraphSendConfig, useProspectorValidation } from '../../hooks/useProspectorValidation.js'
+import { recipientEmail } from '../../lib/prospector/emailSend.js'
 import ChannelGeneration from './ChannelGeneration.jsx'
 import MessageEditor, { CHANNEL_LABELS, channelFromStrategy } from './MessageEditor.jsx'
 
@@ -38,7 +39,7 @@ function QueueRow({ prospect, active, count, onSelect }) {
         {count > 1 && <span style={{ fontSize: 10, color: 'var(--muted2)' }}>{count} canaux</span>}
       </div>
       <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>
-        {[prospect.city, prospect.category, prospect.distance_km == null ? null : `${prospect.distance_km} km`].filter(Boolean).join(' · ') || '—'}
+        {[prospect.city?.trim() || 'Commune à compléter', prospect.category, prospect.distance_km == null ? null : `${prospect.distance_km} km`].filter(Boolean).join(' · ')}
       </div>
     </button>
   )
@@ -79,6 +80,7 @@ function ReasonModal({ open, title, intro, confirmLabel, danger, onClose, onConf
 export default function ValidationQueue({ onToast, onOpenProspect }) {
   const mobile = useIsMobile()
   const queue = useProspectorValidation()
+  const sendConfig = useGraphSendConfig()
   const [selectedId, setSelectedId] = useState(null)
   const [busy, setBusy] = useState(null)
   const [modal, setModal] = useState(null)
@@ -165,7 +167,7 @@ export default function ValidationQueue({ onToast, onOpenProspect }) {
             <div style={{ minWidth: 0 }}>
               <h2 style={{ fontFamily: 'var(--serif)', fontSize: 21, fontWeight: 400, color: 'var(--text)' }}>{selected.name}</h2>
               <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
-                {[selected.category, selected.city, selected.distance_km == null ? null : `${selected.distance_km} km`].filter(Boolean).join(' · ') || '—'}
+                {[selected.category, selected.city?.trim() || 'Commune à compléter', selected.distance_km == null ? null : `${selected.distance_km} km`].filter(Boolean).join(' · ')}
                 {index >= 0 && <span style={{ color: 'var(--muted2)' }}> · {index + 1}/{queue.prospects.length}</span>}
               </div>
             </div>
@@ -200,11 +202,15 @@ export default function ValidationQueue({ onToast, onOpenProspect }) {
             onGenerate={channel => run('regenerate', () => queue.regenerate(selected, channel), 'Brouillon ajouté à la file de traitement. Actualise après le prochain cycle.')} />
           <MessageEditor
             messages={drafts}
+            onToast={onToast}
             recommended={recommended}
             busy={busy}
             onSave={(message, patch) => run('save', () => queue.saveEdit(message, patch), 'Message enregistré')}
             onApprove={(message) => run('approve', () => queue.approve(message), 'Message approuvé — à toi de l’envoyer')}
             onConfirmSent={(message, reference) => run('sent', () => queue.confirmSent(message, reference), 'Prospect passé en « Contacté »')}
+            sendConfig={sendConfig}
+            recipient={recipientEmail(selected)}
+            onSendEmail={(message) => run('send', () => queue.sendEmail(message), 'Email envoyé depuis Outlook — prospect passé en « Contacté »')}
           />
 
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingTop: 4, paddingBottom: 24 }}>

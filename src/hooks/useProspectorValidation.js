@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { prospectorSendError } from '../lib/prospector/emailSend.js'
 
 // File « À valider » : prospects dont un brouillon de premier contact attend une décision.
 // Toutes les écritures passent par les RPC vérifiées ; aucun envoi n'est déclenché ici.
@@ -121,6 +122,21 @@ export function useProspectorValidation() {
       call('prospector_confirm_message_sent', { p_id: message.id, p_expected_revision: message.revision, p_reference: reference || null },
         () => dropProspect(message.prospect_id)),
 
+    // Envoi réel via Microsoft Graph, déclenché par un clic sur un message déjà
+    // approuvé. La réservation côté base empêche le double envoi.
+    sendEmail: async (message) => {
+      const { data, error } = await supabase.functions.invoke('prospector-send-email', {
+        body: { message_id: message.id, revision: message.revision },
+      })
+      if (error && !data) return { error: 'Envoi impossible pour le moment. Vérifie ta connexion et réessaie.' }
+      if (data?.error) return { error: prospectorSendError(data.error) }
+      if (data?.warning === 'CONFIRM_FAILED') {
+        return { error: 'Message envoyé, mais le suivi n’a pas pu être enregistré. Recharge la file avant de recommencer.' }
+      }
+      dropProspect(message.prospect_id)
+      return { data, error: null }
+    },
+
     // « Plus tard » : trace la décision puis repousse la fiche hors de la file du jour.
     snooze: async (prospect, message) => {
       if (message) {
@@ -136,4 +152,18 @@ export function useProspectorValidation() {
       return { error: null }
     },
   }
+}
+
+/** Sonde serveur : le bouton d'envoi reste désactivé tant que Microsoft Graph
+ *  n'est pas configuré. Le front n'apprend jamais les identifiants eux-mêmes. */
+export function useGraphSendConfig() {
+  const [state, setState] = useState({ checked: false, configured: false, missing: [], sender: null })
+  useEffect(() => {
+    let live = true
+    supabase.functions.invoke('prospector-send-email', { body: { probe: true } })
+      .then(({ data }) => { if (live) setState({ checked: true, configured: Boolean(data?.configured), missing: data?.missing ?? [], sender: data?.sender ?? null }) })
+      .catch(() => { if (live) setState({ checked: true, configured: false, missing: [], sender: null }) })
+    return () => { live = false }
+  }, [])
+  return state
 }

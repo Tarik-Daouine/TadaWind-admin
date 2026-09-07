@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import Button from '../ui/Button.jsx'
 import { SectionCard, SectionTitle } from '../ui/SectionCard.jsx'
 import { copyTadaWindEmailToClipboard, TADA_WIND_SIGNATURE_TEXT } from '../../lib/prospector/emailSignature.js'
+import { describeSendAvailability } from '../../lib/prospector/emailSend.js'
 
 export const CHANNEL_LABELS = {
   email: 'Email',
@@ -89,11 +90,14 @@ function PhoneScript({ script }) {
   )
 }
 
-export default function MessageEditor({ messages, recommended, onSave, onApprove, onConfirmSent, busy }) {
+export default function MessageEditor({ messages, recommended, onSave, onApprove, onConfirmSent, onSendEmail, sendConfig, recipient, busy, onToast }) {
   const available = messages ?? []
   const [channel, setChannel] = useState(null)
   const [draft, setDraft] = useState({ subject: '', body: '' })
   const [sentRef, setSentRef] = useState('')
+  // L'envoi réel demande deux clics : le premier arme, le second part. Aucun
+  // premier contact ne peut donc sortir d'un clic isolé ou répété par erreur.
+  const [armed, setArmed] = useState(false)
 
   const current = useMemo(
     () => available.find(item => item.channel === channel) ?? available[0] ?? null,
@@ -110,6 +114,7 @@ export default function MessageEditor({ messages, recommended, onSave, onApprove
   useEffect(() => {
     setDraft({ subject: current?.subject ?? '', body: current?.body ?? '' })
     setSentRef('')
+    setArmed(false)
   }, [current?.id, current?.revision])
 
   if (!current) {
@@ -123,7 +128,33 @@ export default function MessageEditor({ messages, recommended, onSave, onApprove
   }
 
   const dirty = (draft.subject ?? '') !== (current.subject ?? '') || (draft.body ?? '') !== (current.body ?? '')
+
+  // La copie peut échouer (permission refusée, contexte non sécurisé) : on le dit,
+  // plutôt que de laisser croire que le message est dans le presse-papiers.
+  const handleCopy = async () => {
+    try {
+      if (current.channel === 'email') {
+        const { format } = await copyTadaWindEmailToClipboard(current.body)
+        onToast?.(format === 'html' ? 'Message et signature copiés' : 'Message copié en texte seul (signature incluse)', 'success')
+        return
+      }
+      const plain = [current.subject, current.body].filter(Boolean).join('\n\n')
+      if (!navigator?.clipboard?.writeText) throw new Error('CLIPBOARD_UNAVAILABLE')
+      await navigator.clipboard.writeText(plain)
+      onToast?.('Message copié', 'success')
+    } catch (error) {
+      onToast?.(error?.message === 'CLIPBOARD_UNAVAILABLE'
+        ? 'Le presse-papiers n’est pas disponible ici. Sélectionne le texte et copie-le manuellement.'
+        : 'Copie refusée par le navigateur. Autorise le presse-papiers, ou copie le texte manuellement.', 'error')
+    }
+  }
   const approved = current.status === 'approved'
+  // Le bouton d'envoi ne s'active que si le serveur déclare Microsoft Graph
+  // configuré. Le front n'apprend jamais les identifiants, seulement ce verdict.
+  const { sendable: canSend, reason: sendReason } = describeSendAvailability({
+    channel: current.channel, sendConfig, recipient, approved,
+  })
+  const sendable = canSend && Boolean(onSendEmail)
 
   return (
     <>
@@ -201,21 +232,40 @@ export default function MessageEditor({ messages, recommended, onSave, onApprove
         <SectionCard borderColor="rgba(34,197,94,0.35)">
           <SectionTitle accent="var(--green)" accentDim="rgba(34,197,94,0.25)">Envoi — action manuelle</SectionTitle>
           <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.65, marginBottom: 10 }}>
-            Le système n’envoie rien pour le moment. Le bouton « Copier » ajoute automatiquement la signature Tada Wind en HTML et en texte avant collage dans Outlook.
+            Rien ne part sans ton clic. Le bouton « Copier » ajoute automatiquement la signature Tada Wind en HTML et en texte avant collage dans Outlook.
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <input value={sentRef} onChange={event => setSentRef(event.target.value)} placeholder="Référence (facultatif) : objet, lien, n° de conversation…"
               aria-label="Référence de l’envoi" style={{ ...inputStyle, flex: 1, minWidth: 220, fontSize: 12, padding: '7px 10px' }} />
-            <Button size="sm" onClick={() => current.channel === 'email'
-              ? copyTadaWindEmailToClipboard(current.body)
-              : navigator.clipboard?.writeText([current.subject, current.body].filter(Boolean).join('\n\n'))}>
-              Copier
-            </Button>
+            <Button size="sm" onClick={handleCopy}>Copier</Button>
             <Button variant="primary" size="sm" loading={busy === 'sent'} disabled={busy && busy !== 'sent'}
               onClick={() => onConfirmSent(current, sentRef)}>
               Je l’ai envoyé
             </Button>
           </div>
+
+          {current.channel === 'email' && (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.65, marginBottom: 9 }}>
+                {sendable
+                  ? <>Envoi direct depuis <strong style={{ color: 'var(--text)' }}>{sendConfig.sender ?? 'la boîte Tada Wind'}</strong> vers {recipient ? <strong style={{ color: 'var(--text)' }}>{recipient}</strong> : 'le contact du prospect'}. Le message part tel quel, signature comprise.</>
+                  : sendReason}
+              </div>
+              <Button variant={armed ? 'danger' : 'primary'} size="sm" loading={busy === 'send'}
+                disabled={!sendable || (busy && busy !== 'send')}
+                title={sendable ? undefined : sendReason}
+                onClick={() => {
+                  if (!armed) { setArmed(true); return }
+                  setArmed(false)
+                  onSendEmail(current)
+                }}>
+                {armed ? `Confirmer l’envoi${recipient ? ` à ${recipient}` : ''}` : '📤 Envoyer depuis Outlook'}
+              </Button>
+              {armed && (
+                <Button size="sm" onClick={() => setArmed(false)} disabled={busy === 'send'} style={{ marginLeft: 8 }}>Annuler</Button>
+              )}
+            </div>
+          )}
         </SectionCard>
       )}
 

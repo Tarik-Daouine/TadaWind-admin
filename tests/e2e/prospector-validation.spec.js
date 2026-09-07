@@ -42,6 +42,12 @@ test('valide un brouillon : édition, approbation, puis envoi confirmé manuelle
   await page.addInitScript(({ key, session }) => localStorage.setItem(key, JSON.stringify(session)),
     { key: `sb-${ref}-auth-token`, session: { access_token: accessToken, refresh_token: 'local-refresh', expires_at: Math.floor(Date.now() / 1000) + 3600, expires_in: 3600, token_type: 'bearer', user } })
 
+  // Sonde de configuration : le serveur répond « non configuré », comme en
+  // l'absence de secrets Microsoft.
+  await page.route('**/functions/v1/prospector-send-email', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ configured: false, missing: ['MS_GRAPH_TENANT_ID'], sender: null }),
+  }))
   await page.route('**/rest/v1/**', async route => {
     const request = route.request(), url = new URL(request.url())
     const json = body => route.fulfill({ status: 200, contentType: 'application/json', headers: { 'content-range': '0-0/1' }, body: JSON.stringify(body) })
@@ -112,7 +118,14 @@ test('valide un brouillon : édition, approbation, puis envoi confirmé manuelle
   await expect(page.getByText('Message approuvé')).toBeVisible()
 
   // L'envoi reste manuel et explicite.
-  await expect(page.getByText('Le système n’envoie rien.', { exact: false })).toBeVisible()
+  await expect(page.getByText('Rien ne part sans ton clic.', { exact: false })).toBeVisible()
+
+  // Tant que le serveur ne déclare pas Microsoft Graph configuré, l'envoi direct
+  // reste fermé : c'est la garantie qu'aucun premier contact ne peut partir seul.
+  const sendButton = page.getByRole('button', { name: /Envoyer depuis Outlook/ })
+  await expect(sendButton).toBeDisabled()
+  await expect(page.getByText(/Microsoft Graph n’est pas configuré/)).toBeVisible()
+
   await page.getByLabel('Référence de l’envoi').fill('thread-142')
   await page.screenshot({ path: testInfo.outputPath('validation-approved.png'), fullPage: true })
   await page.getByRole('button', { name: 'Je l’ai envoyé' }).click()

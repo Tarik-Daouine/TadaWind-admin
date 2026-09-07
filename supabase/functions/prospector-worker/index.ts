@@ -1,6 +1,7 @@
 import {runDiscovery} from '../_shared/prospector/discovery-service.ts'
 import {runEnrichment} from '../_shared/prospector/enrichment-service.ts'
 import {runAnalyze, runStrategize, runCopywrite} from '../_shared/prospector/ai-pipeline.ts'
+import {runLocate} from '../_shared/prospector/location-service.ts'
 import {errorCode,json,requireWorkerRequest,serviceClient} from '../_shared/prospector/runtime.ts'
 
 // Un job à la fois (bail de 240 s pour absorber la latence LLM), mais on enchaîne tant
@@ -26,6 +27,7 @@ Deno.serve(async request=>{
       if(job.type==='discovery')result=await runDiscovery(client,job.campaign_id)
       else if(job.type==='enrich')result=await runEnrichment(client,job.prospect_id)
       else if(job.type==='manual_analyze')result=await runEnrichment(client,job.prospect_id,{allowNoWebsite:true})
+      else if(job.type==='locate')result=await runLocate(client,job.prospect_id)
       else if(job.type==='analyze')result=await runAnalyze(client,job.prospect_id)
       else if(job.type==='strategize')result=await runStrategize(client,job.prospect_id)
       else if(job.type==='copywrite')result=await runCopywrite(client,job.prospect_id,job.payload?.channel)
