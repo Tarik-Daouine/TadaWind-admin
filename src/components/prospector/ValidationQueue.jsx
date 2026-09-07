@@ -38,7 +38,7 @@ function QueueRow({ prospect, active, count, onSelect }) {
         {count > 1 && <span style={{ fontSize: 10, color: 'var(--muted2)' }}>{count} canaux</span>}
       </div>
       <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>
-        {[prospect.city, prospect.category, prospect.distance_km == null ? null : `${prospect.distance_km} km`].filter(Boolean).join(' · ') || '—'}
+        {[prospect.city?.trim() || 'Commune à compléter', prospect.category, prospect.distance_km == null ? null : `${prospect.distance_km} km`].filter(Boolean).join(' · ')}
       </div>
     </button>
   )
@@ -165,7 +165,7 @@ export default function ValidationQueue({ onToast, onOpenProspect }) {
             <div style={{ minWidth: 0 }}>
               <h2 style={{ fontFamily: 'var(--serif)', fontSize: 21, fontWeight: 400, color: 'var(--text)' }}>{selected.name}</h2>
               <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
-                {[selected.category, selected.city, selected.distance_km == null ? null : `${selected.distance_km} km`].filter(Boolean).join(' · ') || '—'}
+                {[selected.category, selected.city?.trim() || 'Commune à compléter', selected.distance_km == null ? null : `${selected.distance_km} km`].filter(Boolean).join(' · ')}
                 {index >= 0 && <span style={{ color: 'var(--muted2)' }}> · {index + 1}/{queue.prospects.length}</span>}
               </div>
             </div>
