@@ -68,3 +68,19 @@ it('confirme le suivi après acceptation uniquement', async () => {
   expect(state.user.mock.calls.map(([name]) => name)).toEqual(['prospector_begin_send', 'prospector_confirm_message_sent'])
   expect(releases()).toHaveLength(0)
 })
+
+it('répond au preflight admin sans appeler Graph ni réserver un envoi', async () => {
+  const response = await state.handler(new Request('http://local/', {method:'OPTIONS', headers:{origin:'https://tarik-daouine.github.io'}}))
+  expect(response.status).toBe(204)
+  expect(response.headers.get('access-control-allow-origin')).toBe('https://tarik-daouine.github.io')
+  expect(network).not.toHaveBeenCalled(); expect(state.user).not.toHaveBeenCalled()
+})
+it('refuse une origine tierce avant toute action', async () => {
+  const response = await state.handler(new Request('http://local/', {method:'POST', headers:{origin:'https://attacker.invalid'}}))
+  expect(response.status).toBe(403); expect(network).not.toHaveBeenCalled()
+})
+it('rend les erreurs authentification lisibles par le navigateur', async () => {
+  const response = await state.handler(new Request('http://local/', {method:'POST', headers:{origin:'https://tarik-daouine.github.io'}}))
+  expect(response.status).toBe(401)
+  expect(response.headers.get('access-control-allow-origin')).toBe('https://tarik-daouine.github.io')
+})
