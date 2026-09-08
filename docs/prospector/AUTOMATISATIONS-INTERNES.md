@@ -26,15 +26,31 @@ Cette étape remplace l'intermédiaire Notion pour la publication du portfolio ;
 
 ## Configuration Microsoft encore nécessaire
 
+### Non, il ne faut pas de compte professionnel
+
+C'est le point qui bloque à la lecture : « Entra », « tenant », « annuaire » évoquent Microsoft 365, et `Tada-Wind@outlook.com` est un compte personnel. Un compte Microsoft personnel **peut** enregistrer une application Entra. Il suffit de se connecter à [entra.microsoft.com](https://entra.microsoft.com) avec ce compte : Microsoft provisionne un annuaire par défaut (*Default Directory*) gratuit, qui n'est ni un abonnement Microsoft 365 ni un plan Azure payant. L'enregistrement d'application relève de l'offre gratuite d'Entra ID.
+
+L'écran à ne pas rater est **Types de comptes pris en charge** : choisir **« Comptes Microsoft personnels uniquement »**. C'est ce qui correspond à l'endpoint `/consumers/` utilisé par le code. Un autre choix produit une application qui refusera la boîte au moment de la connexion.
+
+Il n'y a **aucun consentement administrateur** à donner : sur une application de comptes personnels, c'est le titulaire du compte qui consent lui-même à l'écran de connexion. Le bouton « Accorder le consentement administrateur » ne sert à rien ici, et son absence n'est pas un problème.
+
+Si le portail réclame un abonnement Azure et une carte bancaire, c'est le parcours de création d'un *nouveau* tenant : l'annuaire par défaut du compte personnel suffit, et l'enregistrement d'application ne demande pas de plan payant.
+
+### Les étapes
+
 Créer/enregistrer une application appartenant à TadaWind dans Microsoft Entra, acceptant les comptes Microsoft personnels, avec une plateforme **Web** et cette URL de retour exacte :
 
 `https://wxdtqkltoqzsakkdiair.supabase.co/functions/v1/automation-outlook`
 
-Permissions déléguées : `Mail.Send`, `User.Read`, `offline_access`. Aucune lecture des emails n'est demandée. Configurer les secrets Supabase `MS_OAUTH_CLIENT_ID` et `MS_OAUTH_CLIENT_SECRET`. La clé `AUTOMATION_ENCRYPTION_KEY` est déjà créée ; ne pas la remplacer sans migrer les jetons chiffrés.
+Permissions déléguées : `Mail.Send`, `User.Read`, `offline_access`. Aucune lecture des emails n'est demandée.
+
+Puis **Certificats et secrets → Nouveau secret client**. Copier la colonne **Valeur**, pas l'ID du secret : la valeur ne s'affiche plus une fois la page quittée. Sa durée de vie est plafonnée à 24 mois — noter la date d'expiration quelque part, car le jour venu l'envoi s'arrêtera avec `GRAPH_AUTH_FAILED` sans autre signal.
+
+Configurer les secrets Supabase `MS_OAUTH_CLIENT_ID` et `MS_OAUTH_CLIENT_SECRET`. La clé `AUTOMATION_ENCRYPTION_KEY` est déjà créée ; ne pas la remplacer sans migrer les jetons chiffrés.
 
 Puis Réglages → Automatisations internes → Connecter Outlook, avec **Tada-Wind@outlook.com**. Le backend refuse une autre boîte. La connexion détenue par Make ne peut pas être réutilisée en copiant ses jetons.
 
-Référence : [Microsoft — flux de code d'autorisation et PKCE](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow).
+Références : [types de comptes pris en charge et enregistrement](https://learn.microsoft.com/en-us/graph/auth-register-app-v2) · [flux de code d'autorisation et PKCE](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow).
 
 ## Côté site
 
