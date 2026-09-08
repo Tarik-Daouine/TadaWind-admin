@@ -5,7 +5,14 @@ const migrations=['20260906103000_prospector_followup.sql','20260906103100_prosp
 const ddl=migrations.map(name=>read('supabase/migrations/'+name)).join('\n')
 const fixture=read('tests/sql/prospector-review-ui.sql').split('-- Le worker')[0]
 const tests=read(process.argv[2]==='send-safety'?'tests/sql/prospector-send-safety.sql':process.argv[2]==='single-channel'?'tests/sql/prospector-single-channel.sql':'tests/sql/prospector-release.sql')
-if(process.argv[2]==='apply'){
+
+// Les automatisations internes écrivent dans public.leads, table héritée qu'aucune
+// migration ne crée : le rejeu en schéma isolé ne peut donc pas les couvrir. Ce
+// mode les vérifie sur le schéma réel, dans une transaction annulée.
+if(process.argv[2]==='internal-automations'){
+  await management('database/query',{query:"begin;set local statement_timeout='45s';"+read('tests/sql/internal-automations.sql')+' rollback;'})
+  console.log('Internal automation SQL assertions passed; transaction rolled back.')
+}else if(process.argv[2]==='apply'){
   for(const name of migrations){
     const version=name.split('_')[0]
     const exists=await management('database/query',{query:"select version from supabase_migrations.schema_migrations where version='"+version+"'",read_only:true})
@@ -17,7 +24,13 @@ if(process.argv[2]==='apply'){
   const isolate=text=>text.replaceAll('public.','prospector_release_test.').replaceAll("'public'","'prospector_release_test'")
   // Replay all migrations in an isolated, rolled-back schema.
   const {readdirSync}=await import('node:fs')
-  const all=readdirSync(new URL('../supabase/migrations/',import.meta.url)).filter(n=>n.endsWith('.sql')).sort()
+  // `projects` et `leads` sont des tables héritées qu'aucune migration ne crée :
+  // rejouées dans un schéma isolé, elles n'existent pas et font échouer tout le
+  // rejeu. Les migrations qui s'y adossent sont donc écartées d'ici — celle des
+  // automatisations internes est couverte par le mode `internal-automations`,
+  // qui s'exécute sur le schéma réel dans une transaction annulée.
+  const LEGACY_DEPENDENT=['20260908125459_internal_automations.sql','20260908125500_video_platforms.sql']
+  const all=readdirSync(new URL('../supabase/migrations/',import.meta.url)).filter(n=>n.endsWith('.sql')&&!LEGACY_DEPENDENT.includes(n)).sort()
   const schema=all.map(n=>read('supabase/migrations/'+n)).join('\n')
   await management('database/query',{query:"begin;set local statement_timeout='45s';create schema prospector_release_test;grant usage on schema prospector_release_test to authenticated,service_role,anon;"+isolate(schema+'\n'+fixture+'\n'+tests)+'\nrollback;'})
   console.log('Release SQL assertions passed; isolated transaction rolled back.')
