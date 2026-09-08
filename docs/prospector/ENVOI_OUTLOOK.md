@@ -2,6 +2,10 @@
 
 L'architecture est en place et **inactive tant que les identifiants ne sont pas déclarés**. Aucun code n'est à modifier pour l'activer : la fonction se sonde elle-même.
 
+**Vérification du 8 septembre 2026 :** cette configuration ne convient qu'à une boîte d'organisation Microsoft 365/Entra. La boîte observée dans Outlook Web est `Tada-Wind@outlook.com`, un compte personnel. Pour celle-ci, le flux `client_credentials` actuellement implémenté ne convient pas : il faut ajouter une connexion utilisateur Microsoft avec permission déléguée `Mail.Send`. Ne pas présenter l'ajout des quatre secrets comme suffisant pour cette boîte. L'envoi par Outlook Web reste possible indépendamment de l'intégration.
+
+Référence : [types de comptes pris en charge par Microsoft](https://learn.microsoft.com/en-us/entra/identity-platform/v2-supported-account-types#account-type-support-in-authentication-flows).
+
 ## Règle qui ne se contourne pas
 
 Aucun premier contact ne part automatiquement. Le chemin est toujours :
