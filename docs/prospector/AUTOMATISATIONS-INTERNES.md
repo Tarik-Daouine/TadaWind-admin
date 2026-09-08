@@ -26,22 +26,60 @@ Cette étape remplace l'intermédiaire Notion pour la publication du portfolio ;
 
 ## Configuration Microsoft encore nécessaire
 
+### Boîte personnelle et annuaire Microsoft : deux prérequis distincts
+
+La boîte `Tada-Wind@outlook.com` peut être utilisée avec les permissions déléguées prévues. Il n'est pas nécessaire de la transformer en boîte Microsoft 365. En revanche, **enregistrer l'application exige un annuaire Microsoft Entra accessible et les droits d'enregistrement nécessaires**. La documentation Microsoft pose cet annuaire comme prérequis ; se connecter avec une adresse personnelle ne garantit pas qu'un annuaire utilisable sera automatiquement créé.
+
+Lors de la tentative précédente, le portail a refusé le compte dans l'annuaire « Microsoft Services ». Cela ne démontre pas une incompatibilité de la boîte Outlook : l'accès à un annuaire pour enregistrer l'application reste à résoudre. Ne pas utiliser l'annuaire d'un autre employeur pour cette application TadaWind. Aucun abonnement n'a été souscrit.
+
+Dans **Types de comptes pris en charge**, choisir **« Comptes Microsoft personnels uniquement »** pour ce projet. Le type acceptant à la fois les comptes d'organisation et personnels est également compatible avec les comptes personnels ; les types limités aux organisations ne conviennent pas au flux `/consumers/` du code.
+
+Le titulaire de la boîte donne le consentement aux permissions déléguées lors de la connexion Outlook. Cette étape est distincte des droits nécessaires pour enregistrer l'application dans l'annuaire.
+
+### Les étapes
+
 Créer/enregistrer une application appartenant à TadaWind dans Microsoft Entra, acceptant les comptes Microsoft personnels, avec une plateforme **Web** et cette URL de retour exacte :
 
 `https://wxdtqkltoqzsakkdiair.supabase.co/functions/v1/automation-outlook`
 
-Permissions déléguées : `Mail.Send`, `User.Read`, `offline_access`. Aucune lecture des emails n'est demandée. Configurer les secrets Supabase `MS_OAUTH_CLIENT_ID` et `MS_OAUTH_CLIENT_SECRET`. La clé `AUTOMATION_ENCRYPTION_KEY` est déjà créée ; ne pas la remplacer sans migrer les jetons chiffrés.
+Permissions déléguées : `Mail.Send`, `User.Read`, `offline_access`. Aucune lecture des emails n'est demandée.
+
+Puis **Certificats et secrets → Nouveau secret client**. Copier la colonne **Valeur**, pas l'ID du secret : la valeur ne s'affiche plus une fois la page quittée. Sa durée de vie est plafonnée à 24 mois ; noter sa date d'expiration et prévoir son renouvellement avant cette date. Un échec de renouvellement du jeton produit `OUTLOOK_RECONNECT_REQUIRED` dans le module délégué ; le worker renvoie alors `OUTLOOK_NOT_READY` sans prendre d'email en file.
+
+Configurer les secrets Supabase `MS_OAUTH_CLIENT_ID` et `MS_OAUTH_CLIENT_SECRET`. La clé `AUTOMATION_ENCRYPTION_KEY` est déjà créée ; ne pas la remplacer sans migrer les jetons chiffrés.
 
 Puis Réglages → Automatisations internes → Connecter Outlook, avec **Tada-Wind@outlook.com**. Le backend refuse une autre boîte. La connexion détenue par Make ne peut pas être réutilisée en copiant ses jetons.
 
-Référence : [Microsoft — flux de code d'autorisation et PKCE](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow).
+Références : [types de comptes pris en charge et enregistrement](https://learn.microsoft.com/en-us/graph/auth-register-app-v2) · [flux de code d'autorisation et PKCE](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow).
+
+## Côté site
+
+Le formulaire de `www.tadawind.com` lit la sonde `GET contact-submit` sans cache, à chaque envoi, puis choisit son circuit **avant d'émettre quoi que ce soit** :
+
+- sonde à `true` → un seul appel `POST contact-submit`, qui enregistre la demande et met les deux emails en file. Ni insertion directe, ni webhook Make ;
+- sonde à `false` → circuit historique inchangé : insertion du lead depuis le navigateur, puis webhook Make ;
+- sonde injoignable → circuit historique, sûr puisque rien n'a encore été émis.
+
+Un envoi interne qui échoue **ne repart jamais vers Make**. La demande a peut-être été acceptée malgré une réponse perdue, et le visiteur recevrait deux accusés pour une seule demande. Le message d'erreur invite à réessayer ; la référence d'idempotence évite alors le doublon.
+
+Cette référence est un UUID v4 stable tant que la saisie ne change pas. Elle se renouvelle dès que le visiteur modifie les données envoyées, et elle est supprimée après acceptation. En cas d'erreur, y compris `IDEMPOTENCY_CONFLICT`, le code actuel conserve la référence pour une saisie identique ; il ne relance pas automatiquement avec une nouvelle référence. Le piège à robots (`website`) est présent dans le formulaire, hors du parcours clavier.
+
+La bascule ne demande donc **aucun redéploiement du site** : basculer le secret suffit, et le site suit à l'envoi suivant.
+
+## État vérifié le 8 septembre 2026
+
+- Les migrations et les fonctions internes sont déployées ; les noms des migrations locales correspondent désormais aux versions appliquées.
+- Le site dispose du routage interne et du repli avant soumission si la sonde est indisponible. Ses 9 tests navigateur passent avec les appels externes interceptés.
+- `MS_OAUTH_CLIENT_ID` et `MS_OAUTH_CLIENT_SECRET` sont absents, aucune connexion Outlook n'est enregistrée et `GET contact-submit` répond `enabled:false`.
+- Les contrôles SQL `internal-automations` et `send-safety` passent dans des transactions annulées. Aucun envoi réel n'a été effectué lors de cette vérification.
+- Le circuit Make reste donc utilisé. La connexion Microsoft et la vérification des emails réels précèdent son retrait.
 
 ## Séquence de bascule — pas encore réalisée
 
 1. Déployer les migrations, fonctions et interface. Vérifier que `GET contact-submit` répond `enabled:false`. Le site continue alors à utiliser le circuit actuel.
 2. Configurer l'application Microsoft et connecter le compte TadaWind.
 3. Effectuer une demande de test contrôlée vers la boîte TadaWind dans le nouveau circuit. Vérifier les deux acceptations et les messages reçus. Tester également une erreur et une répétition de la même référence, sans contacter de prospect réel.
-4. Passer le secret `CONTACT_INTERNAL_ENABLED` à `true` et vérifier la bascule publique. Le formulaire lit cet état sans cache ; un appel interne échoué ne retombe jamais sur Make.
+4. Passer le secret `CONTACT_INTERNAL_ENABLED` à `true` et vérifier la bascule publique. Le formulaire lit cet état sans cache ; un appel interne échoué ne retombe jamais sur Make. Aucun redéploiement du site n'est nécessaire.
 5. Révoquer `INSERT` sur `public.leads` pour `anon`, après vérification du parcours interne. Les anciens onglets devront être rechargés. Les droits service_role et de l'admin restent nécessaires.
 6. Contrôler les exécutions Make encore en cours et leur file de webhooks, puis désactiver le scénario formulaire. Désactiver le scénario Streamable après vérification qu'aucun autre usage Notion n'en dépend. Conserver les scénarios comme archive réversible pendant la période d'observation.
 7. Retirer du site le chemin de transition `legacySubmit` et le webhook Make, puis mettre la politique de confidentialité à jour pour refléter le circuit effectivement actif.
@@ -55,3 +93,11 @@ Vérifier le destinataire, l'heure et la référence de la demande dans les él�
 ## Vérification
 
 Tests unitaires de validation, URLs vidéo, chiffrement et worker ; tests navigateur des deux chemins de contact avec appels externes interceptés ; contrôle TypeScript des Edge Functions ; tests SQL atomiques/idempotence/droits dans une transaction annulée. Ces tests ne remplacent pas le test réel de consentement et d'envoi Microsoft avant bascule.
+
+Les assertions SQL s'exécutent avec :
+
+```bash
+node scripts/prospector-release-check.mjs internal-automations
+```
+
+Elles portent sur le schéma réel, dans une transaction annulée — `leads` étant une table héritée, le rejeu en schéma isolé utilisé par les autres contrôles ne peut pas la couvrir. Rien n'est laissé en base ; c'est vérifiable en comptant les lignes `leads` dont l'`ID` commence par `FORM-` avant et après.
