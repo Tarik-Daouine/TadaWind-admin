@@ -50,6 +50,7 @@ function mapProject(row) {
 
     // Mapping renommage DB → UI
     lieu:           row.location      ?? '',
+    videoUrl: row.video_url ?? '',
     streamableId:   row.streamableid  ?? '',
     streamableUrl:  row.streamableurl ?? '',
     streamableMeta: row.streamablemeta ?? null,
@@ -81,6 +82,7 @@ function mapToSupabase(data) {
   })
 
   // Renommage UI → DB
+  if (data.videoUrl !== undefined) out.video_url = data.videoUrl || null
   if (data.lieu !== undefined)          out.location      = data.lieu
   if (data.shortDesc !== undefined)     out.objectif      = data.shortDesc
   if (data.streamableId   !== undefined) out.streamableid   = data.streamableId
@@ -258,6 +260,7 @@ export function useProjects() {
         order:         1,
         // null si vide pour éviter les conflits UNIQUE sur ''
         location:      src.lieu          || null,
+        video_url: src.videoUrl || null,
         streamableid:  src.streamableId  || null,
         streamableurl: src.streamableUrl || null,
         cover:         src.cover         || null,
