@@ -36,6 +36,12 @@ Puis Réglages → Automatisations internes → Connecter Outlook, avec **Tada-W
 
 Référence : [Microsoft — flux de code d'autorisation et PKCE](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow).
 
+## Ce qui manque encore côté site
+
+Le formulaire de `www.tadawind.com` **n'appelle pas encore `contact-submit`**. Il insère toujours le lead directement dans Supabase depuis le navigateur, puis déclenche le webhook Make pour l'accusé de réception. Le chemin de transition `legacySubmit` évoqué à l'étape 7 n'existe pas dans le dépôt du site.
+
+Conséquence pratique : passer `CONTACT_INTERNAL_ENABLED` à `true` ne changerait rien pour un visiteur. L'étape 4 suppose un appel côté site qui reste à écrire — c'est le prochain morceau, après la configuration Microsoft.
+
 ## Séquence de bascule — pas encore réalisée
 
 1. Déployer les migrations, fonctions et interface. Vérifier que `GET contact-submit` répond `enabled:false`. Le site continue alors à utiliser le circuit actuel.
@@ -55,3 +61,11 @@ Vérifier le destinataire, l'heure et la référence de la demande dans les él�
 ## Vérification
 
 Tests unitaires de validation, URLs vidéo, chiffrement et worker ; tests navigateur des deux chemins de contact avec appels externes interceptés ; contrôle TypeScript des Edge Functions ; tests SQL atomiques/idempotence/droits dans une transaction annulée. Ces tests ne remplacent pas le test réel de consentement et d'envoi Microsoft avant bascule.
+
+Les assertions SQL s'exécutent avec :
+
+```bash
+node scripts/prospector-release-check.mjs internal-automations
+```
+
+Elles portent sur le schéma réel, dans une transaction annulée — `leads` étant une table héritée, le rejeu en schéma isolé utilisé par les autres contrôles ne peut pas la couvrir. Rien n'est laissé en base ; c'est vérifiable en comptant les lignes `leads` dont l'`ID` commence par `FORM-` avant et après.
