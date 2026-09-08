@@ -2,9 +2,10 @@ import { beforeEach, afterEach, it, expect, vi } from 'vitest'
 const state = vi.hoisted(() => ({ handler: null, user: vi.fn(), service: vi.fn() }))
 vi.mock('npm:@supabase/supabase-js@2.100.0', () => ({ createClient: () => ({ rpc: state.user }) }))
 vi.mock('../../../supabase/functions/_shared/prospector/runtime.ts', () => ({
-  serviceClient: () => ({ rpc: state.service }), errorCode: e => e.message,
+  serviceClient: () => ({ rpc: state.service,from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:{sender:'tada-wind@outlook.com'}})})})}) }), errorCode: e => e.message,
   json: (body, status = 200) => Response.json(body, { status }),
 }))
+vi.mock('../../../supabase/functions/_shared/prospector/automation-runtime.ts',()=>({outlookToken:async()=>({token:'delegated-fixture',sender:'tada-wind@outlook.com'})}))
 const lock = '2026-09-07T18:00:00.123456+00:00'
 let network
 beforeEach(async () => {
@@ -83,4 +84,13 @@ it('rend les erreurs authentification lisibles par le navigateur', async () => {
   const response = await state.handler(new Request('http://local/', {method:'POST', headers:{origin:'https://tarik-daouine.github.io'}}))
   expect(response.status).toBe(401)
   expect(response.headers.get('access-control-allow-origin')).toBe('https://tarik-daouine.github.io')
+})
+
+it('uses delegated /me/sendMail for the connected personal mailbox', async () => {
+  Deno.env.get = key => key.startsWith('MS_GRAPH_') ? '' : 'fixture'
+  network.mockReset().mockResolvedValue(new Response(null,{status:202}))
+  expect(await (await request()).json()).toMatchObject({sent:true})
+  expect(network).toHaveBeenCalledTimes(1)
+  expect(network.mock.calls[0][0]).toBe('https://graph.microsoft.com/v1.0/me/sendMail')
+  expect(network.mock.calls[0][1].headers.authorization).toBe('Bearer delegated-fixture')
 })

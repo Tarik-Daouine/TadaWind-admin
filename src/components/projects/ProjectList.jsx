@@ -118,6 +118,7 @@ export default function ProjectList({
         (p.slug || '').toLowerCase().includes(q) ||
         (p.region || '').toLowerCase().includes(q) ||
         (p.status || '').toLowerCase().includes(q) ||
+        (p.videoUrl || '').toLowerCase().includes(q) ||
         (p.streamableId || '').toLowerCase().includes(q) ||
         (p.tags || []).some(tag => tag.toLowerCase().includes(q))
       )

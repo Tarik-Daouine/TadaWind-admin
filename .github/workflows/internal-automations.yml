@@ -1,0 +1,25 @@
+name: Internal automations
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: internal-automations
+  cancel-in-progress: false
+jobs:
+  email-outbox:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Process transactional email queue
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          CRON_SECRET: ${{ secrets.PROSPECTOR_CRON_SECRET }}
+        run: |
+          test -n "$SUPABASE_URL" && test -n "$CRON_SECRET"
+          curl --fail-with-body --silent --show-error --max-time 120 \
+            -X POST "$SUPABASE_URL/functions/v1/automation-worker" \
+            -H "Content-Type: application/json" \
+            -H "x-prospector-cron-secret: $CRON_SECRET" -d '{}'

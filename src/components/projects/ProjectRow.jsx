@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import {parseVideo} from '../../lib/video.js'
 import Badge from '../ui/Badge.jsx'
 import { useIsMobile } from '../../hooks/useIsMobile.js'
 
@@ -342,7 +343,7 @@ export default function ProjectRow({
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                     {project.region && <MetaChip>{project.region}</MetaChip>}
                     {project.category && <Badge variant="category" value={project.category} small />}
-                    {project.streamableId && <MetaChip>Streamable</MetaChip>}
+                    {(project.videoUrl || project.streamableId) && <MetaChip>{parseVideo(project.videoUrl)?.provider || 'Streamable'}</MetaChip>}
                   </div>
                 </div>
               </div>
@@ -437,7 +438,7 @@ export default function ProjectRow({
                     {project.region && <MetaChip>{project.region}</MetaChip>}
                     {project.category && <Badge variant="category" value={project.category} small />}
                     <MetaChip tone="blue">{formatDate(project.date) || 'Sans date'}</MetaChip>
-                    {project.streamableId && <MetaChip>Streamable</MetaChip>}
+                    {(project.videoUrl || project.streamableId) && <MetaChip>{parseVideo(project.videoUrl)?.provider || 'Streamable'}</MetaChip>}
                   </div>
                 </div>
               </div>

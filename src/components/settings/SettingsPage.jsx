@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase.js'
 import { STREAMABLE_IDS_QUERY_PARAM } from '../../lib/streamableImport.js'
 import Button from '../ui/Button.jsx'
+import AutomationsPanel from './AutomationsPanel.jsx'
 
 const SETTING_ID = 'main'
 
@@ -96,6 +97,8 @@ export default function SettingsPage({ onToast }) {
       <div style={{ maxWidth: 560, margin: '0 auto', padding: '32px 24px' }}>
         <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 4, color: 'var(--text)' }}>Réglages</h2>
         <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 32 }}>Informations générales du site public.</p>
+
+        <AutomationsPanel />
 
         {missing && (
           <div style={{
