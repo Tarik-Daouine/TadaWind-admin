@@ -26,15 +26,15 @@ Cette étape remplace l'intermédiaire Notion pour la publication du portfolio ;
 
 ## Configuration Microsoft encore nécessaire
 
-### Non, il ne faut pas de compte professionnel
+### Boîte personnelle et annuaire Microsoft : deux prérequis distincts
 
-C'est le point qui bloque à la lecture : « Entra », « tenant », « annuaire » évoquent Microsoft 365, et `Tada-Wind@outlook.com` est un compte personnel. Un compte Microsoft personnel **peut** enregistrer une application Entra. Il suffit de se connecter à [entra.microsoft.com](https://entra.microsoft.com) avec ce compte : Microsoft provisionne un annuaire par défaut (*Default Directory*) gratuit, qui n'est ni un abonnement Microsoft 365 ni un plan Azure payant. L'enregistrement d'application relève de l'offre gratuite d'Entra ID.
+La boîte `Tada-Wind@outlook.com` peut être utilisée avec les permissions déléguées prévues. Il n'est pas nécessaire de la transformer en boîte Microsoft 365. En revanche, **enregistrer l'application exige un annuaire Microsoft Entra accessible et les droits d'enregistrement nécessaires**. La documentation Microsoft pose cet annuaire comme prérequis ; se connecter avec une adresse personnelle ne garantit pas qu'un annuaire utilisable sera automatiquement créé.
 
-L'écran à ne pas rater est **Types de comptes pris en charge** : choisir **« Comptes Microsoft personnels uniquement »**. C'est ce qui correspond à l'endpoint `/consumers/` utilisé par le code. Un autre choix produit une application qui refusera la boîte au moment de la connexion.
+Lors de la tentative précédente, le portail a refusé le compte dans l'annuaire « Microsoft Services ». Cela ne démontre pas une incompatibilité de la boîte Outlook : l'accès à un annuaire pour enregistrer l'application reste à résoudre. Ne pas utiliser l'annuaire d'un autre employeur pour cette application TadaWind. Aucun abonnement n'a été souscrit.
 
-Il n'y a **aucun consentement administrateur** à donner : sur une application de comptes personnels, c'est le titulaire du compte qui consent lui-même à l'écran de connexion. Le bouton « Accorder le consentement administrateur » ne sert à rien ici, et son absence n'est pas un problème.
+Dans **Types de comptes pris en charge**, choisir **« Comptes Microsoft personnels uniquement »** pour ce projet. Le type acceptant à la fois les comptes d'organisation et personnels est également compatible avec les comptes personnels ; les types limités aux organisations ne conviennent pas au flux `/consumers/` du code.
 
-Si le portail réclame un abonnement Azure et une carte bancaire, c'est le parcours de création d'un *nouveau* tenant : l'annuaire par défaut du compte personnel suffit, et l'enregistrement d'application ne demande pas de plan payant.
+Le titulaire de la boîte donne le consentement aux permissions déléguées lors de la connexion Outlook. Cette étape est distincte des droits nécessaires pour enregistrer l'application dans l'annuaire.
 
 ### Les étapes
 
@@ -44,7 +44,7 @@ Créer/enregistrer une application appartenant à TadaWind dans Microsoft Entra,
 
 Permissions déléguées : `Mail.Send`, `User.Read`, `offline_access`. Aucune lecture des emails n'est demandée.
 
-Puis **Certificats et secrets → Nouveau secret client**. Copier la colonne **Valeur**, pas l'ID du secret : la valeur ne s'affiche plus une fois la page quittée. Sa durée de vie est plafonnée à 24 mois — noter la date d'expiration quelque part, car le jour venu l'envoi s'arrêtera avec `GRAPH_AUTH_FAILED` sans autre signal.
+Puis **Certificats et secrets → Nouveau secret client**. Copier la colonne **Valeur**, pas l'ID du secret : la valeur ne s'affiche plus une fois la page quittée. Sa durée de vie est plafonnée à 24 mois ; noter sa date d'expiration et prévoir son renouvellement avant cette date. Un échec de renouvellement du jeton produit `OUTLOOK_RECONNECT_REQUIRED` dans le module délégué ; le worker renvoie alors `OUTLOOK_NOT_READY` sans prendre d'email en file.
 
 Configurer les secrets Supabase `MS_OAUTH_CLIENT_ID` et `MS_OAUTH_CLIENT_SECRET`. La clé `AUTOMATION_ENCRYPTION_KEY` est déjà créée ; ne pas la remplacer sans migrer les jetons chiffrés.
 
@@ -62,9 +62,17 @@ Le formulaire de `www.tadawind.com` lit la sonde `GET contact-submit` sans cache
 
 Un envoi interne qui échoue **ne repart jamais vers Make**. La demande a peut-être été acceptée malgré une réponse perdue, et le visiteur recevrait deux accusés pour une seule demande. Le message d'erreur invite à réessayer ; la référence d'idempotence évite alors le doublon.
 
-Cette référence est un UUID v4 stable tant que la saisie ne change pas. Elle se renouvelle dès que le visiteur corrige un champ — et après un `IDEMPOTENCY_CONFLICT`, sans quoi il resterait bloqué dessus. Le piège à robots (`website`) est présent dans le formulaire, hors du parcours clavier.
+Cette référence est un UUID v4 stable tant que la saisie ne change pas. Elle se renouvelle dès que le visiteur modifie les données envoyées, et elle est supprimée après acceptation. En cas d'erreur, y compris `IDEMPOTENCY_CONFLICT`, le code actuel conserve la référence pour une saisie identique ; il ne relance pas automatiquement avec une nouvelle référence. Le piège à robots (`website`) est présent dans le formulaire, hors du parcours clavier.
 
 La bascule ne demande donc **aucun redéploiement du site** : basculer le secret suffit, et le site suit à l'envoi suivant.
+
+## État vérifié le 8 septembre 2026
+
+- Les migrations et les fonctions internes sont déployées ; les noms des migrations locales correspondent désormais aux versions appliquées.
+- Le site dispose du routage interne et du repli avant soumission si la sonde est indisponible. Ses 9 tests navigateur passent avec les appels externes interceptés.
+- `MS_OAUTH_CLIENT_ID` et `MS_OAUTH_CLIENT_SECRET` sont absents, aucune connexion Outlook n'est enregistrée et `GET contact-submit` répond `enabled:false`.
+- Les contrôles SQL `internal-automations` et `send-safety` passent dans des transactions annulées. Aucun envoi réel n'a été effectué lors de cette vérification.
+- Le circuit Make reste donc utilisé. La connexion Microsoft et la vérification des emails réels précèdent son retrait.
 
 ## Séquence de bascule — pas encore réalisée
 
