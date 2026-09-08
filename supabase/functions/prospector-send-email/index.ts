@@ -61,7 +61,7 @@ async function graphSend(token: string, sender: string, to: string, subject: str
     : response.status >= 400 && response.status < 500 && response.status !== 408 ? 'GRAPH_REJECTED' : 'SEND_OUTCOME_UNKNOWN')
 }
 
-Deno.serve(async request => {
+async function handleRequest(request: Request) {
   if (request.method !== 'POST') return json({error: 'METHOD_NOT_ALLOWED'}, 405)
   const authorization = request.headers.get('authorization') ?? ''
   if (!authorization.toLowerCase().startsWith('bearer ')) return json({error: 'UNAUTHORIZED'}, 401)
@@ -124,4 +124,25 @@ Deno.serve(async request => {
     } catch { return json({error: 'SEND_RECONCILIATION_REQUIRED'}, 502) }
     return json({error: code}, 502)
   }
-})
+ }
+
+// The browser preflight never reaches authentication or Graph. Actual POSTs
+// retain their JWT/RPC authorization; CORS is not an authorization mechanism.
+Deno.serve(async request => {
+  const origin = request.headers.get('origin');
+  const allowed = !origin || origin === 'https://tarik-daouine.github.io'
+    || /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
+  if (!allowed) return json({error: 'ORIGIN_NOT_ALLOWED'}, 403);
+  const headers = {
+    'Access-Control-Allow-Origin': origin || 'https://tarik-daouine.github.io',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
+    'Vary': 'Origin',
+  };
+  if (request.method === 'OPTIONS') return new Response(null, {status: 204, headers});
+  let response: Response;
+  try { response = await handleRequest(request); }
+  catch { response = json({error: 'INTERNAL_ERROR'}, 500); }
+  for (const [key, value] of Object.entries(headers)) response.headers.set(key, value);
+  return response;
+});
