@@ -1,3 +1,4 @@
+import Button from '../../ui/Button.jsx'
 import React,{useState} from 'react'
 import {parseVideo} from '../../../lib/video.js'
 import TabVideoLegacy from './TabVideoLegacy.jsx'
@@ -16,7 +17,7 @@ export default function TabVideo({project,projects,onChange,onToast}) {
     <p style={{fontSize:13,lineHeight:1.6,margin:'12px 0'}}>Ajoute le lien de ta nouvelle vidéo YouTube ou Vimeo. Le projet conserve son état brouillon jusqu’à sa publication. Les fichiers originaux doivent aussi être sauvegardés hors de la plateforme.</p>
     <label htmlFor="project-video-url">Adresse de la vidéo</label>
     <input id="project-video-url" value={value} onChange={e=>setValue(e.target.value)} placeholder="https://www.youtube.com/watch?v=… ou https://vimeo.com/…" style={{width:'100%',padding:12,margin:'8px 0',color:'var(--text)',background:'var(--s3)',border:'1px solid var(--border)'}} />
-    <button type="button" onClick={save} style={{padding:10}}>Utiliser cette vidéo</button>
+    <Button type="button" onClick={save} style={{padding:10}}>Utiliser cette vidéo</Button>
     {error && <p role="alert">{error}</p>}
     {video && <>
       <p style={{margin:'12px 0'}}>{video.provider} · <a href={video.url} target="_blank" rel="noreferrer">Ouvrir la vidéo</a></p>

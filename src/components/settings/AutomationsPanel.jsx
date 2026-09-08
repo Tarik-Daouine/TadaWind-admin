@@ -1,3 +1,4 @@
+import Button from '../ui/Button.jsx'
 import React,{useEffect,useState} from 'react'
 import {supabase} from '../../lib/supabase.js'
 const LABELS={pending:'En attente',dispatching:'Envoi en cours — ne pas répéter',accepted:'Accepté par Outlook',failed:'Échec confirmé',unknown:'Résultat incertain — vérifier Outlook'}
@@ -29,14 +30,14 @@ export default function AutomationsPanel() {
     {status && <>
       <p>Outlook : {status.connected?status.sender:status.configured?'À connecter':'Application Microsoft à configurer'}</p>
       <p>Formulaire : {status.contact_enabled?'Circuit interne actif':'Bascule vers le circuit interne en préparation'}</p>
-      <button type="button" disabled={!status.configured || busy} onClick={connect} style={{padding:10,margin:'12px 0'}}>{status.connected?'Reconnecter Outlook':'Connecter Outlook'}</button>
+      <Button type="button" disabled={!status.configured || busy} onClick={connect} style={{padding:10,margin:'12px 0'}}>{status.connected?'Reconnecter Outlook':'Connecter Outlook'}</Button>
     </>}
-    <button type="button" onClick={load} style={{padding:10,marginLeft:8}}>Actualiser</button>
+    <Button type="button" onClick={load} style={{padding:10,marginLeft:8}}>Actualiser</Button>
     <p style={{fontSize:12,color:'var(--muted)',margin:'8px 0'}}>« Accepté » signifie qu’Outlook a pris en charge l’envoi, pas que le destinataire l’a reçu. Un résultat incertain ne sera pas renvoyé automatiquement.</p>
     {!rows.length && <p>Aucun email dans la file interne.</p>}
     {rows.map(row=><div key={row.id} style={{padding:'10px 0',borderTop:'1px solid var(--border)',fontSize:12,overflowWrap:'anywhere'}}>
       <strong>{row.kind==='contact_internal'?'Notification interne':'Confirmation visiteur'}</strong> · {row.recipient}<br/>
-      {LABELS[row.status]}{row.error_code && ` (${row.error_code})`}
+      {LABELS[row.status]}
     </div>)}
   </section>
 }
