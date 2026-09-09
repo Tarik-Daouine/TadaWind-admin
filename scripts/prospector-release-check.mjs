@@ -9,8 +9,8 @@ const tests=read(process.argv[2]==='send-safety'?'tests/sql/prospector-send-safe
 // Les automatisations internes écrivent dans public.leads, table héritée qu'aucune
 // migration ne crée : le rejeu en schéma isolé ne peut donc pas les couvrir. Ce
 // mode les vérifie sur le schéma réel, dans une transaction annulée.
-if(process.argv[2]==='internal-automations'){
-  await management('database/query',{query:"begin;set local statement_timeout='45s';"+read('tests/sql/internal-automations.sql')+' rollback;'})
+if(['internal-automations','brevo'].includes(process.argv[2])){
+  await management('database/query',{query:"begin;set local lock_timeout='3s';set local statement_timeout='45s';"+read(process.argv[2]==='brevo'?'tests/sql/brevo-contact.sql':'tests/sql/internal-automations.sql')+' rollback;'})
   console.log('Internal automation SQL assertions passed; transaction rolled back.')
 }else if(process.argv[2]==='apply'){
   for(const name of migrations){
@@ -29,9 +29,9 @@ if(process.argv[2]==='internal-automations'){
   // rejeu. Les migrations qui s'y adossent sont donc écartées d'ici — celle des
   // automatisations internes est couverte par le mode `internal-automations`,
   // qui s'exécute sur le schéma réel dans une transaction annulée.
-  const LEGACY_DEPENDENT=['20260908125459_internal_automations.sql','20260908125500_video_platforms.sql']
+  const LEGACY_DEPENDENT=['20260908125459_internal_automations.sql','20260908125500_video_platforms.sql','20260909130000_brevo_contact.sql']
   const all=readdirSync(new URL('../supabase/migrations/',import.meta.url)).filter(n=>n.endsWith('.sql')&&!LEGACY_DEPENDENT.includes(n)).sort()
   const schema=all.map(n=>read('supabase/migrations/'+n)).join('\n')
-  await management('database/query',{query:"begin;set local statement_timeout='45s';create schema prospector_release_test;grant usage on schema prospector_release_test to authenticated,service_role,anon;"+isolate(schema+'\n'+fixture+'\n'+tests)+'\nrollback;'})
+  await management('database/query',{query:"begin;set local lock_timeout='3s';set local statement_timeout='45s';create schema prospector_release_test;grant usage on schema prospector_release_test to authenticated,service_role,anon;"+isolate(schema+'\n'+fixture+'\n'+tests)+'\nrollback;'})
   console.log('Release SQL assertions passed; isolated transaction rolled back.')
 }
