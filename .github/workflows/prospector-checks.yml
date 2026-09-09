@@ -24,7 +24,7 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test
-      - run: npx --yes deno@2 check --no-lock --config supabase/functions/prospector-worker/deno.json supabase/functions/prospector-worker/index.ts supabase/functions/contact-submit/index.ts supabase/functions/automation-outlook/index.ts supabase/functions/automation-worker/index.ts supabase/functions/prospector-send-email/index.ts
+      - run: npx --yes deno@2 check --no-lock --config supabase/functions/prospector-worker/deno.json supabase/functions/prospector-worker/index.ts supabase/functions/contact-submit/index.ts supabase/functions/automation-outlook/index.ts supabase/functions/automation-worker/index.ts supabase/functions/automation-status/index.ts supabase/functions/prospector-send-email/index.ts
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

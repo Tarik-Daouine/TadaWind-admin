@@ -15,14 +15,15 @@ test('Outlook callback opens settings without trusting a URL as proof of connect
     let data=[]
     if(url.pathname.endsWith('/auth/v1/user'))data=user
     if(url.pathname.endsWith('/rest/v1/settings'))data={id:'main'}
-    if(url.pathname.endsWith('/functions/v1/automation-outlook'))data={configured:false,connected:false,contact_enabled:false}
-    if(url.pathname.endsWith('/rest/v1/automation_outbox'))data=[{id:'fixture',kind:'contact_receipt',recipient:'test@example.invalid',status:'unknown',error_code:'SEND_OUTCOME_UNKNOWN'}]
+    if(url.pathname.endsWith('/functions/v1/automation-status'))data={provider:'brevo',configured:false,contact_enabled:false,attempts_24h:300,limit_24h:300}
+    if(url.pathname.endsWith('/rest/v1/automation_outbox'))data=[{id:'fixture',kind:'contact_receipt',recipient:'test@example.invalid',status:'unknown',provider:'brevo',error_code:'SEND_OUTCOME_UNKNOWN'}]
     return route.fulfill({status:200,contentType:'application/json',headers:{'content-range':'0-0/0'},body:JSON.stringify(data)})
   })
   await page.goto('/?outlook=connected')
   await expect(page.getByRole('heading',{name:'Automatisations internes'})).toBeVisible()
-  await expect(page.getByText('Application Microsoft à configurer',{exact:false})).toBeVisible()
-  await expect(page.getByRole('button',{name:'Connecter Outlook',exact:true})).toBeDisabled()
-  await expect(page.getByText('Résultat incertain — vérifier Outlook',{exact:false})).toBeVisible()
+  await expect(page.getByText('Emails du formulaire : Brevo — configuration en attente',{exact:false})).toBeVisible()
+  await expect(page.getByRole('button',{name:'Connecter Outlook',exact:true})).toHaveCount(0)
+  await expect(page.getByText('Tentatives sur 24 heures : 300 / 300.',{exact:false})).toBeVisible()
+  await expect(page.getByText('Résultat incertain — vérifier le journal du service',{exact:false})).toBeVisible()
   await page.screenshot({path:'test-results/automations-panel.png',fullPage:true})
 })
