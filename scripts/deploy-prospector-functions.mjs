@@ -31,7 +31,7 @@ form.append('metadata', new Blob([JSON.stringify({
   name: slug,
   entrypoint_path: `functions/${slug}/index.ts`,
   import_map_path: `functions/${slug}/deno.json`,
-  verify_jwt: !['prospector-worker','contact-submit','automation-worker','automation-outlook','automation-status'].includes(slug),
+  verify_jwt: !['prospector-worker','contact-submit','automation-worker','automation-status'].includes(slug),
 })], { type: 'application/json' }), 'metadata.json')
 for (const f of files) {
   form.append('file', new Blob([readFileSync(new URL('../' + f.path, import.meta.url))], { type: 'application/typescript' }), f.name)
