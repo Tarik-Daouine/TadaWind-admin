@@ -14,8 +14,7 @@ La perte des vidéos et le projet de migration vers YouTube ou Vimeo changent le
 - `automation-worker` envoie via Brevo pour le formulaire. Il démarre après une demande et dispose d'un passage de secours programmé dans GitHub Actions toutes les 5 minutes. GitHub peut retarder les exécutions : ne pas promettre une livraison immédiate.
 - Les emails internes et visiteurs sont indépendants : un échec de notification interne ne supprime pas l'accusé de réception.
 - Un HTTP 201 avec une référence Brevo signifie « accepté par le service ». Un timeout/408/5xx reste incertain et n'est jamais renvoyé automatiquement. Seul un refus 429 est retenté automatiquement, au maximum 3 tentatives. Une interruption du worker rend la tentative incertaine après 5 minutes.
-- Les jetons Outlook sont chiffrés AES-GCM avec une clé conservée dans les secrets Supabase. Les tables des jetons et des états OAuth sont inaccessibles au navigateur. Le consentement utilise un état aléatoire à usage unique et PKCE.
-- Réglages → Automatisations internes affiche la connexion et les 20 derniers emails.
+- Réglages → Automatisations internes affiche l'expéditeur Brevo, les tentatives des dernières 24 heures rapportées au plafond, et les 20 derniers emails avec leur fournisseur et leur référence d'envoi.
 - Prospector conserve son approbation et son clic explicites ; aucun message commercial ne passe par Brevo.
 
 ## Vidéos
@@ -24,9 +23,19 @@ Dans l'éditeur de projet, coller une URL YouTube ou Vimeo. Les liens Vimeo non 
 
 Cette étape remplace l'intermédiaire Notion pour la publication du portfolio ; elle n'aspire pas automatiquement toutes les vidéos d'un compte. Le choix du fournisseur et la reconstitution des vidéos précèdent une éventuelle synchronisation de chaîne. Aucun fichier original n'est sauvegardé par cette intégration : conserver deux copies indépendantes des nouveaux rushes et exports.
 
+## Consentement délégué Outlook retiré — 10 septembre 2026
+
+Le passage à Brevo a retiré le bouton « Connecter Outlook » du panneau Réglages. Plus rien n'appelait alors `automation-outlook` : le consentement ne pouvait plus être accordé, donc `automation_connections` ne pouvait plus recevoir de jeton, donc le chemin délégué de `prospector-send-email` ne pouvait plus s'activer. Du code injoignable qui donnait l'illusion d'une fonctionnalité disponible.
+
+Ont été retirés : la fonction `automation-outlook` et son flux OAuth/PKCE, le chiffrement AES-GCM des jetons (`encrypt`/`decrypt`), la lecture déléguée dans `prospector-send-email`, et les tables `automation_connections` et `automation_oauth_states` — vides, aucun consentement n'ayant jamais été accordé. La migration refuse de s'appliquer si un jeton s'y trouve.
+
+`AUTOMATION_ENCRYPTION_KEY` **reste nécessaire** : `contact-submit` s'en sert comme sel du hachage d'adresse qui alimente la limite de 5 demandes par email et par heure. Ce n'est plus une clé de chiffrement, seulement un sel — la remplacer remet les compteurs de débit à zéro.
+
+Reprendre l'envoi commercial automatique demanderait soit un compte Microsoft 365 (les quatre secrets `MS_GRAPH_*` suffisent alors, le code est déjà là), soit de réécrire un consentement délégué. Ce n'est pas un chantier en cours.
+
 ## Brevo remplace Microsoft pour les emails du formulaire — décision du 9 septembre 2026
 
-Le compte gratuit Brevo sert uniquement de transport pour les notifications et accusés de réception du formulaire. Le CRM, les modèles de texte, la file, l'idempotence et le suivi restent dans Supabase et l'admin. Aucune liste de prospection n'est importée dans Brevo. L'envoi commercial reste manuel depuis Outlook ; les fonctions Graph existantes sont conservées mais ne sont plus une dépendance du formulaire.
+Le compte gratuit Brevo sert uniquement de transport pour les notifications et accusés de réception du formulaire. Le CRM, les modèles de texte, la file, l'idempotence et le suivi restent dans Supabase et l'admin. Aucune liste de prospection n'est importée dans Brevo. L'envoi commercial reste manuel depuis Outlook. La fonction `prospector-send-email` est conservée pour un futur compte Microsoft 365 : elle n'a qu'un chemin, l'application Microsoft avec la permission `Mail.Send` d'application, et sa sonde répond « non configuré » tant que les quatre secrets `MS_GRAPH_*` manquent — le bouton d'envoi reste donc fermé.
 
 ### Configuration nécessaire
 

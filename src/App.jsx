@@ -102,18 +102,6 @@ export default function App() {
     prospection: 'Recherche gérée dans Prospection',
   }
 
-  useEffect(() => {
-    if (!session) return
-    const url = new URL(window.location.href)
-    const result = url.searchParams.get('outlook')
-    if (!result) return
-    url.searchParams.delete('outlook')
-    window.history.replaceState({}, '', url.toString())
-    setView('settings')
-    // The settings panel checks the backend; a URL parameter is not proof of connection.
-    if (result !== 'connected') addToast(result === 'wrong_account' ? 'Connecte la boîte Tada-Wind@outlook.com.' : 'La connexion Outlook n’a pas abouti.', 'error')
-  }, [session])
-
   // Flux officiel Streamable:
   // le bookmarklet ouvre l'admin avec ?streamable_ids=abc,def,ghi.
   // On normalise ces IDs, on les compare aux projets existants, puis on ouvre
