@@ -1,6 +1,5 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.100.0'
 import {buildTadaWindEmailHtml, buildTadaWindEmailPlainText} from '../_shared/prospector/email-signature.js'
-import {outlookToken} from '../_shared/prospector/automation-runtime.ts'
 import {errorCode, json, serviceClient} from '../_shared/prospector/runtime.ts'
 
 // Envoi Outlook via Microsoft Graph.
@@ -12,18 +11,20 @@ import {errorCode, json, serviceClient} from '../_shared/prospector/runtime.ts'
 //
 // Les identifiants Microsoft vivent exclusivement dans les secrets Supabase.
 // Rien n'est exposé au navigateur : le front n'apprend que « configuré ou non ».
+//
+// Un seul chemin : l'application Microsoft, avec la permission `Mail.Send`
+// d'application. Le consentement délégué a été retiré le 10 septembre 2026 —
+// il n'avait plus d'écran pour être accordé, donc plus aucun moyen d'exister.
+// Tant que les quatre secrets manquent, la sonde répond « non configuré » et
+// le bouton d'envoi reste fermé.
 
 const GRAPH = 'https://graph.microsoft.com/v1.0'
 const CONFIG_KEYS = ['MS_GRAPH_TENANT_ID', 'MS_GRAPH_CLIENT_ID', 'MS_GRAPH_CLIENT_SECRET', 'MS_GRAPH_SENDER'] as const
 
-async function readConfig() {
+function readConfig() {
   const values = Object.fromEntries(CONFIG_KEYS.map(key => [key, (Deno.env.get(key) ?? '').trim()]))
   const missing = CONFIG_KEYS.filter(key => !values[key])
-  if (missing.length) {
-    const connection = await serviceClient().from('automation_connections').select('sender').eq('id','outlook').maybeSingle()
-    if (!connection.error && connection.data) return {values:{...values,MS_GRAPH_SENDER:connection.data.sender},missing:[],configured:true,delegated:true}
-  }
-  return {values, missing, configured: missing.length === 0,delegated:false}
+  return {values, missing, configured: missing.length === 0}
 }
 
 async function graphToken(cfg: Record<string, string>) {
@@ -43,8 +44,8 @@ async function graphToken(cfg: Record<string, string>) {
   return data.access_token as string
 }
 
-async function graphSend(token: string, sender: string, to: string, subject: string, html: string, text: string, delegated = false) {
-  const response = await fetch(delegated ? `${GRAPH}/me/sendMail` : `${GRAPH}/users/${encodeURIComponent(sender)}/sendMail`, {
+async function graphSend(token: string, sender: string, to: string, subject: string, html: string, text: string) {
+  const response = await fetch(`${GRAPH}/users/${encodeURIComponent(sender)}/sendMail`, {
     method: 'POST',
     headers: {authorization: `Bearer ${token}`, 'content-type': 'application/json'},
     body: JSON.stringify({
@@ -74,7 +75,7 @@ async function handleRequest(request: Request) {
   let payload: {probe?: boolean; message_id?: string; revision?: number}
   try { payload = await request.json() } catch { return json({error: 'INVALID_INPUT'}, 400) }
 
-  const cfg = await readConfig()
+  const cfg = readConfig()
   // Sonde : permet au front de désactiver le bouton sans jamais rien apprendre
   // des identifiants eux-mêmes.
   // `sender` est l'adresse d'expédition publique, pas un secret : elle sert au
@@ -102,10 +103,10 @@ async function handleRequest(request: Request) {
     const {recipient, subject, body} = context.data as {recipient: string | null; subject: string | null; body: string}
     if (!recipient) throw new Error('NO_RECIPIENT_EMAIL')
 
-    const token = cfg.delegated ? (await outlookToken()).token : await graphToken(cfg.values)
+    const token = await graphToken(cfg.values)
     const html = buildTadaWindEmailHtml(body), text = buildTadaWindEmailPlainText(body)
     dispatchStarted = true
-    await graphSend(token, cfg.values.MS_GRAPH_SENDER, recipient, subject ?? '', html, text, cfg.delegated)
+    await graphSend(token, cfg.values.MS_GRAPH_SENDER, recipient, subject ?? '', html, text)
     accepted = true
 
     // Le message ne passe à `sent` qu'après un accusé de Graph.

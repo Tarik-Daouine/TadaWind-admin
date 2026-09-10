@@ -2,10 +2,9 @@ import { beforeEach, afterEach, it, expect, vi } from 'vitest'
 const state = vi.hoisted(() => ({ handler: null, user: vi.fn(), service: vi.fn() }))
 vi.mock('npm:@supabase/supabase-js@2.100.0', () => ({ createClient: () => ({ rpc: state.user }) }))
 vi.mock('../../../supabase/functions/_shared/prospector/runtime.ts', () => ({
-  serviceClient: () => ({ rpc: state.service,from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:{sender:'tada-wind@outlook.com'}})})})}) }), errorCode: e => e.message,
+  serviceClient: () => ({ rpc: state.service }), errorCode: e => e.message,
   json: (body, status = 200) => Response.json(body, { status }),
 }))
-vi.mock('../../../supabase/functions/_shared/prospector/automation-runtime.ts',()=>({outlookToken:async()=>({token:'delegated-fixture',sender:'tada-wind@outlook.com'})}))
 const lock = '2026-09-07T18:00:00.123456+00:00'
 let network
 beforeEach(async () => {
@@ -86,11 +85,24 @@ it('rend les erreurs authentification lisibles par le navigateur', async () => {
   expect(response.headers.get('access-control-allow-origin')).toBe('https://tarik-daouine.github.io')
 })
 
-it('uses delegated /me/sendMail for the connected personal mailbox', async () => {
-  Deno.env.get = key => key.startsWith('MS_GRAPH_') ? '' : 'fixture'
-  network.mockReset().mockResolvedValue(new Response(null,{status:202}))
-  expect(await (await request()).json()).toMatchObject({sent:true})
-  expect(network).toHaveBeenCalledTimes(1)
-  expect(network.mock.calls[0][0]).toBe('https://graph.microsoft.com/v1.0/me/sendMail')
-  expect(network.mock.calls[0][1].headers.authorization).toBe('Bearer delegated-fixture')
+it('envoie depuis la boîte déclarée, jamais depuis « la mienne »', async () => {
+  // Un seul chemin depuis le retrait du consentement délégué : l'application
+  // Microsoft, qui doit nommer explicitement la boîte d'expédition. `/me/`
+  // n'aurait plus de titulaire — il désignerait l'application elle-même.
+  Deno.env.get = key => key === 'MS_GRAPH_SENDER' ? 'Tada-Wind@outlook.com' : 'fixture'
+  expect(await (await request()).json()).toMatchObject({ sent: true })
+  expect(network.mock.calls[1][0]).toBe('https://graph.microsoft.com/v1.0/users/Tada-Wind%40outlook.com/sendMail')
+  expect(network.mock.calls.some(([url]) => String(url).includes('/me/sendMail'))).toBe(false)
+})
+
+it('reste fermé tant qu’un secret Microsoft manque', async () => {
+  // Sans consentement délégué possible, rien ne peut plus suppléer un secret
+  // absent : la sonde doit le dire, et l'envoi refuser de partir.
+  Deno.env.get = key => key === 'MS_GRAPH_CLIENT_SECRET' ? '' : 'fixture'
+  const probe = await state.handler(new Request('http://local/', {
+    method: 'POST', headers: { authorization: 'Bearer fixture' }, body: JSON.stringify({ probe: true }),
+  }))
+  expect(await probe.json()).toMatchObject({ configured: false, missing: ['MS_GRAPH_CLIENT_SECRET'] })
+  expect(await (await request()).json()).toMatchObject({ error: 'GRAPH_NOT_CONFIGURED' })
+  expect(network).not.toHaveBeenCalled()
 })

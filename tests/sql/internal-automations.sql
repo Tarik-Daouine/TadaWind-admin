@@ -16,7 +16,9 @@ do $$ declare first_result jsonb; second_result jsonb; email public.automation_o
   select * into email from public.automation_claim_email();
   perform public.automation_finish_email(email.id,email.attempt_id,'accepted',null);
   if exists(select 1 from public.automation_claim_email()) then raise exception 'uncertain_email_reclaimed'; end if;
-  if has_table_privilege('authenticated','public.automation_connections','select') then raise exception 'token_exposure'; end if;
+  -- Le jeton Outlook n'existe plus du tout : la table a été supprimée avec le
+  -- consentement délégué, ce qui est plus fort que de vérifier ses droits.
+  if to_regclass('public.automation_connections') is not null then raise exception 'oauth_table_resurrected'; end if;
   if has_function_privilege('anon','public.automation_accept_contact(uuid,text,text,jsonb,text,text,text)','execute') then raise exception 'public_rpc_bypass'; end if;
   if has_table_privilege('authenticated','public.automation_outbox','update') then raise exception 'browser_can_requeue'; end if;
 end $$;
