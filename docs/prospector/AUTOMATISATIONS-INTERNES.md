@@ -67,19 +67,22 @@ Références : [API d'envoi Brevo](https://developers.brevo.com/reference/send-t
 
 ## Côté site
 
-Le formulaire de `www.tadawind.com` lit la sonde `GET contact-submit` sans cache, à chaque envoi, puis choisit son circuit **avant d'émettre quoi que ce soit** :
+Depuis le 11 septembre 2026, le site publié appelle exclusivement `POST contact-submit`. Le repli historique et le webhook Make ont été retirés (site PR #5, merge `9a8358b`). La sonde GET reste un indicateur de configuration, elle ne choisit plus le circuit côté site.
 
-- sonde à `true` → un seul appel `POST contact-submit`, qui enregistre la demande et met les deux emails en file. Ni insertion directe, ni webhook Make ;
-- sonde à `false` → circuit historique inchangé : insertion du lead depuis le navigateur, puis webhook Make ;
-- sonde injoignable → circuit historique, sûr puisque rien n'a encore été émis.
+La référence UUID est conservée pour une saisie identique après une réponse incertaine. Une nouvelle tentative ne crée donc pas une deuxième demande. Le formulaire affiche une erreur persistante et conserve les champs si le backend est indisponible. Désactiver le secret ferme désormais le formulaire : cela ne réactive pas Make.
 
-Un envoi interne qui échoue **ne repart jamais vers Make**. La demande a peut-être été acceptée malgré une réponse perdue, et le visiteur recevrait deux accusés pour une seule demande. Le message d'erreur invite à réessayer ; la référence d'idempotence évite alors le doublon.
+## État vérifié le 11 septembre 2026
 
-Cette référence est un UUID v4 stable tant que la saisie ne change pas. Elle se renouvelle dès que le visiteur modifie les données envoyées, et elle est supprimée après acceptation. En cas d'erreur, y compris `IDEMPOTENCY_CONFLICT`, le code actuel conserve la référence pour une saisie identique ; il ne relance pas automatiquement avec une nouvelle référence. Le piège à robots (`website`) est présent dans le formulaire, hors du parcours clavier.
+- Domaine et expéditeur `contact@tadawind.com` authentifiés ; nouvelle clé enregistrée dans Supabase.
+- Deux pilotes du 10 septembre : quatre messages confirmés délivrés par Brevo. La première notification a subi un retard jusqu'au lendemain ; ne pas confondre acceptation et livraison, ni la renvoyer automatiquement.
+- `CONTACT_INTERNAL_ENABLED=true` ; code public sans Make vérifié après déploiement Vercel.
+- Test du point d'entrée public : référence `535824cc-27bc-4a64-91c1-4478eebfb7b8`, première requête acceptée, deuxième identique reconnue comme doublon. Les deux emails sont confirmés délivrés par Brevo ; une seule ligne CRM vérifiée malgré les deux requêtes.
+- Migration `20260911081022_contact_internal_only` appliquée : suppression de la politique `public_insert_lead` et retrait INSERT à anon ; droits service_role et authenticated conservés.
+- Neuf tests Playwright du site passent, dont échec réseau et nouvelle tentative avec la même référence.
+- Reste : se reconnecter à Make, vérifier les exécutions/files puis désactiver le scénario formulaire. Le site ne l'appelle déjà plus. Ne pas prétendre que le scénario est arrêté sans vérifier son état.
+- La migration vidéo YouTube/Vimeo et l'arrêt de l'ancien scénario Streamable restent séparés.
 
-La bascule ne demande donc **aucun redéploiement du site** : basculer le secret suffit, et le site suit à l'envoi suivant.
-
-## Séquence de bascule — pas encore réalisée
+## Séquence de bascule — procédure de référence
 
 1. Déployer la migration Brevo, le worker, la fonction de statut et l'interface en gardant `CONTACT_INTERNAL_ENABLED` désactivé. Le site continue sur Make.
 2. Terminer le compte gratuit, la validation du domaine/expéditeur et les secrets Brevo.

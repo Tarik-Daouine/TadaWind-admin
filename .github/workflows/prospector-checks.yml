@@ -24,7 +24,12 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test
-      - run: npx --yes deno@2 check --no-lock --config supabase/functions/prospector-worker/deno.json supabase/functions/prospector-worker/index.ts supabase/functions/contact-submit/index.ts supabase/functions/automation-worker/index.ts supabase/functions/automation-status/index.ts supabase/functions/prospector-send-email/index.ts
+      # Globbé plutôt qu'énuméré : la liste écrite à la main a déjà cassé la CI
+      # en référençant une fonction supprimée, et laissait passer sans bruit
+      # celles qu'on ajoutait. Le motif ne retient que les points d'entrée —
+      # `_shared/` n'a pas d'index.ts, ses modules sont vérifiés via leurs
+      # importateurs.
+      - run: npx --yes deno@2 check --no-lock --config supabase/functions/prospector-worker/deno.json supabase/functions/*/index.ts
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
