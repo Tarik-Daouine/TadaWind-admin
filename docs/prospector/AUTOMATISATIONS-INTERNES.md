@@ -76,7 +76,7 @@ La référence UUID est conservée pour une saisie identique après une réponse
 - Domaine et expéditeur `contact@tadawind.com` authentifiés ; nouvelle clé enregistrée dans Supabase.
 - Deux pilotes du 10 septembre : quatre messages confirmés délivrés par Brevo. La première notification a subi un retard jusqu'au lendemain ; ne pas confondre acceptation et livraison, ni la renvoyer automatiquement.
 - `CONTACT_INTERNAL_ENABLED=true` ; code public sans Make vérifié après déploiement Vercel.
-- Test du point d'entrée public : référence `535824cc-27bc-4a64-91c1-4478eebfb7b8`, première requête acceptée, deuxième identique reconnue comme doublon. Les deux emails ont un reçu fournisseur ; livraison de la notification interne confirmée, confirmation du dernier accusé encore à contrôler.
+- Test du point d'entrée public : référence `535824cc-27bc-4a64-91c1-4478eebfb7b8`, première requête acceptée, deuxième identique reconnue comme doublon. Les deux emails sont confirmés délivrés par Brevo ; une seule ligne CRM vérifiée malgré les deux requêtes.
 - Migration `20260911081022_contact_internal_only` appliquée : suppression de la politique `public_insert_lead` et retrait INSERT à anon ; droits service_role et authenticated conservés.
 - Neuf tests Playwright du site passent, dont échec réseau et nouvelle tentative avec la même référence.
 - Reste : se reconnecter à Make, vérifier les exécutions/files puis désactiver le scénario formulaire. Le site ne l'appelle déjà plus. Ne pas prétendre que le scénario est arrêté sans vérifier son état.
