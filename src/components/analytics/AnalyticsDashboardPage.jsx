@@ -1,3 +1,4 @@
+import SiteCounts from './SiteCounts.jsx'
 import React, { useState } from 'react'
 import { DASHBOARD_PERIODS, useDashboardLeads } from '../../hooks/useDashboardLeads.js'
 import { useIsMobile } from '../../hooks/useIsMobile.js'
@@ -322,6 +323,7 @@ export default function AnalyticsDashboardPage({ onOpenLeads, onOpenLead }) {
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
       <div style={{ maxWidth: 1220, margin: '0 auto', padding: '24px 24px 36px' }}>
+        <SiteCounts />
         <div style={{
           marginBottom: 18,
           padding: mobile ? '16px' : '18px 20px',
