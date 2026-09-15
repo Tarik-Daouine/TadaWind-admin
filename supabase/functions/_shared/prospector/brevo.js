@@ -11,6 +11,7 @@ export function brevoMessage(email, sender) {
   return {
     sender:{name:'TadaWind',email:sender}, to:[{email:email.recipient}],
     subject:email.subject, textContent:email.body,
+    ...(email.html_body ? {htmlContent:email.html_body} : {}),
     replyTo:{name:'TadaWind',email:'Tada-Wind@outlook.com'},
     headers:{'X-TadaWind-Outbox-Id':email.id}, tags:['tadawind-contact'],
   }

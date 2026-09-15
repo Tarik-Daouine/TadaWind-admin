@@ -8,9 +8,9 @@ it('accepts unknown date and discards client-controlled CRM fields',()=>{
 it.each([{rgpd:false},{email:'a\nb@example.org'},{date_souhaitee:'2026-02-30'},{message:'x'.repeat(5001)},{particulier:false},{request_id:'invalid'}])('rejects invalid request %j',patch=>{
   expect(()=>validateContact({...input(),...patch})).toThrow('INVALID_INPUT')
 })
-it('does not echo arbitrary message or name into visitor receipt',()=>{
+it('does not echo the arbitrary message into visitor receipt',()=>{
   const data=validateContact({...input(),message:'Click malicious.example',prenom:'Injected content'}).data
-  const mail=contactEmails(data,'reference');expect(mail.internal).toContain('Click malicious.example');expect(mail.receipt).not.toContain('malicious');expect(mail.receipt).not.toContain('Injected')
+  const mail=contactEmails(data,'reference');expect(mail.internal).toContain('Click malicious.example');expect(mail.receipt).not.toContain('malicious');expect(mail.receipt).toContain('Injected content')
 })
 it('discards the honeypot',()=>expect(validateContact({...input(),website:'bot'})).toEqual({honeypot:true}))
 it.each([408,500,503,200,302])('never retries ambiguous HTTP %s',code=>expect(emailOutcome(code).status).toBe('unknown'))

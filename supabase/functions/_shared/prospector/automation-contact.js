@@ -24,8 +24,8 @@ export function validateContact(input) {
 export function contactEmails(data,reference) {
   return {
     internal:`Nouvelle demande depuis tadawind.com\n\nRéférence : ${reference}\nNom : ${data.prenom} ${data.nom}\nEmail : ${data.email}\nTéléphone : ${data.telephone || 'Non renseigné'}\nEntreprise : ${data.nom_entreprise || 'Non renseignée'}\nLieu : ${data.ville_lieu}\nDate : ${data.date_souhaitee || 'À définir'}\nBesoin : ${data.type_besoin}\n\n${data.message || 'Pas de message complémentaire.'}\n\nRetrouvez cette demande dans l’admin TadaWind.`,
-    // Do not echo free-form input into the receipt: prevents abusing it as a spam relay.
-    receipt:`Bonjour,\n\nVotre demande sur tadawind.com a bien été enregistrée sous la référence ${reference}.\nJe reviendrai vers vous pour préciser votre projet et sa faisabilité.\n\nTarik — TadaWind\nTada-Wind@outlook.com\nhttps://www.tadawind.com\n\nSi vous n’êtes pas à l’origine de cette demande, vous pouvez ignorer ce message.`,
+    // Only the short summary is echoed, never the visitor's free-form message.
+    receipt:`DEMANDE BIEN REÇUE\n\nBonjour ${data.prenom},\n\nMerci pour votre demande concernant votre projet à ${data.ville_lieu}.\n\nChaque mission est analysée avec rigueur afin de garantir conformité réglementaire, sécurité opérationnelle et qualité d'image.\n\nINFORMATIONS TRANSMISES\nLieu : ${data.ville_lieu}\nDate souhaitée : ${data.date_souhaitee ? data.date_souhaitee.split('-').reverse().join('/') : 'À définir'}\nType de besoin : ${data.type_besoin}\n\nUne réponse vous sera adressée sous 24 à 48 heures après étude technique et réglementaire.\n\nDÉCOUVRIR TADA-WIND : https://www.tadawind.com\n\nTarik Daouine\nTélépilote professionnel UAS\nTada-Wind\n\nCet email confirme la réception de votre demande via le site officiel.`,
   }
 }
 export function emailOutcome(status) {

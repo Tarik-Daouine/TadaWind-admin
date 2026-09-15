@@ -1,4 +1,5 @@
 import {validateContact,contactEmails} from '../_shared/prospector/automation-contact.js'
+import {contactReceiptHtml,contactInternalHtml} from '../_shared/prospector/contact-email-html.js'
 import {json,cors,sha,serviceClient} from '../_shared/prospector/automation-runtime.ts'
 Deno.serve(async request=>{
   const reply=(data:unknown,status=200)=>cors(request,json(data,status),true)
@@ -20,9 +21,10 @@ Deno.serve(async request=>{
     const {data,request_id}=validated
     const mail=contactEmails(data,request_id)
     const salt=Deno.env.get('AUTOMATION_ENCRYPTION_KEY');if(!salt) throw new Error('AUTOMATION_NOT_CONFIGURED')
-    const result=await serviceClient().rpc('automation_accept_contact',{
+    const result=await serviceClient().rpc('automation_accept_contact_html',{
       p_id:request_id,p_fingerprint:await sha(JSON.stringify(data)),p_email_hash:await sha(salt+data.email),p_data:data,
       p_internal:'Tada-Wind@outlook.com',p_internal_body:mail.internal,p_receipt_body:mail.receipt,
+      p_internal_html:contactInternalHtml(mail.internal),p_receipt_html:contactReceiptHtml(data),
     })
     if(result.error) throw new Error(result.error.message)
     if (!result.data?.duplicate) {
