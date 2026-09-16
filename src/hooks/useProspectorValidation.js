@@ -143,7 +143,7 @@ export function useProspectorValidation() {
       }
       if (error || (!data?.sent && !data?.accepted)) return { error: prospectorSendError('SEND_OUTCOME_UNKNOWN') }
       if (data?.warning === 'CONFIRM_FAILED') {
-        return { error: 'Microsoft a accepté le message, mais le suivi manque. Ne renvoie pas ce message. Vérifie Outlook puis utilise « Je l’ai envoyé ».' }
+        return { error: 'Microsoft a accepté le message, mais le suivi manque. Ne renvoie pas ce message. Une réconciliation du suivi est nécessaire.' }
       }
       dropProspect(message.prospect_id)
       return { data, error: null }
