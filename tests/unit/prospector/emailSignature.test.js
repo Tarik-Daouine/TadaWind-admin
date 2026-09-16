@@ -35,7 +35,8 @@ describe('échappement du corps', () => {
     const html = buildTadaWindEmailHtml('<img src=x onerror=alert(1)>')
     // Le gestionnaire survit en tant que texte affiché, ce qui est inoffensif :
     // ce qui compte est qu'aucune balise ne soit reconstituée.
-    expect(html).not.toContain('<img')
+    expect(html).not.toContain('<img src=x')
+    expect(html).not.toContain('onerror=alert(1)>')
     expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;')
   })
 
@@ -111,8 +112,16 @@ describe('compatibilité Outlook', () => {
     expect(html).not.toContain('class=')
   })
 
-  it('ne dépend d’aucune image externe', () => {
-    expect(buildTadaWindEmailHtml('Bonjour')).not.toContain('<img')
+  it('utilise uniquement le logo officiel avec un texte alternatif', () => {
+    const html = buildTadaWindEmailHtml('Bonjour')
+    expect(html.match(/<img /g)).toHaveLength(1)
+    expect(html).toContain('src="https://www.tadawind.com/images/logo-full.png"')
+    expect(html).toContain('alt="Tada Wind"')
+  })
+
+  it('reprend la palette sombre et rouge de Tada Wind', () => {
+    const html = buildTadaWindEmailHtml('Bonjour')
+    for (const color of ['#171A21', '#0F1115', '#E10600', '#FFFFFF']) expect(html).toContain(color)
   })
 })
 
