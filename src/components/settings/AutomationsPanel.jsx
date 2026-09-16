@@ -46,6 +46,7 @@ export default function AutomationsPanel({outlookResult}) {
         {outlook.connected?'Reconnecter Outlook':'Connecter Outlook'}
       </Button>
       {!outlook.app_configured&&<p style={{fontSize:12,color:'var(--muted)'}}>Cette connexion demande l’identifiant et le secret d’une application Microsoft prenant en charge les comptes personnels. Aucune licence Microsoft 365 n’est nécessaire.</p>}
+      {!outlook.app_configured&&outlook.missing_configuration?.length>0&&<p style={{fontSize:12,color:'var(--red)'}}>Configuration serveur manquante : {outlook.missing_configuration.join(', ')}.</p>}
     </>}
     <Button type="button" onClick={load} style={{padding:10,marginLeft:8}}>Actualiser</Button>
     <p style={{fontSize:12,color:'var(--muted)',margin:'8px 0'}}>« Accepté » signifie que le service a pris en charge l’envoi, pas que le destinataire l’a reçu. Un résultat incertain ne sera pas renvoyé automatiquement.</p>

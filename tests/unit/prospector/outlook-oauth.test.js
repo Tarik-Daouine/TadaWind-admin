@@ -34,7 +34,7 @@ const post=body=>state.handler(new Request('https://project.supabase.co/function
 it('exposes connection state without exposing Microsoft credentials',async()=>{
   state.connection={sender:'tada-wind@outlook.com',updated_at:'2026-09-16T10:00:00Z'}
   const response=await post({action:'status'}),body=await response.json()
-  expect(body).toEqual({app_configured:true,connected:true,sender:'tada-wind@outlook.com',updated_at:'2026-09-16T10:00:00Z'})
+  expect(body).toEqual({app_configured:true,missing_configuration:[],connected:true,sender:'tada-wind@outlook.com',updated_at:'2026-09-16T10:00:00Z'})
   expect(JSON.stringify(body)).not.toContain('secret')
 })
 
