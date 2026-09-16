@@ -31,11 +31,11 @@ Ont été retirés : la fonction `automation-outlook` et son flux OAuth/PKCE, le
 
 `AUTOMATION_ENCRYPTION_KEY` **reste nécessaire** : `contact-submit` s'en sert comme sel du hachage d'adresse qui alimente la limite de 5 demandes par email et par heure. Ce n'est plus une clé de chiffrement, seulement un sel — la remplacer remet les compteurs de débit à zéro.
 
-Reprendre l'envoi commercial automatique demanderait soit un compte Microsoft 365 (les quatre secrets `MS_GRAPH_*` suffisent alors, le code est déjà là), soit de réécrire un consentement délégué. Ce n'est pas un chantier en cours.
+L’envoi commercial utilise désormais un consentement délégué adapté à `Tada-Wind@outlook.com`. Il reste déclenché par deux clics humains dans l’admin. L’application Microsoft doit être enregistrée, puis la boîte connectée depuis Réglages.
 
 ## Brevo remplace Microsoft pour les emails du formulaire — décision du 9 septembre 2026
 
-Le compte gratuit Brevo sert uniquement de transport pour les notifications et accusés de réception du formulaire. Le CRM, les modèles de texte, la file, l'idempotence et le suivi restent dans Supabase et l'admin. Aucune liste de prospection n'est importée dans Brevo. L'envoi commercial reste manuel depuis Outlook. La fonction `prospector-send-email` est conservée pour un futur compte Microsoft 365 : elle n'a qu'un chemin, l'application Microsoft avec la permission `Mail.Send` d'application, et sa sonde répond « non configuré » tant que les quatre secrets `MS_GRAPH_*` manquent — le bouton d'envoi reste donc fermé.
+Le compte gratuit Brevo sert uniquement de transport pour les notifications et accusés de réception du formulaire, ainsi que pour les aperçus envoyés au propriétaire. Aucune liste de prospection n’est importée dans Brevo. Les messages commerciaux partent de la boîte Outlook personnelle avec la permission déléguée `Mail.Send` ; le bouton reste fermé tant que l’application Microsoft et la connexion de la boîte ne sont pas toutes deux actives.
 
 ### Configuration nécessaire
 

@@ -1,68 +1,43 @@
-# Envoi Outlook (Microsoft Graph)
+# Envoi Outlook personnel (Microsoft Graph)
 
-L'architecture est en place et **inactive tant que les identifiants ne sont pas déclarés**. Aucun code n'est à modifier pour l'activer : la fonction se sonde elle-même.
+La boîte d’envoi est `Tada-Wind@outlook.com`, un compte Microsoft personnel. L’admin utilise donc un consentement utilisateur délégué `Mail.Send`, puis `/me/sendMail`. L’ancien flux `client_credentials`, prévu pour une organisation Microsoft 365, n’est plus utilisé.
 
-**Vérification du 8 septembre 2026 :** cette configuration ne convient qu'à une boîte d'organisation Microsoft 365/Entra. La boîte observée dans Outlook Web est `Tada-Wind@outlook.com`, un compte personnel. Pour celle-ci, le flux `client_credentials` actuellement implémenté ne convient pas : il faut ajouter une connexion utilisateur Microsoft avec permission déléguée `Mail.Send`. Ne pas présenter l'ajout des quatre secrets comme suffisant pour cette boîte. L'envoi par Outlook Web reste possible indépendamment de l'intégration.
+Une licence Microsoft 365 n’est pas nécessaire. Microsoft impose néanmoins l’enregistrement d’une application dans un tenant Entra ; sa documentation indique qu’un compte Azure gratuit peut fournir ce tenant. L’application ne demande que `Mail.Send`, `User.Read` et `offline_access`.
 
-Référence : [types de comptes pris en charge par Microsoft](https://learn.microsoft.com/en-us/entra/identity-platform/v2-supported-account-types#account-type-support-in-authentication-flows).
+Références officielles : [enregistrer l’application](https://learn.microsoft.com/en-us/graph/auth-register-app-v2), [flux Authorization Code avec PKCE](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow), [permission Mail.Send](https://learn.microsoft.com/en-us/graph/permissions-reference#mail-send), [API sendMail](https://learn.microsoft.com/en-us/graph/api/user-sendmail?view=graph-rest-1.0).
 
-## Règle qui ne se contourne pas
+## Activation unique
 
-Aucun premier contact ne part automatiquement. Le chemin est toujours :
+1. Enregistrer une application Web prenant en charge les comptes Microsoft personnels.
+2. Déclarer exactement cette URL de redirection : `https://wxdtqkltoqzsakkdiair.supabase.co/functions/v1/automation-outlook`.
+3. Ajouter les permissions Microsoft Graph déléguées `Mail.Send` et `User.Read`. `offline_access` est demandé pendant le consentement.
+4. Créer un secret client, puis stocker l’identifiant et le secret dans Supabase sous `MS_OAUTH_CLIENT_ID` et `MS_OAUTH_CLIENT_SECRET`. Ne jamais les placer dans une variable `VITE_`.
+5. Dans Réglages > Automatisations internes, cliquer « Connecter Outlook » et sélectionner `Tada-Wind@outlook.com`. Toute autre boîte est refusée.
 
-message approuvé par un humain → clic « Envoyer » → second clic de confirmation → Edge Function → Graph → `sent` → prospect `contacted`.
+`AUTOMATION_ENCRYPTION_KEY` chiffre déjà les jetons OAuth dans la base. Le navigateur ne reçoit jamais ces jetons, le secret client ou la clé. Il apprend seulement si l’application est configurée et si la boîte est connectée.
 
-Le worker n'a aucun accès à cette fonction. Le cron ne peut pas envoyer d'email.
+## Parcours d’envoi
 
-## Où vivent les identifiants
+Aucun premier contact ne part automatiquement :
 
-Dans les **secrets Supabase**, jamais dans Vite. Tout ce qui commence par `VITE_` est compilé en clair dans le bundle public : y mettre un secret Microsoft reviendrait à le publier.
+message approuvé → clic « Envoyer depuis Outlook » → second clic de confirmation → réservation en base → renouvellement éventuel du jeton → Graph `/me/sendMail` → statut `sent` → prospect `contacted`.
 
-```bash
-supabase secrets set MS_GRAPH_TENANT_ID=... MS_GRAPH_CLIENT_ID=... MS_GRAPH_CLIENT_SECRET=... MS_GRAPH_SENDER=Tada-Wind@outlook.com
-```
+Le worker et les tâches planifiées ne peuvent pas appeler ce parcours à la place de l’utilisateur.
 
-`.env.example` ne contient que les **noms** de ces variables, en commentaire, pour mémoire.
+## Sécurité et absence de doublons
 
-## Ce que le navigateur apprend
+Le démarrage refuse un message non approuvé, une mauvaise révision, un autre canal, un prospect bloqué ou sans adresse, un message déjà envoyé et toute tentative déjà réservée. Un timeout ou une réponse ambiguë conserve le verrou : l’outil ne renvoie jamais automatiquement.
 
-Uniquement le verdict de la sonde :
+Le passage à `sent` a lieu après le `202` de Graph. Cela prouve que Microsoft a accepté la demande, pas que le destinataire l’a reçue. Les jetons d’accès et de renouvellement sont chiffrés en AES-GCM et les tables qui les contiennent sont inaccessibles aux rôles navigateur.
 
-```
-POST /functions/v1/prospector-send-email  {"probe": true}
-→ {"configured": false, "missing": [...], "sender": null}
-```
+| Code | Action |
+|---|---|
+| `GRAPH_NOT_CONFIGURED` | enregistrer/configurer l’application Microsoft |
+| `OUTLOOK_NOT_CONNECTED` | connecter la boîte depuis les réglages |
+| `OUTLOOK_RECONNECT_REQUIRED` | refaire le consentement Microsoft |
+| `GRAPH_REJECTED` | corriger l’adresse, le contenu ou la permission |
+| `GRAPH_RATE_LIMITED` | attendre avant une nouvelle tentative explicite |
+| `SEND_OUTCOME_UNKNOWN` | ne pas renvoyer ; vérifier les éléments envoyés |
+| `SEND_RECONCILIATION_REQUIRED` | vérifier puis rapprocher la tentative avant toute action |
 
-`missing` liste des noms de variables, jamais de valeurs. `sender` est l'adresse d'expédition, publique par nature. Tant que `configured` est faux, le bouton reste désactivé et l'admin propose « Copier » vers Outlook.
-
-## Côté Azure
-
-Enregistrer une application, lui accorder la permission d'application **`Mail.Send`** avec consentement administrateur, puis créer un secret client. Le flux est `client_credentials` : pas de connexion interactive, donc pas de session à renouveler — seulement le secret, à faire expirer et remplacer.
-
-Restreindre l'application à la seule boîte d'envoi via une *application access policy* Exchange est fortement recommandé : sans elle, `Mail.Send` d'application autorise l'envoi depuis **toutes** les boîtes du tenant.
-
-## Ce qui empêche le double envoi
-
-`prospector_begin_send` prend un verrou consultatif et refuse : un message non approuvé, un canal autre qu'email, un message déjà envoyé, toute réservation d'envoi existante, une révision qui ne correspond plus, un prospect sans adresse. Le verrou **ne périme jamais** : un crash ou un timeout ne prouvent pas l'absence d'envoi. Le double-clic, le rechargement et deux onglets butent sur le même verrou. Le texte et sa révision restent protégés pendant cette période.
-
-Le passage à `sent` n'a lieu qu'après un `202` de Graph (acceptation de la demande, pas preuve de livraison). La réservation n'est relâchée que si aucun appel `sendMail` n'a commencé, ou après refus HTTP explicite (4xx sauf 408). Les erreurs réseau, 408, 5xx, réponses inattendues et échecs de confirmation conservent le verrou. Même la perte de la réponse après une confirmation réussie ne permet pas un nouvel envoi : la base conserve `sent`.
-
-## Erreurs distinguées
-
-| Code | Sens | Réessayer ? |
-|---|---|---|
-| `GRAPH_AUTH_FAILED` | secret expiré, permission non consentie | non, corriger la configuration |
-| `GRAPH_REJECTED` | Graph refuse la requête (4xx) : adresse, contenu, politique | non à l'identique |
-| `GRAPH_RATE_LIMITED` | refus 429 | oui, plus tard |
-| `SEND_OUTCOME_UNKNOWN` | timeout, 408, 5xx ou réponse ambiguë pendant l'envoi | **non**, vérifier Outlook |
-| `SEND_RECONCILIATION_REQUIRED` | réservation persistante, ou libération non confirmée | **non**, vérifier l'état avant déverrouillage |
-| `CONFIRM_FAILED` (207) | Microsoft a accepté la demande, mais le suivi n'a pas été enregistré | **ne pas renvoyer**, vérifier Outlook puis confirmer le suivi |
-
-## Rapprocher un envoi incertain
-
-1. Ne pas renvoyer, y compris par copier-coller manuel. Vérifier le destinataire, l'objet, le texte et l'heure dans les éléments envoyés Outlook ; si nécessaire attendre et consulter les traces Microsoft. Une absence immédiate dans le dossier ne prouve pas un échec.
-2. Si l'envoi est confirmé, utiliser « Je l'ai envoyé » avec une référence. Cela met à jour le suivi sans émettre d'email.
-3. Si l'absence d'envoi est établie, un opérateur serveur peut appeler `prospector_release_send(p_id, p_lock_at, p_reason)` avec l'identifiant, la valeur exacte actuelle de `send_lock_at` et les éléments de vérification. Cette RPC est réservée à `service_role`, compare la tentative et journalise le motif. Ne jamais déverrouiller un lot à l'aveugle.
-4. Si l'issue demeure inconnue, conserver le verrou. Aucun réessai automatique.
-
-Tests sans email réel : `npm test`, `node scripts/prospector-release-check.mjs send-safety` (schéma isolé, rollback), `npx playwright test` (Microsoft et données simulés).
+Tests sans email réel : `npm test`, `node scripts/prospector-release-check.mjs send-safety`, `npx playwright test` et contrôle Deno de toutes les fonctions.

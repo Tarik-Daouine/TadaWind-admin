@@ -11,7 +11,8 @@ const SEND_ERRORS = {
   APPROVAL_REQUIRED: 'Ce message doit être approuvé avant de partir.',
   MESSAGE_CONFLICT: 'Le message a changé. Recharge la file avant d’envoyer.',
   GRAPH_NOT_CONFIGURED: 'L’envoi Outlook n’est pas encore configuré sur le serveur.',
-  GRAPH_AUTH_FAILED: 'Microsoft a refusé les identifiants d’envoi. Vérifie la configuration serveur.',
+  OUTLOOK_NOT_CONNECTED: 'Connecte la boîte Outlook personnelle dans les réglages avant l’envoi.',
+  OUTLOOK_RECONNECT_REQUIRED: 'La connexion Outlook a expiré ou a été révoquée. Reconnecte-la dans les réglages.',
   GRAPH_REJECTED: 'Microsoft a refusé ce message. Vérifie l’adresse du destinataire et le contenu.',
   GRAPH_UNAVAILABLE: 'Microsoft est momentanément indisponible. Réessaie dans quelques minutes.',
   SEND_CONTEXT_FAILED: 'Impossible de relire le message à envoyer. Recharge la file.',
@@ -40,7 +41,9 @@ export function describeSendAvailability({ channel, sendConfig, recipient, appro
   if (sendConfig.configured !== true) {
     return {
       sendable: false,
-      reason: 'Envoi automatique indisponible : Microsoft Graph n’est pas configuré côté serveur. L’envoi au prospect reste désactivé.',
+      reason: sendConfig.app_configured
+        ? 'La boîte Outlook personnelle doit être connectée dans les réglages avant l’envoi.'
+        : 'L’application Microsoft gratuite doit être configurée côté serveur avant de connecter Outlook.',
     }
   }
   if (!recipient) return { sendable: false, reason: 'Aucune adresse email connue pour ce prospect.' }

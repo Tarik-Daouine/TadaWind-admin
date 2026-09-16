@@ -92,6 +92,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen]         = useState(false)
   const [streamableImportSession, setStreamableImportSession] = useState(null)
   const [streamableImportOpen, setStreamableImportOpen]       = useState(false)
+  const [outlookResult] = useState(() => new URLSearchParams(window.location.search).get('outlook'))
   const searchEnabled = view === 'projects' || view === 'leads'
   const searchPlaceholderByView = {
     projects: 'Rechercher un projet…',
@@ -122,6 +123,14 @@ export default function App() {
     setStreamableImportSession(session)
     setStreamableImportOpen(true)
   }, [projects, projectsLoading])
+
+  useEffect(() => {
+    if (!session || !outlookResult) return
+    setView('settings')
+    const clean = new URL(window.location.href)
+    clean.searchParams.delete('outlook')
+    window.history.replaceState({}, '', clean.toString())
+  }, [session, outlookResult])
 
   // ── Gardes auth ───────────────────────────────────────────────────────────
   if (authLoading) return <LoadingScreen message="Initialisation…" />
@@ -462,7 +471,7 @@ export default function App() {
           {view === 'medias' && <MediaLibrary />}
 
           {/* Settings view */}
-          {view === 'settings' && <SettingsPage onToast={addToast} />}
+          {view === 'settings' && <SettingsPage onToast={addToast} outlookResult={outlookResult} />}
 
           {/* Analytics view */}
           {view === 'analytics' && <AnalyticsPage onOpenLeads={openLeadsWorkspace} onOpenLead={openLeadDetail} />}
