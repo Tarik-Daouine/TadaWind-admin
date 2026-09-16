@@ -4,7 +4,8 @@ const ADMIN='https://tarik-daouine.github.io/TadaWind-admin/'
 const ACCOUNT='tada-wind@outlook.com'
 const SCOPES='https://graph.microsoft.com/Mail.Send https://graph.microsoft.com/User.Read offline_access'
 const CALLBACK=()=>`${Deno.env.get('SUPABASE_URL')}/functions/v1/automation-outlook`
-const appConfigured=()=>Boolean(Deno.env.get('MS_OAUTH_CLIENT_ID')&&Deno.env.get('MS_OAUTH_CLIENT_SECRET')&&Deno.env.get('AUTOMATION_ENCRYPTION_KEY'))
+const missingConfiguration=()=>['MS_OAUTH_CLIENT_ID','MS_OAUTH_CLIENT_SECRET','AUTOMATION_ENCRYPTION_KEY'].filter(name=>!Deno.env.get(name))
+const appConfigured=()=>missingConfiguration().length===0
 const redirect=(status:string)=>new Response(null,{status:303,headers:{Location:`${ADMIN}?outlook=${status}`,'Cache-Control':'no-store','Referrer-Policy':'no-referrer'}})
 
 async function callback(request:Request) {
@@ -43,7 +44,7 @@ async function post(request:Request) {
     if(payload.action==='status') {
       const connection=await db.from('automation_connections').select('sender,updated_at').eq('id','outlook').maybeSingle()
       if(connection.error)return reply({error:'STATUS_UNAVAILABLE'},503)
-      return reply({app_configured:appConfigured(),connected:Boolean(connection.data),sender:connection.data?.sender||null,updated_at:connection.data?.updated_at||null})
+      return reply({app_configured:appConfigured(),missing_configuration:missingConfiguration(),connected:Boolean(connection.data),sender:connection.data?.sender||null,updated_at:connection.data?.updated_at||null})
     }
     if(payload.action!=='connect')return reply({error:'INVALID_INPUT'},400)
     if(!appConfigured())return reply({error:'MICROSOFT_APP_NOT_CONFIGURED'},503)

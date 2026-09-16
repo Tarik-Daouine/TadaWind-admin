@@ -25,8 +25,10 @@ export async function decrypt(value:string) {
 export async function requireAdmin(request:Request) {
   const auth=request.headers.get('authorization') || ''
   if (!auth.startsWith('Bearer ')) throw new Error('UNAUTHORIZED')
-  const client=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_ANON_KEY')!,{global:{headers:{authorization:auth}}})
-  const {data,error}=await client.auth.getUser()
+  const token=auth.slice(7).trim()
+  if(!token)throw new Error('UNAUTHORIZED')
+  const client=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false,autoRefreshToken:false}})
+  const {data,error}=await client.auth.getUser(token)
   if(error || !data.user || data.user.is_anonymous) throw new Error('UNAUTHORIZED')
   return data.user.id
 }
