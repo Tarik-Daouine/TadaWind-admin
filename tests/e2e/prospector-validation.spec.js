@@ -12,6 +12,13 @@ const user = { id: '11111111-1111-4111-8111-111111111111', aud: 'authenticated',
 
 const PROSPECT_ID = 'aaaaaaaa-0000-4000-8000-00000000e001'
 const SOURCE_ID = 'aaaaaaaa-0000-4000-8000-00000000e5f1'
+test.beforeEach(async ({page}) => {
+  await page.route('**/functions/v1/prospector-preview-email', async route => {
+    const payload=route.request().postDataJSON()
+    if(!payload.probe) expect(Object.keys(payload).sort()).toEqual(['message_id','revision'])
+    await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(payload.probe?{configured:true,recipient:'owner@example.invalid'}:{accepted:true,recipient:'owner@example.invalid'})})
+  })
+})
 const FACT = 'Votre domaine met en avant les mariages.'
 
 const prospect = {
@@ -68,7 +75,7 @@ function message(channel, extra = {}) {
   }
 }
 
-test('valide un brouillon : édition, approbation, puis envoi confirmé manuellement', async ({ page }, testInfo) => {
+test('valide un brouillon et envoie seulement un aperçu via l’outil', async ({ page }, testInfo) => {
   let messages = [message('email'), message('instagram_dm'), message('linkedin'), message('phone_script')]
   const calls = []
 
@@ -159,13 +166,12 @@ test('valide un brouillon : édition, approbation, puis envoi confirmé manuelle
   await expect(sendButton).toBeDisabled()
   await expect(page.getByText(/Microsoft Graph n’est pas configuré/)).toBeVisible()
 
-  await page.getByLabel('Référence de l’envoi').fill('thread-142')
-  await page.screenshot({ path: testInfo.outputPath('validation-approved.png'), fullPage: true })
-  await page.getByRole('button', { name: 'Je l’ai envoyé' }).click()
-  await expect(page.getByText('Prospect passé en « Contacté »')).toBeVisible()
-
-  const actions = calls.map(call => call.p_action ?? 'confirm_sent')
-  expect(actions).toEqual(['edit', 'approve', 'confirm_sent'])
+  await expect(page.getByRole('button', { name: 'Copier', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Je l’ai envoyé' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'M’envoyer un aperçu' }).click()
+  await expect(page.getByRole('status')).toContainText('Aperçu accepté')
+  await expect(page.getByRole('button', { name: 'M’envoyer un aperçu' })).toBeDisabled()
+  expect(calls.map(call => call.p_action)).toEqual(['edit', 'approve'])
   expect(calls[1].p_expected_revision).toBe(2)
 })
 

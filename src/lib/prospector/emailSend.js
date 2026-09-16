@@ -40,7 +40,7 @@ export function describeSendAvailability({ channel, sendConfig, recipient, appro
   if (sendConfig.configured !== true) {
     return {
       sendable: false,
-      reason: 'Envoi automatique indisponible : Microsoft Graph n’est pas configuré côté serveur. Utilise « Copier » puis Outlook.',
+      reason: 'Envoi automatique indisponible : Microsoft Graph n’est pas configuré côté serveur. L’envoi au prospect reste désactivé.',
     }
   }
   if (!recipient) return { sendable: false, reason: 'Aucune adresse email connue pour ce prospect.' }

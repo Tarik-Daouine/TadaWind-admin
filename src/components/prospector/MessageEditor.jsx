@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Button from '../ui/Button.jsx'
+import EmailPreview from './EmailPreview.jsx'
 import { SectionCard, SectionTitle } from '../ui/SectionCard.jsx'
 import { copyTadaWindEmailToClipboard, TADA_WIND_SIGNATURE_TEXT } from '../../lib/prospector/emailSignature.js'
 import { describeSendAvailability } from '../../lib/prospector/emailSend.js'
@@ -229,13 +230,15 @@ export default function MessageEditor({ messages, recommended, onSave, onApprove
         )}
       </SectionCard>
 
+      {current.channel === 'email' && <EmailPreview key={current.id+':'+current.revision} message={current} dirty={dirty} busy={busy} />}
+
       {approved && (
         <SectionCard borderColor="rgba(34,197,94,0.35)">
-          <SectionTitle accent="var(--green)" accentDim="rgba(34,197,94,0.25)">Envoi — action manuelle</SectionTitle>
+          <SectionTitle accent="var(--green)" accentDim="rgba(34,197,94,0.25)">Envoi au prospect</SectionTitle>
           <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.65, marginBottom: 10 }}>
-            Rien ne part sans ton clic. Le bouton « Copier » ajoute automatiquement la signature Tada Wind en HTML et en texte avant collage dans Outlook.
+            Rien ne part sans ton clic. L’envoi au prospect doit être effectué et confirmé par l’outil.
           </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          {current.channel !== 'email' && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <input value={sentRef} onChange={event => setSentRef(event.target.value)} placeholder="Référence (facultatif) : objet, lien, n° de conversation…"
               aria-label="Référence de l’envoi" style={{ ...inputStyle, flex: 1, minWidth: 220, fontSize: 12, padding: '7px 10px' }} />
             <Button size="sm" onClick={handleCopy}>Copier</Button>
@@ -243,7 +246,7 @@ export default function MessageEditor({ messages, recommended, onSave, onApprove
               onClick={() => onConfirmSent(current, sentRef)}>
               Je l’ai envoyé
             </Button>
-          </div>
+          </div>}
 
           {current.channel === 'email' && (
             <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
