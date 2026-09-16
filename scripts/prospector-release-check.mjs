@@ -1,7 +1,7 @@
 import {readFileSync} from 'node:fs'
 import {management} from './prospector-db.mjs'
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8')
-const migrations=['20260906103000_prospector_followup.sql','20260906103100_prospector_budget.sql','20260906103200_prospector_budget_errors.sql','20260906180000_prospector_single_channel.sql','20260907121149_prospector_location_jobs.sql','20260907135447_prospector_graph_send.sql','20260907180000_prospector_send_safety.sql']
+const migrations=['20260906103000_prospector_followup.sql','20260906103100_prospector_budget.sql','20260906103200_prospector_budget_errors.sql','20260906180000_prospector_single_channel.sql','20260907121149_prospector_location_jobs.sql','20260907135447_prospector_graph_send.sql','20260907180000_prospector_send_safety.sql','20260916130000_outlook_personal_oauth.sql']
 const ddl=migrations.map(name=>read('supabase/migrations/'+name)).join('\n')
 const fixture=read('tests/sql/prospector-review-ui.sql').split('-- Le worker')[0]
 const tests=read(process.argv[2]==='send-safety'?'tests/sql/prospector-send-safety.sql':process.argv[2]==='single-channel'?'tests/sql/prospector-single-channel.sql':'tests/sql/prospector-release.sql')
@@ -29,10 +29,10 @@ if(['internal-automations','brevo'].includes(process.argv[2])){
   // rejeu. Les migrations qui s'y adossent sont donc écartées d'ici — celle des
   // automatisations internes est couverte par le mode `internal-automations`,
   // qui s'exécute sur le schéma réel dans une transaction annulée.
-  const LEGACY_DEPENDENT=['20260908125459_internal_automations.sql','20260908125500_video_platforms.sql','20260909130000_brevo_contact.sql',
+  const LEGACY_DEPENDENT=['20260908125459_internal_automations.sql','20260908125500_video_platforms.sql','20260909130000_brevo_contact.sql','20260911081022_contact_internal_only.sql',
     // Ne fait que supprimer des tables créées par une migration déjà écartée
     // ci-dessus : rejouée seule, elle ne trouverait rien à supprimer.
-    '20260910143104_drop_outlook_oauth.sql','20260915100000_contact_html.sql','20260916100000_prospector_preview.sql']
+    '20260910143104_drop_outlook_oauth.sql','20260915100000_contact_html.sql','20260916100000_prospector_preview.sql','20260916130000_outlook_personal_oauth.sql']
   const all=readdirSync(new URL('../supabase/migrations/',import.meta.url)).filter(n=>n.endsWith('.sql')&&!LEGACY_DEPENDENT.includes(n)).sort()
   const schema=all.map(n=>read('supabase/migrations/'+n)).join('\n')
   await management('database/query',{query:"begin;set local lock_timeout='3s';set local statement_timeout='45s';create schema prospector_release_test;grant usage on schema prospector_release_test to authenticated,service_role,anon;"+isolate(schema+'\n'+fixture+'\n'+tests)+'\nrollback;'})

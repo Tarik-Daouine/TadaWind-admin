@@ -54,7 +54,8 @@ describe('destinataire retenu', () => {
 describe('échecs d’envoi expliqués', () => {
   it.each([
     ['GRAPH_NOT_CONFIGURED', 'configuré'],
-    ['GRAPH_AUTH_FAILED', 'identifiants'],
+    ['OUTLOOK_NOT_CONNECTED', 'Connecte'],
+    ['OUTLOOK_RECONNECT_REQUIRED', 'Reconnecte'],
     ['GRAPH_REJECTED', 'refusé'],
     ['GRAPH_UNAVAILABLE', 'Réessaie'],
     ['SEND_ALREADY_IN_PROGRESS', 'déjà en cours'],

@@ -1,5 +1,6 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.100.0'
 import {buildTadaWindEmailHtml, buildTadaWindEmailPlainText} from '../_shared/prospector/email-signature.js'
+import {outlookToken} from '../_shared/prospector/automation-runtime.ts'
 import {errorCode, json, serviceClient} from '../_shared/prospector/runtime.ts'
 
 // Envoi Outlook via Microsoft Graph.
@@ -12,40 +13,19 @@ import {errorCode, json, serviceClient} from '../_shared/prospector/runtime.ts'
 // Les identifiants Microsoft vivent exclusivement dans les secrets Supabase.
 // Rien n'est exposé au navigateur : le front n'apprend que « configuré ou non ».
 //
-// Un seul chemin : l'application Microsoft, avec la permission `Mail.Send`
-// d'application. Le consentement délégué a été retiré le 10 septembre 2026 —
-// il n'avait plus d'écran pour être accordé, donc plus aucun moyen d'exister.
-// Tant que les quatre secrets manquent, la sonde répond « non configuré » et
-// le bouton d'envoi reste fermé.
+// La boîte est un compte Outlook personnel : l'envoi utilise exclusivement la
+// permission déléguée Mail.Send accordée par son propriétaire.
 
 const GRAPH = 'https://graph.microsoft.com/v1.0'
-const CONFIG_KEYS = ['MS_GRAPH_TENANT_ID', 'MS_GRAPH_CLIENT_ID', 'MS_GRAPH_CLIENT_SECRET', 'MS_GRAPH_SENDER'] as const
-
-function readConfig() {
-  const values = Object.fromEntries(CONFIG_KEYS.map(key => [key, (Deno.env.get(key) ?? '').trim()]))
-  const missing = CONFIG_KEYS.filter(key => !values[key])
-  return {values, missing, configured: missing.length === 0}
+async function readConfig() {
+  const app_configured=Boolean(Deno.env.get('MS_OAUTH_CLIENT_ID')&&Deno.env.get('MS_OAUTH_CLIENT_SECRET')&&Deno.env.get('AUTOMATION_ENCRYPTION_KEY'))
+  const connection=await serviceClient().from('automation_connections').select('sender').eq('id','outlook').maybeSingle()
+  if(connection.error)return {configured:false,app_configured,connected:false,sender:null}
+  return {configured:app_configured&&Boolean(connection.data),app_configured,connected:Boolean(connection.data),sender:connection.data?.sender||null}
 }
 
-async function graphToken(cfg: Record<string, string>) {
-  const body = new URLSearchParams({
-    client_id: cfg.MS_GRAPH_CLIENT_ID,
-    client_secret: cfg.MS_GRAPH_CLIENT_SECRET,
-    scope: 'https://graph.microsoft.com/.default',
-    grant_type: 'client_credentials',
-  })
-  const response = await fetch(`https://login.microsoftonline.com/${encodeURIComponent(cfg.MS_GRAPH_TENANT_ID)}/oauth2/v2.0/token`, {
-    method: 'POST', headers: {'content-type': 'application/x-www-form-urlencoded'}, body,
-    signal: AbortSignal.timeout(20000),
-  })
-  if (!response.ok) { await response.body?.cancel(); throw new Error('GRAPH_AUTH_FAILED') }
-  const data = await response.json()
-  if (typeof data?.access_token !== 'string') throw new Error('GRAPH_AUTH_FAILED')
-  return data.access_token as string
-}
-
-async function graphSend(token: string, sender: string, to: string, subject: string, html: string, text: string) {
-  const response = await fetch(`${GRAPH}/users/${encodeURIComponent(sender)}/sendMail`, {
+async function graphSend(token: string, to: string, subject: string, html: string, text: string) {
+  const response = await fetch(`${GRAPH}/me/sendMail`, {
     method: 'POST',
     headers: {authorization: `Bearer ${token}`, 'content-type': 'application/json'},
     body: JSON.stringify({
@@ -75,13 +55,13 @@ async function handleRequest(request: Request) {
   let payload: {probe?: boolean; message_id?: string; revision?: number}
   try { payload = await request.json() } catch { return json({error: 'INVALID_INPUT'}, 400) }
 
-  const cfg = readConfig()
+  const cfg = await readConfig()
   // Sonde : permet au front de désactiver le bouton sans jamais rien apprendre
   // des identifiants eux-mêmes.
   // `sender` est l'adresse d'expédition publique, pas un secret : elle sert au
   // libellé du bouton. Aucun identifiant n'est jamais renvoyé.
-  if (payload.probe) return json({configured: cfg.configured, missing: cfg.missing, sender: cfg.values.MS_GRAPH_SENDER || null})
-  if (!cfg.configured) return json({error: 'GRAPH_NOT_CONFIGURED', missing: cfg.missing}, 503)
+  if (payload.probe) return json(cfg)
+  if (!cfg.configured) return json({error: cfg.app_configured?'OUTLOOK_NOT_CONNECTED':'GRAPH_NOT_CONFIGURED'}, 503)
 
   if (typeof payload.message_id !== 'string' || !Number.isInteger(payload.revision)) return json({error: 'INVALID_INPUT'}, 400)
 
@@ -103,15 +83,15 @@ async function handleRequest(request: Request) {
     const {recipient, subject, body} = context.data as {recipient: string | null; subject: string | null; body: string}
     if (!recipient) throw new Error('NO_RECIPIENT_EMAIL')
 
-    const token = await graphToken(cfg.values)
+    const outlook = await outlookToken()
     const html = buildTadaWindEmailHtml(body), text = buildTadaWindEmailPlainText(body)
     dispatchStarted = true
-    await graphSend(token, cfg.values.MS_GRAPH_SENDER, recipient, subject ?? '', html, text)
+    await graphSend(outlook.token, recipient, subject ?? '', html, text)
     accepted = true
 
     // Le message ne passe à `sent` qu'après un accusé de Graph.
     const confirmed = await asUser.rpc('prospector_confirm_message_sent', {
-      p_id: payload.message_id, p_expected_revision: payload.revision, p_reference: `graph:${cfg.values.MS_GRAPH_SENDER}`,
+      p_id: payload.message_id, p_expected_revision: payload.revision, p_reference: `graph:${outlook.sender}`,
     })
     if (confirmed.error) return json({accepted: true, warning: 'CONFIRM_FAILED'}, 207)
     return json({sent: true, recipient})

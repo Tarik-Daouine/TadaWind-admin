@@ -6,7 +6,7 @@ import AutomationsPanel from './AutomationsPanel.jsx'
 
 const SETTING_ID = 'main'
 
-export default function SettingsPage({ onToast }) {
+export default function SettingsPage({ onToast, outlookResult }) {
   const [form, setForm]       = useState({ site_title: '', site_description: '', contact_email: '' })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
@@ -98,7 +98,7 @@ export default function SettingsPage({ onToast }) {
         <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 4, color: 'var(--text)' }}>Réglages</h2>
         <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 32 }}>Informations générales du site public.</p>
 
-        <AutomationsPanel />
+        <AutomationsPanel outlookResult={outlookResult} />
 
         {missing && (
           <div style={{

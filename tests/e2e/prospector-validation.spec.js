@@ -86,7 +86,7 @@ test('valide un brouillon et envoie seulement un aperçu via l’outil', async (
   // l'absence de secrets Microsoft.
   await page.route('**/functions/v1/prospector-send-email', route => route.fulfill({
     status: 200, contentType: 'application/json',
-    body: JSON.stringify({ configured: false, missing: ['MS_GRAPH_TENANT_ID'], sender: null }),
+    body: JSON.stringify({ configured: false, app_configured: false, connected: false, sender: null }),
   }))
   await page.route('**/rest/v1/**', async route => {
     const request = route.request(), url = new URL(request.url())
@@ -160,11 +160,11 @@ test('valide un brouillon et envoie seulement un aperçu via l’outil', async (
   // L'envoi reste manuel et explicite.
   await expect(page.getByText('Rien ne part sans ton clic.', { exact: false })).toBeVisible()
 
-  // Tant que le serveur ne déclare pas Microsoft Graph configuré, l'envoi direct
-  // reste fermé : c'est la garantie qu'aucun premier contact ne peut partir seul.
+  // Tant que l'application Microsoft n'est pas configurée, l'envoi direct reste
+  // fermé : c'est la garantie qu'aucun premier contact ne peut partir seul.
   const sendButton = page.getByRole('button', { name: /Envoyer depuis Outlook/ })
   await expect(sendButton).toBeDisabled()
-  await expect(page.getByText(/Microsoft Graph n’est pas configuré/)).toBeVisible()
+  await expect(page.getByText(/application Microsoft gratuite doit être configurée/)).toBeVisible()
 
   await expect(page.getByRole('button', { name: 'Copier', exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Je l’ai envoyé' })).toHaveCount(0)
