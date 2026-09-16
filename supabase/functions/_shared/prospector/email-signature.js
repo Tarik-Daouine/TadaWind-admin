@@ -26,32 +26,35 @@ export function plainTextToEmailHtml(value = '') {
 }
 
 export const TADA_WIND_SIGNATURE_HTML = `${SIGNATURE_MARKER}
-<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="560" style="width:560px;border-collapse:collapse;margin-top:22px;font-family:Arial,Helvetica,sans-serif;">
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="560" style="width:100%;max-width:560px;border-collapse:collapse;margin-top:24px;font-family:Arial,Helvetica,sans-serif;">
   <tr>
-    <td width="5" bgcolor="#B78A4C" style="width:5px;background-color:#B78A4C;font-size:0;line-height:0;">&nbsp;</td>
-    <td bgcolor="#F2EFE8" style="background-color:#F2EFE8;padding:16px 18px 15px 18px;">
+    <td height="4" bgcolor="#E10600" style="height:4px;background-color:#E10600;font-size:0;line-height:0;">&nbsp;</td>
+  </tr>
+  <tr>
+    <td bgcolor="#171A21" style="background-color:#171A21;border:1px solid #292D35;border-top:0;padding:20px 22px 18px 22px;">
       <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="width:100%;border-collapse:collapse;">
         <tr>
-          <td style="font-family:Arial,Helvetica,sans-serif;color:#223033;font-size:19px;line-height:23px;font-weight:700;padding:0 0 2px 0;">Tarik Daouine</td>
-        </tr>
-        <tr>
-          <td style="font-family:Arial,Helvetica,sans-serif;color:#36534F;font-size:12px;line-height:17px;font-weight:700;letter-spacing:0.2px;padding:0 0 9px 0;">VIDÉASTE &amp; TÉLÉPILOTE DE DRONE · TADA WIND</td>
-        </tr>
-        <tr>
-          <td style="font-family:Arial,Helvetica,sans-serif;color:#5A6667;font-size:12px;line-height:18px;padding:0 0 8px 0;">Sarlat-la-Canéda · Dordogne</td>
-        </tr>
-        <tr>
-          <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;padding:0 0 9px 0;">
-            <a href="https://www.tadawind.com/" style="color:#36534F;text-decoration:none;font-weight:700;">www.tadawind.com</a>
-            <span style="color:#9A9186;">&nbsp;&nbsp;·&nbsp;&nbsp;</span>
-            <a href="mailto:Tada-Wind@outlook.com" style="color:#36534F;text-decoration:none;">Tada-Wind@outlook.com</a>
+          <td width="104" valign="middle" style="width:104px;padding:0 20px 0 0;vertical-align:middle;">
+            <a href="https://www.tadawind.com/" style="text-decoration:none;">
+              <img src="https://www.tadawind.com/images/logo-full.png" width="88" alt="Tada Wind" border="0" style="display:block;width:88px;height:auto;border:0;outline:none;text-decoration:none;">
+            </a>
           </td>
-        </tr>
-        <tr>
-          <td style="border-top:1px solid #D7D0C4;padding:8px 0 0 0;font-family:Arial,Helvetica,sans-serif;color:#6B716F;font-size:10px;line-height:15px;letter-spacing:0.15px;">Vidéo promotionnelle · Drone · Immobilier · Tourisme · Événementiel · Réseaux sociaux</td>
+          <td valign="middle" style="vertical-align:middle;border-left:1px solid #343943;padding:1px 0 1px 20px;">
+            <div style="font-family:Georgia,'Times New Roman',serif;color:#FFFFFF;font-size:21px;line-height:25px;font-weight:700;letter-spacing:0.2px;">Tarik Daouine</div>
+            <div style="font-family:Arial,Helvetica,sans-serif;color:#D6D9DE;font-size:10px;line-height:15px;font-weight:700;letter-spacing:1.05px;padding:4px 0 10px 0;">VIDÉASTE &amp; TÉLÉPILOTE DE DRONE</div>
+            <div style="font-family:Arial,Helvetica,sans-serif;color:#969CA6;font-size:11px;line-height:16px;padding:0 0 8px 0;">Sarlat-la-Canéda&nbsp;&nbsp;·&nbsp;&nbsp;Dordogne</div>
+            <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:17px;">
+              <a href="https://www.tadawind.com/" style="color:#FFFFFF;text-decoration:none;font-weight:700;">www.tadawind.com</a>
+              <span style="color:#E10600;">&nbsp;&nbsp;/&nbsp;&nbsp;</span>
+              <a href="mailto:Tada-Wind@outlook.com" style="color:#D6D9DE;text-decoration:none;">Tada-Wind@outlook.com</a>
+            </div>
+          </td>
         </tr>
       </table>
     </td>
+  </tr>
+  <tr>
+    <td bgcolor="#0F1115" style="background-color:#0F1115;border:1px solid #292D35;border-top:0;padding:9px 22px 10px 22px;font-family:Arial,Helvetica,sans-serif;color:#8E949E;font-size:9px;line-height:13px;letter-spacing:1.2px;text-align:center;">FILMS&nbsp;&nbsp;·&nbsp;&nbsp;DRONE&nbsp;&nbsp;·&nbsp;&nbsp;CONTENUS VISUELS</td>
   </tr>
 </table>`
 
