@@ -2,9 +2,17 @@ import type {SupabaseClient} from 'npm:@supabase/supabase-js@2.100.0'
 import {buildOverpassQuery,parseOverpassResponse} from './discovery.js'
 import {completeLocations} from './location.js'
 
-const USER_AGENT=Deno.env.get('NOMINATIM_USER_AGENT')||'TadaWindProspector/1.0 (admin@tada-wind.fr)'
+const USER_AGENT=Deno.env.get('NOMINATIM_USER_AGENT')||'TadaWindProspector/1.0 (contact@tadawind.com)'
 // Overpass refuse un rayon > ~200 km ; on borne la requête sans changer le rayon de campagne stocké.
 const OVERPASS_MAX_RADIUS_KM=200
+// Les instances publiques peuvent être temporairement saturées. La seconde URL
+// vise directement l'autre serveur de l'instance principale ; la troisième est
+// une instance mondiale indépendante répertoriée par OpenStreetMap.
+const OVERPASS_ENDPOINTS=[
+  'https://overpass-api.de/api/interpreter',
+  'https://z.overpass-api.de/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+]
 
 async function jsonRequest(url:string,init:RequestInit={}){
   const response=await fetch(url,{...init,headers:{accept:'application/json','user-agent':USER_AGENT,...init.headers},signal:AbortSignal.timeout(30000)})
@@ -24,6 +32,18 @@ async function geocode(address:string){
   return {lat,lng}
 }
 
+async function requestOverpass(query:string){
+  for(const [index,endpoint] of OVERPASS_ENDPOINTS.entries()){
+    try{
+      const payload=await jsonRequest(endpoint,{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded;charset=UTF-8'},body:new URLSearchParams({data:query})})
+      return {payload,endpoint}
+    }catch(error){
+      console.warn('OVERPASS_ENDPOINT_FAILED',JSON.stringify({endpoint,index,error:error instanceof Error?error.message:'UNKNOWN'}))
+    }
+  }
+  throw new Error('DISCOVERY_SOURCE_ERROR')
+}
+
 export async function runDiscovery(client:SupabaseClient,campaignId:string){
   const [campaignResult,settingsResult]=await Promise.all([
     client.from('prospect_campaigns').select('*').eq('id',campaignId).single(),
@@ -37,12 +57,11 @@ export async function runDiscovery(client:SupabaseClient,campaignId:string){
   const radiusKm=Number(filters.radius_km??settings.radius_preferred_km)
   const overpassRadiusKm=Math.min(OVERPASS_MAX_RADIUS_KM,Math.max(1,radiusKm))
   const query=buildOverpassQuery({lat:center.lat,lng:center.lng,radiusKm:overpassRadiusKm,categories:filters.categories})
-  const form=new URLSearchParams({data:query})
-  const payload=await jsonRequest('https://overpass-api.de/api/interpreter',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded;charset=UTF-8'},body:form})
+  const {payload,endpoint}=await requestOverpass(query)
   const candidates=parseOverpassResponse(payload,{maxResults:50})
   const location=await completeLocations(candidates)
   if(location.missing)console.warn('DISCOVERY_LOCATION_INCOMPLETE',JSON.stringify({campaignId,...location}))
-  const stored=await client.rpc('prospector_store_discovery',{p_campaign_id:campaignId,p_candidates:candidates,p_report:{found:candidates.length,center,radius_km:radiusKm,overpass_radius_km:overpassRadiusKm,location}})
+  const stored=await client.rpc('prospector_store_discovery',{p_campaign_id:campaignId,p_candidates:candidates,p_report:{found:candidates.length,center,radius_km:radiusKm,overpass_radius_km:overpassRadiusKm,source_endpoint:endpoint,location}})
   if(stored.error)throw new Error(stored.error.message)
   return stored.data
 }

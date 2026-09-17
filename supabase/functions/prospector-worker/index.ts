@@ -37,10 +37,14 @@ Deno.serve(async request=>{
       outcomes.push({id:job.id,status:'done'})
     }catch(error){
       const code=errorCode(error),finish=await client.rpc('prospector_finish_job',{p_id:job.id,p_claim_token:job.claim_token,p_result:null,p_error:code})
-      outcomes.push({id:job.id,status:finish.error?'finish_error':'error',error:code})
+      // Une erreur transitoire remise en file par la politique SQL n'est pas un
+      // échec du cron : GitHub doit alerter seulement si le job est réellement
+      // terminal, ou si son état n'a pas pu être enregistré.
+      const status=finish.error?'finish_error':finish.data?.status==='queued'?'retry_scheduled':'error'
+      outcomes.push({id:job.id,status,error:code})
       if(STOP_CYCLE.has(code))break
     }
   }
-  const failed=outcomes.some(outcome=>outcome.status!=='done')
+  const failed=outcomes.some(outcome=>outcome.status==='error'||outcome.status==='finish_error')
   return json({claimed:outcomes.length,outcomes,ok:!failed},failed?502:200)
 })
