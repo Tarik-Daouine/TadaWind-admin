@@ -1,14 +1,14 @@
 import {beforeEach, afterEach, it, expect, vi} from 'vitest'
-const state=vi.hoisted(()=>({handler:null,rpc:vi.fn(),copywrite:vi.fn()}))
+const state=vi.hoisted(()=>({handler:null,rpc:vi.fn(),copywrite:vi.fn(),discovery:vi.fn()}))
 vi.mock('../../../supabase/functions/_shared/prospector/runtime.ts',()=>({
   requireWorkerRequest:()=>{},serviceClient:()=>({rpc:state.rpc}),
   errorCode:e=>e.message,json:(body,status=200)=>Response.json(body,{status}),
 }))
 vi.mock('../../../supabase/functions/_shared/prospector/ai-pipeline.ts',()=>({runCopywrite:state.copywrite,runAnalyze:vi.fn(),runStrategize:vi.fn()}))
-vi.mock('../../../supabase/functions/_shared/prospector/discovery-service.ts',()=>({runDiscovery:vi.fn()}))
+vi.mock('../../../supabase/functions/_shared/prospector/discovery-service.ts',()=>({runDiscovery:state.discovery}))
 vi.mock('../../../supabase/functions/_shared/prospector/enrichment-service.ts',()=>({runEnrichment:vi.fn()}))
 beforeEach(async()=>{
-  vi.resetModules();state.rpc.mockReset();state.copywrite.mockReset()
+  vi.resetModules();state.rpc.mockReset();state.copywrite.mockReset();state.discovery.mockReset()
   vi.stubGlobal('Deno',{serve:handler=>{state.handler=handler}})
   await import('../../../supabase/functions/prospector-worker/index.ts')
 })
@@ -26,6 +26,14 @@ it('makes a recorded application failure visible to the scheduler',async()=>{
   expect(response.status).toBe(502)
   expect((await response.json()).outcomes[0]).toMatchObject({status:'error',error:'LLM_INVALID_OUTPUT'})
   expect(state.rpc.mock.calls[1][0]).toBe('prospector_finish_job')
+})
+it('keeps the scheduler green when a transient failure is already rescheduled',async()=>{
+  state.rpc.mockResolvedValueOnce({data:[{id:'job',type:'discovery',campaign_id:'campaign',claim_token:'token'}]})
+    .mockResolvedValueOnce({data:{status:'queued'}}).mockResolvedValue({data:[]})
+  state.discovery.mockRejectedValue(new Error('DISCOVERY_SOURCE_ERROR'))
+  const response=await request()
+  expect(response.status).toBe(200)
+  expect(await response.json()).toMatchObject({ok:true,outcomes:[{status:'retry_scheduled',error:'DISCOVERY_SOURCE_ERROR'}]})
 })
 it('reports a claim failure even after a successful job',async()=>{
   state.rpc.mockResolvedValueOnce({data:[{id:'job',type:'copywrite',prospect_id:'p',claim_token:'token'}]})
