@@ -1,4 +1,6 @@
 import type {SupabaseClient} from 'npm:@supabase/supabase-js@2.100.0'
+import {Buffer} from 'node:buffer'
+import {request as httpsRequest} from 'node:https'
 import {buildOverpassQuery,parseOverpassResponse} from './discovery.js'
 import {completeLocations} from './location.js'
 
@@ -37,10 +39,45 @@ async function geocode(address:string){
   return {lat,lng}
 }
 
+// Le fetch Web de l'Edge Runtime remplace User-Agent par sa propre valeur.
+// Overpass refuse cette valeur (HTTP 406). Le client Node écrit réellement
+// l'identification exigée par le service public.
+async function overpassJsonRequest(endpoint:string,query:string){
+  const body=new URLSearchParams({data:query}).toString()
+  return await new Promise<unknown>((resolve,reject)=>{
+    const request=httpsRequest(endpoint,{
+      method:'POST',
+      headers:{
+        accept:'application/json',
+        'content-type':'application/x-www-form-urlencoded;charset=UTF-8',
+        'content-length':Buffer.byteLength(body),
+        'user-agent':USER_AGENT,
+      },
+    },response=>{
+      const chunks:Buffer[]=[]
+      let size=0
+      response.on('data',(chunk:Buffer)=>{
+        size+=chunk.length
+        if(size>1_000_000){request.destroy(new Error('RESPONSE_TOO_LARGE'));return}
+        chunks.push(chunk)
+      })
+      response.on('end',()=>{
+        const status=response.statusCode??0
+        if(status===429){reject(new Error('RATE_LIMITED'));return}
+        if(status<200||status>=300){reject(new Error(`DISCOVERY_SOURCE_HTTP_${status}`));return}
+        try{resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')))}catch{reject(new Error('INVALID_DISCOVERY_RESPONSE'))}
+      })
+    })
+    request.setTimeout(30000,()=>request.destroy(new Error('FETCH_TIMEOUT')))
+    request.on('error',reject)
+    request.end(body)
+  })
+}
+
 async function requestOverpass(query:string){
   for(const [index,endpoint] of OVERPASS_ENDPOINTS.entries()){
     try{
-      const payload=await jsonRequest(endpoint,{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded;charset=UTF-8'},body:new URLSearchParams({data:query})})
+      const payload=await overpassJsonRequest(endpoint,query)
       return {payload,endpoint}
     }catch(error){
       console.warn('OVERPASS_ENDPOINT_FAILED',JSON.stringify({endpoint,index,error:error instanceof Error?error.message:'UNKNOWN'}))
