@@ -9,8 +9,11 @@ const OVERPASS_MAX_RADIUS_KM=200
 // vise directement l'autre serveur de l'instance principale ; la troisième est
 // une instance mondiale indépendante répertoriée par OpenStreetMap.
 const OVERPASS_ENDPOINTS=[
-  'https://overpass-api.de/api/interpreter',
+  // Le répartiteur principal dirige actuellement certaines requêtes françaises
+  // vers l'instance lz4 saturée. Le serveur z répond à la même API et passe en
+  // premier pour éviter de consommer tout le délai avant le repli.
   'https://z.overpass-api.de/api/interpreter',
+  'https://overpass-api.de/api/interpreter',
   'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
 ]
 
