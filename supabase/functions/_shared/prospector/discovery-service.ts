@@ -20,7 +20,9 @@ const OVERPASS_ENDPOINTS=[
 async function jsonRequest(url:string,init:RequestInit={}){
   const response=await fetch(url,{...init,headers:{accept:'application/json','user-agent':USER_AGENT,...init.headers},signal:AbortSignal.timeout(30000)})
   if(response.status===429)throw new Error('RATE_LIMITED')
-  if(!response.ok)throw new Error('DISCOVERY_SOURCE_ERROR')
+  // Le code HTTP reste uniquement dans les journaux internes de la fonction :
+  // le job conserve ensuite le code public DISCOVERY_SOURCE_ERROR.
+  if(!response.ok)throw new Error(`DISCOVERY_SOURCE_HTTP_${response.status}`)
   const text=await response.text()
   if(new TextEncoder().encode(text).byteLength>1_000_000)throw new Error('RESPONSE_TOO_LARGE')
   try{return JSON.parse(text)}catch{throw new Error('INVALID_DISCOVERY_RESPONSE')}
