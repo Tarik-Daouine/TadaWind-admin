@@ -18,6 +18,19 @@ export function prospectorJobLabel(job) {
   return actions[job?.type] ?? 'Traitement de prospection'
 }
 
+export function prospectorJobSubject(job) {
+  return job?.prospect?.name ?? job?.campaign?.name ?? (job?.type === 'discovery' ? 'Nouvelle recherche' : 'Prospect sans nom')
+}
+
+export function prospectorJobState(job) {
+  if (job?.status === 'running') return 'En cours'
+  if (job?.status === 'queued' && job?.attempts > 0) return 'Nouvelle tentative'
+  if (job?.status === 'queued') return 'En attente'
+  if (job?.status === 'done') return 'Terminé'
+  if (job?.status === 'error') return 'À vérifier'
+  return 'État inconnu'
+}
+
 export function prospectorJobError(error) {
   const labels = {
     LLM_NOT_CONFIGURED: 'La clé ou le modèle IA reste à configurer.',
@@ -53,8 +66,8 @@ export function useProspectorJobs() {
 
   const reload = useCallback(async () => {
     const result = await supabase.from('prospect_jobs')
-      .select('id,type,status,error,attempts,max_attempts,prospect_id,created_at,updated_at,run_after')
-      .order('updated_at', { ascending: false }).limit(25)
+      .select('id,type,status,error,attempts,max_attempts,prospect_id,campaign_id,created_at,updated_at,run_after,prospect:prospects(name,city),campaign:prospect_campaigns(name)')
+      .order('updated_at', { ascending: false }).limit(50)
     if (!live.current) return
     if (result.error) setError('Impossible de suivre les traitements en cours.')
     else { setJobs(result.data ?? []); setError(null) }
