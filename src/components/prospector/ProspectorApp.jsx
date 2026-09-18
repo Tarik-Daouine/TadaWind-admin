@@ -6,7 +6,8 @@ import ValidationQueue from './ValidationQueue.jsx'
 import SearchCampaign from './SearchCampaign.jsx'
 import CampaignsView from './CampaignsView.jsx'
 import DashboardProspection from './DashboardProspection.jsx'
-import { prospectorJobError, prospectorJobLabel, useProspectorJobs } from '../../hooks/useProspectorJobs.js'
+import { useProspectorJobs } from '../../hooks/useProspectorJobs.js'
+import ProcessingCenter from './ProcessingCenter.jsx'
 
 const VIEWS = [
   ['dashboard','Vue d’ensemble'],['search','Recherche'],['prospects','Prospects'],['validate','À valider'],
@@ -37,7 +38,7 @@ export default function ProspectorApp({onToast}) {
       <div style={{display:'flex',alignItems:'baseline',gap:10,marginBottom:14}}><h1 style={{fontFamily:'var(--serif)',fontSize:22,fontWeight:400}}>Prospection</h1><span style={{fontSize:11,color:'var(--muted2)'}}>assistant commercial</span></div>
       <div role="tablist" aria-label="Navigation Prospection" style={{display:'flex',gap:4,overflowX:'auto'}}>{VIEWS.map(([id,label])=><button key={id} role="tab" aria-selected={view===id} onClick={()=>setView(id)} style={{border:'none',borderBottom:`2px solid ${view===id?'var(--red)':'transparent'}`,background:'transparent',color:view===id?'var(--text)':'var(--muted)',fontFamily:'var(--sans)',fontSize:12,fontWeight:500,padding:'8px 10px 10px',cursor:'pointer',whiteSpace:'nowrap'}}>{label}</button>)}</div>
     </div>
-    <JobStatus jobs={jobs}/>
+    <ProcessingCenter jobs={jobs}/>
     {view==='prospects'&&campaign&&<div style={statusStyle}>Prospects de « {campaign.name} » <button onClick={()=>setCampaign(null)} style={{color:'var(--text)',background:'transparent',border:'1px solid var(--border)',cursor:'pointer',padding:5}}>Afficher tous les prospects</button></div>}
     <div style={{flex:1,overflow:FULL_HEIGHT_VIEWS.has(view)?'hidden':'auto'}}>
       {view==='settings' ? <ProspectorSettings onToast={onToast}/>
@@ -50,13 +51,6 @@ export default function ProspectorApp({onToast}) {
         : <Placeholder view={view} onSettings={()=>setView('settings')}/>}
     </div>
   </div>
-}
-
-function JobStatus({jobs}) {
-  if(jobs.active.length){const job=jobs.active[0];return <div role="status" style={statusStyle}><span style={{color:'var(--amber)',fontSize:15}}>●</span><span><strong>{prospectorJobLabel(job)}</strong> {job.status==='running'?'en cours':'en attente'}{jobs.active.length>1?` · ${jobs.active.length} traitements actifs`:''}</span></div>}
-  if(jobs.latestError)return <div role="alert" style={{...statusStyle,color:'var(--red)'}}><span>⚠</span><span><strong>{prospectorJobLabel(jobs.latestError)} :</strong> {prospectorJobError(jobs.latestError.error)}</span></div>
-  if(jobs.error)return <div role="alert" style={{...statusStyle,color:'var(--red)'}}>{jobs.error}</div>
-  return null
 }
 
 const statusStyle={padding:'8px 22px',borderBottom:'1px solid var(--border)',background:'var(--s2)',color:'var(--muted)',fontSize:11,display:'flex',alignItems:'center',gap:8,flexShrink:0}

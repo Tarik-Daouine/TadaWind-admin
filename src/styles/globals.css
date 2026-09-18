@@ -136,6 +136,11 @@ input, textarea, select {
   50%       { opacity: 0.4; }
 }
 
+@keyframes prospectorQueue {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(290%); }
+}
+
 /* ============================================================
    Utility Classes
    ============================================================ */
