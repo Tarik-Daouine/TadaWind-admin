@@ -7,11 +7,11 @@ import Button from '../ui/Button.jsx'
 
 const CATEGORIES = { hotels:'Hôtels et hébergements', campsites:'Campings', restaurants:'Restaurants et cafés', tourism:'Tourisme et patrimoine', events:'Lieux événementiels', real_estate:'Agences immobilières', architecture:'Architectes', leisure:'Loisirs' }
 
-export default function SearchCampaign({ onToast }) {
+export default function SearchCampaign({ onToast, onCreated, initialValues=null }) {
   const { settings, loading, error: settingsError, reload } = useProspectorSettings()
-  const [name,setName] = useState('')
-  const [radius,setRadius] = useState('')
-  const [categories,setCategories] = useState([])
+  const [name,setName] = useState(initialValues?.name??'')
+  const [radius,setRadius] = useState(initialValues?.filters?.radius_km?.toString()??'')
+  const [categories,setCategories] = useState(initialValues?.filters?.categories??[])
   const [pending,setPending] = useState(false)
   const [error,setError] = useState(null)
   const [created,setCreated] = useState(null)
@@ -34,6 +34,10 @@ export default function SearchCampaign({ onToast }) {
       setCreated(result.data)
       window.dispatchEvent(new CustomEvent('prospector:job-created'))
       onToast?.('Recherche ajoutée à la file de traitement','success')
+      onCreated?.(result.data)
+      void supabase.functions.invoke('prospector-dispatch',{body:{campaign_id:result.data.id}}).then(({error:dispatchError})=>{
+        if(dispatchError)onToast?.('Recherche enregistrée. Le démarrage automatique est retardé ; le traitement de secours va la reprendre.','info')
+      })
     } catch(cause) {
       setError(cause?.message?.includes('QUEUE_CAPACITY_REACHED') ? 'La file est pleine. Attends la fin des traitements avant de réessayer.' : 'La création de la recherche n’a pas pu être confirmée. Vérifie les traitements en cours avant de réessayer.')
     } finally { lock.current=false; setPending(false) }

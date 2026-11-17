@@ -90,6 +90,7 @@ export default function App() {
   const [chatbotTrigger, setChatbotTrigger]   = useState(0)
   const mobile                                = useIsMobile()
   const [sidebarOpen, setSidebarOpen]         = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('tadawind:sidebar-collapsed') === 'true')
   const [streamableImportSession, setStreamableImportSession] = useState(null)
   const [streamableImportOpen, setStreamableImportOpen]       = useState(false)
   const [outlookResult] = useState(() => new URLSearchParams(window.location.search).get('outlook'))
@@ -131,6 +132,10 @@ export default function App() {
     clean.searchParams.delete('outlook')
     window.history.replaceState({}, '', clean.toString())
   }, [session, outlookResult])
+
+  useEffect(() => {
+    localStorage.setItem('tadawind:sidebar-collapsed', String(sidebarCollapsed))
+  }, [sidebarCollapsed])
 
   // ── Gardes auth ───────────────────────────────────────────────────────────
   if (authLoading) return <LoadingScreen message="Initialisation…" />
@@ -282,6 +287,8 @@ export default function App() {
           newLeadsCount={newLeadsCount}
           prospectorQueueCount={prospectorQueueCount}
           mobileExpanded={sidebarOpen}
+          collapsed={!mobile && sidebarCollapsed}
+          onToggleCollapsed={() => setSidebarCollapsed(value => !value)}
         />
       </div>
 
