@@ -32,7 +32,7 @@ export default function CampaignsView({onSearch,onOpenCampaign}) {
         {[['found','Résultats trouvés'],['inserted','Fiches créées'],['skipped','Résultats écartés'],['queued_for_enrichment','Sites à collecter']].map(([key,label])=><div key={key}><dt style={{fontSize:11,color:'var(--muted)'}}>{label}</dt><dd style={{fontSize:22,margin:'5px 0 0'}}>{c.stats?.[key]??'—'}</dd></div>)}
       </dl>
       {discoveryState(c)==='Recherche en échec'&&<p style={{fontSize:12,color:'var(--red)',marginBottom:12}}>La découverte a échoué. Les éventuelles fiches déjà créées restent accessibles.</p>}
-      <Button size="sm" onClick={()=>onOpenCampaign(c)}>Voir les prospects</Button>
+      <Button size="sm" onClick={()=>onOpenCampaign(c)}>Ouvrir le suivi</Button>
     </SectionCard></article>)}
     <div style={{display:'flex',gap:10,alignItems:'center',justifyContent:'flex-end',marginTop:18,fontSize:12}}>
       <span>{count} campagne{count>1?'s':''}</span>

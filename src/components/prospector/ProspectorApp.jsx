@@ -8,6 +8,7 @@ import CampaignsView from './CampaignsView.jsx'
 import DashboardProspection from './DashboardProspection.jsx'
 import { useProspectorJobs } from '../../hooks/useProspectorJobs.js'
 import ProcessingCenter from './ProcessingCenter.jsx'
+import CampaignFocus from './CampaignFocus.jsx'
 
 const VIEWS = [
   ['dashboard','Vue d’ensemble'],['search','Recherche'],['prospects','Prospects'],['validate','À valider'],
@@ -30,21 +31,28 @@ export default function ProspectorApp({onToast}) {
   const [view,setView] = useState('dashboard')
   const [focusProspectId,setFocusProspectId] = useState(null)
   const [campaign,setCampaign] = useState(null)
+  const [focusedCampaign,setFocusedCampaign] = useState(null)
+  const [searchSeed,setSearchSeed] = useState(null)
   const jobs = useProspectorJobs()
   const openProspect = (id) => { setCampaign(null);setFocusProspectId(id); setView('prospects') }
-  const openCampaign = (item) => {setFocusProspectId(null);setCampaign(item);setView('prospects')}
+  const openCampaign = (item) => {setFocusProspectId(null);setCampaign(null);setFocusedCampaign(item);setView('search')}
+  const openCampaignProspects = () => {setCampaign(focusedCampaign);setFocusedCampaign(null);setView('prospects')}
+  const newSearch = () => {setFocusedCampaign(null);setSearchSeed(null);setView('search')}
+  const reuseSearch = (item) => {setFocusedCampaign(null);setSearchSeed({id:`${item.id}:${Date.now()}`,name:item.name,filters:item.filters});setView('search')}
   return <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',minWidth:0}}>
     <div style={{padding:'17px 22px 0',background:'var(--s1)',borderBottom:'1px solid var(--border)',flexShrink:0}}>
       <div style={{display:'flex',alignItems:'baseline',gap:10,marginBottom:14}}><h1 style={{fontFamily:'var(--serif)',fontSize:22,fontWeight:400}}>Prospection</h1><span style={{fontSize:11,color:'var(--muted2)'}}>assistant commercial</span></div>
       <div role="tablist" aria-label="Navigation Prospection" style={{display:'flex',gap:4,overflowX:'auto'}}>{VIEWS.map(([id,label])=><button key={id} role="tab" aria-selected={view===id} onClick={()=>setView(id)} style={{border:'none',borderBottom:`2px solid ${view===id?'var(--red)':'transparent'}`,background:'transparent',color:view===id?'var(--text)':'var(--muted)',fontFamily:'var(--sans)',fontSize:12,fontWeight:500,padding:'8px 10px 10px',cursor:'pointer',whiteSpace:'nowrap'}}>{label}</button>)}</div>
     </div>
-    <ProcessingCenter jobs={jobs}/>
+    {!(view==='search'&&focusedCampaign)&&<ProcessingCenter jobs={jobs}/>}
     {view==='prospects'&&campaign&&<div style={statusStyle}>Prospects de « {campaign.name} » <button onClick={()=>setCampaign(null)} style={{color:'var(--text)',background:'transparent',border:'1px solid var(--border)',cursor:'pointer',padding:5}}>Afficher tous les prospects</button></div>}
     <div style={{flex:1,overflow:FULL_HEIGHT_VIEWS.has(view)?'hidden':'auto'}}>
       {view==='settings' ? <ProspectorSettings onToast={onToast}/>
         : view==='dashboard' ? <DashboardProspection onNavigate={id=>{setCampaign(null);setFocusProspectId(null);setView(id)}}/>
         : ['contacted','followups','opportunities'].includes(view) ? <ProspectsWorkspace key={view} view={view} onToast={onToast}/>
-        : view==='search' ? <SearchCampaign onToast={onToast}/>
+        : view==='search' ? focusedCampaign
+          ? <CampaignFocus initialCampaign={focusedCampaign} onNewSearch={newSearch} onReuseCriteria={reuseSearch} onOpenProspect={openProspect} onOpenProspects={openCampaignProspects}/>
+          : <SearchCampaign key={searchSeed?.id??'new'} initialValues={searchSeed} onCreated={item=>{setSearchSeed(null);setFocusedCampaign(item)}} onToast={onToast}/>
         : view==='campaigns' ? <CampaignsView onSearch={()=>setView('search')} onOpenCampaign={openCampaign}/>
         : view==='prospects' ? <ProspectsWorkspace key={campaign?.id??'all'} onToast={onToast} focusProspectId={focusProspectId} campaignId={campaign?.id}/>
         : view==='validate' ? <ValidationQueue onToast={onToast} onOpenProspect={openProspect}/>

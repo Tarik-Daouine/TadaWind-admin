@@ -58,20 +58,31 @@ test('navigue dans Prospection et sauvegarde les réglages via la RPC protégée
   let campaignFilter
   let createdPayload
   let queuedJob = null
+  let campaignJob = null
+  let createdCampaign = null
   await page.addInitScript(({key,session})=>localStorage.setItem(key,JSON.stringify(session)),{key:`sb-${ref}-auth-token`,session:{access_token:accessToken,refresh_token:'local-refresh',expires_at:Math.floor(Date.now()/1000)+3600,expires_in:3600,token_type:'bearer',user}})
   await page.route('**/rest/v1/**', async route => {
     const request=route.request(), url=new URL(request.url())
     if(request.method()==='GET' && url.pathname.endsWith('/prospects')) campaignFilter=url.searchParams.get('campaign_id')
-    if(request.method()==='GET' && url.pathname.endsWith('/prospect_campaigns')) return route.fulfill({status:200,contentType:'application/json',headers:{'content-range':'0-1/2'},body:JSON.stringify([
-      {id:'cccccccc-cccc-4ccc-8ccc-cccccccccccc',name:'Campagne hôtels',status:'done',created_at:'2026-09-06T10:00:00Z',filters:{categories:['hotels'],radius_km:40},stats:{found:12,inserted:8,skipped:4,queued_for_enrichment:6},prospect_jobs:[{type:'discovery',status:'done',updated_at:'2026-09-06T10:01:00Z'}]},
-      {id:'dddddddd-dddd-4ddd-8ddd-dddddddddddd',name:'Recherche interrompue',status:'running',created_at:'2026-09-06T09:00:00Z',filters:{categories:['leisure'],radius_km:20},stats:{},prospect_jobs:[{type:'discovery',status:'error',error:'DISCOVERY_SOURCE_ERROR',updated_at:'2026-09-06T09:01:00Z'}]}
-    ])})
+    if(request.method()==='GET' && url.pathname.endsWith('/prospect_campaigns')) {
+      const campaigns=[
+        {id:'cccccccc-cccc-4ccc-8ccc-cccccccccccc',name:'Campagne hôtels',status:'done',created_at:'2026-09-06T10:00:00Z',updated_at:'2026-09-06T10:01:00Z',filters:{categories:['hotels'],radius_km:40},stats:{found:12,inserted:8,skipped:4,queued_for_enrichment:6},prospect_jobs:[{type:'discovery',status:'done',updated_at:'2026-09-06T10:01:00Z'}]},
+        {id:'dddddddd-dddd-4ddd-8ddd-dddddddddddd',name:'Recherche interrompue',status:'running',created_at:'2026-09-06T09:00:00Z',updated_at:'2026-09-06T09:01:00Z',filters:{categories:['leisure'],radius_km:20},stats:{},prospect_jobs:[{type:'discovery',status:'error',error:'DISCOVERY_SOURCE_ERROR',updated_at:'2026-09-06T09:01:00Z'}]}
+      ]
+      if(url.searchParams.get('id')) {
+        const id=url.searchParams.get('id').replace('eq.','')
+        return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(createdCampaign?.id===id?createdCampaign:campaigns.find(item=>item.id===id))})
+      }
+      return route.fulfill({status:200,contentType:'application/json',headers:{'content-range':'0-1/2'},body:JSON.stringify(campaigns)})
+    }
     if(request.method()==='GET' && url.pathname.endsWith('/prospector_settings')) return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(settings)})
     if(request.method()==='POST' && url.pathname.endsWith('/rpc/prospector_start_campaign')) {
       campaignPayload=JSON.parse(request.postData()||'{}')
-      return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({id:'cccccccc-cccc-4ccc-8ccc-cccccccccccc',name:campaignPayload.p_name,status:'running'})})
+      createdCampaign={id:'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',name:campaignPayload.p_name,status:'running',filters:campaignPayload.p_filters,stats:{},created_at:'2026-09-06T12:05:00Z',updated_at:'2026-09-06T12:05:00Z'}
+      campaignJob={id:'ffffffff-ffff-4fff-8fff-ffffffffffff',type:'discovery',status:'queued',error:null,attempts:0,max_attempts:3,campaign_id:createdCampaign.id,prospect_id:null,created_at:'2026-09-06T12:05:00Z',updated_at:'2026-09-06T12:05:00Z',run_after:'2026-09-06T12:05:00Z'}
+      return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(createdCampaign)})
     }
-    if(request.method()==='GET' && url.pathname.endsWith('/prospect_jobs')) return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(queuedJob?[queuedJob]:[])})
+    if(request.method()==='GET' && url.pathname.endsWith('/prospect_jobs')) return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify([campaignJob,queuedJob].filter(Boolean))})
     if(request.method()==='POST' && url.pathname.endsWith('/rpc/prospector_save_settings')) {
       savedPayload=JSON.parse(request.postData() || '{}')
       return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({...settings,...savedPayload.p_settings,min_score:45,updated_at:'2026-09-05T12:01:00Z'})})
@@ -86,31 +97,34 @@ test('navigue dans Prospection et sauvegarde les réglages via la RPC protégée
     }
     return route.fulfill({status:200,contentType:'application/json',headers:{'content-range':'0-0/0'},body:'[]'})
   })
+  await page.route('**/functions/v1/prospector-dispatch',route=>route.fulfill({status:202,contentType:'application/json',body:JSON.stringify({accepted:true})}))
   await page.goto('/')
   await expect(page.getByRole('button',{name:'Prospection'})).toBeVisible()
   await page.getByRole('button',{name:'Prospection'}).click()
   await expect(page.getByRole('heading',{name:'Prospection'})).toBeVisible()
+  await page.getByRole('button',{name:'Réduire la barre latérale'}).click()
+  await expect(page.getByRole('button',{name:'Afficher la barre latérale'})).toBeVisible()
+  await page.getByRole('button',{name:'Afficher la barre latérale'}).click()
   await expect(page.getByRole('heading',{name:'Ce que je dois faire maintenant'})).toBeVisible()
   await page.getByRole('tab',{name:'Campagnes',exact:true}).click()
   const completed=page.getByRole('article',{name:'Campagne hôtels',exact:true})
   await expect(completed).toContainText('Recherche terminée')
   await expect(completed.locator('dd')).toHaveText(['12','8','4','6'])
   await expect(page.getByRole('article',{name:'Recherche interrompue'})).toContainText('Recherche en échec')
-  await completed.getByRole('button',{name:'Voir les prospects'}).click()
-  await expect(page.getByText('Aucun prospect enregistré.')).toBeVisible()
+  await completed.getByRole('button',{name:'Ouvrir le suivi'}).click()
+  await expect(page.getByRole('heading',{name:'Campagne hôtels',exact:true})).toBeVisible()
+  await expect(page.getByText('La recherche avance étape par étape')).toBeVisible()
   expect(campaignFilter).toBe('eq.cccccccc-cccc-4ccc-8ccc-cccccccccccc')
-  await page.getByRole('button',{name:'Afficher tous les prospects'}).click()
-  await expect(page.getByRole('button',{name:'Ajouter',exact:true})).toBeVisible()
-  await expect.poll(()=>campaignFilter).toBeNull()
-  await page.getByRole('tab',{name:'Recherche',exact:true}).click()
+  await page.getByRole('button',{name:'Nouvelle recherche'}).click()
   await expect(page.getByRole('button',{name:'Lancer la recherche'})).toBeDisabled()
   await page.getByLabel('Nom de la recherche').fill('Hôtels Sarlat')
   await page.getByLabel('Hôtels et hébergements').check()
   await expect(page.getByLabel('Rayon de recherche (km)')).toHaveValue('40')
   await page.getByRole('button',{name:'Lancer la recherche'}).click()
-  await expect(page.getByText('Recherche « Hôtels Sarlat » enregistrée.',{exact:false})).toBeVisible()
+  await expect(page.getByRole('heading',{name:'Hôtels Sarlat',exact:true})).toBeVisible()
+  await expect(page.getByText('Recherche en cours')).toBeVisible()
+  await page.screenshot({path:testInfo.outputPath('prospector-campaign-focus.png'),fullPage:true})
   expect(campaignPayload).toEqual({p_name:'Hôtels Sarlat',p_filters:{categories:['hotels'],radius_km:40}})
-  await expect(page.getByRole('button',{name:'Lancer la recherche'})).toBeDisabled()
   await page.getByRole('tab',{name:'Réglages'}).click()
   await expect(page.getByRole('heading',{name:'Réglages Prospection'})).toBeVisible()
   await expect(page.getByLabel('Adresse de référence')).toHaveValue('Sarlat-la-Canéda')
@@ -133,7 +147,7 @@ test('navigue dans Prospection et sauvegarde les réglages via la RPC protégée
   await page.getByRole('button',{name:'Analyser'}).click()
   const processing=page.getByLabel('File de traitement de prospection')
   await expect(processing).toContainText('Analyse du prospect en attente')
-  await expect(processing).toContainText('1 traitement actif')
+  await expect(processing).toContainText('traitements actifs')
   await expect(processing).toContainText('En cours et en attente')
   await page.screenshot({path:testInfo.outputPath('prospector-settings.png'),fullPage:true})
 })
